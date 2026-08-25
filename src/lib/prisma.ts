@@ -11,21 +11,24 @@ const connectionString = process.env.DATABASE_URL || "";
 
 function createPrismaClient(): PrismaClient {
   try {
-    // Reuse or create a tuned persistent connection pool for Neon serverless postgres
     if (!globalForPrisma.pgPool) {
       globalForPrisma.pgPool = new pg.Pool({
         connectionString,
-        max: 10,
+        max: 20,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 5000,
+        connectionTimeoutMillis: 10000,
         keepAlive: true,
+      });
+
+      globalForPrisma.pgPool.on("error", (err) => {
+        console.error("Unexpected error on idle PostgreSQL client pool:", err);
       });
     }
 
     const adapter = new PrismaPg(globalForPrisma.pgPool);
     return new PrismaClient({
       adapter,
-      log: ["error"], // Reduce overhead in dev
+      log: ["error"],
     });
   } catch {
     return new PrismaClient({
@@ -34,8 +37,8 @@ function createPrismaClient(): PrismaClient {
   }
 }
 
-// Reset global instance in development when schema updates
-export const prisma = createPrismaClient();
+// Reuse existing global instance across hot reloads in development
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
