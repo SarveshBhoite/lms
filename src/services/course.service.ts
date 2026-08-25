@@ -127,6 +127,7 @@ export class CourseService {
    * Create a syllabus module
    */
   static async createModule(trainerId: string, data: ModuleCreateInput, isAdmin = false) {
+    if (!data.courseId) throw new Error("Course ID is required");
     const course = await prisma.course.findUnique({ where: { id: data.courseId } });
     if (!course) throw new Error("Course not found");
     if (!isAdmin && course.trainerId !== trainerId) throw new Error("Forbidden");
@@ -134,7 +135,7 @@ export class CourseService {
     return prisma.$transaction(async (tx) => {
       const mod = await tx.courseModule.create({
         data: {
-          courseId: data.courseId,
+          courseId: data.courseId!,
           title: data.title,
           description: data.description,
           orderIndex: data.orderIndex,
@@ -158,6 +159,7 @@ export class CourseService {
    * Create a lesson in a module
    */
   static async createLesson(trainerId: string, data: LessonCreateInput, isAdmin = false) {
+    if (!data.moduleId) throw new Error("Module ID is required");
     const mod = await prisma.courseModule.findUnique({
       where: { id: data.moduleId },
       include: { course: true },
@@ -168,7 +170,7 @@ export class CourseService {
     return prisma.$transaction(async (tx) => {
       const lesson = await tx.lesson.create({
         data: {
-          moduleId: data.moduleId,
+          moduleId: data.moduleId!,
           title: data.title,
           description: data.description,
           contentType: data.contentType,
