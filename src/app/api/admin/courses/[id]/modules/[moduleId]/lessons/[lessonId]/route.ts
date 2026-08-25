@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { LessonUpdateSchema } from "@/validations/course.schema";
 
 export async function PATCH(
@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; moduleId: string; lessonId: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { moduleId, lessonId } = await params;
     const body = await req.json();
     const validated = LessonUpdateSchema.parse(body);
@@ -41,7 +41,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; moduleId: string; lessonId: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { moduleId, lessonId } = await params;
 
     await prisma.lesson.delete({

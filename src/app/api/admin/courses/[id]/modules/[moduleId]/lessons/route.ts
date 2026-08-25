@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { LessonCreateSchema, LessonReorderSchema } from "@/validations/course.schema";
 
 export async function POST(
@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; moduleId: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { id: courseId, moduleId } = await params;
     const body = await req.json();
     const validated = LessonCreateSchema.parse(body);
@@ -62,7 +62,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string; moduleId: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { moduleId } = await params;
     const body = await req.json();
     const { lessonOrders } = LessonReorderSchema.parse(body);

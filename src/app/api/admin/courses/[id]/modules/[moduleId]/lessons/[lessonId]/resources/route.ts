@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { ResourceCreateSchema } from "@/validations/course.schema";
 
 export async function POST(
@@ -8,7 +8,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string; moduleId: string; lessonId: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { lessonId } = await params;
     const body = await req.json();
     const validated = ResourceCreateSchema.parse(body);
@@ -44,7 +44,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; moduleId: string; lessonId: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { searchParams } = new URL(req.url);
     const resourceId = searchParams.get("resourceId");
 

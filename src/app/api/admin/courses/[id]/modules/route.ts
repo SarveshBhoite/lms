@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { ModuleCreateSchema, ModuleReorderSchema } from "@/validations/course.schema";
 
 export async function POST(
@@ -8,12 +8,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { id: courseId } = await params;
     const body = await req.json();
     const validated = ModuleCreateSchema.parse(body);
 
-    // Verify course exists
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (!course) {
       return NextResponse.json(
@@ -22,7 +21,6 @@ export async function POST(
       );
     }
 
-    // Determine order index if not provided
     let orderIndex = validated.orderIndex;
     if (orderIndex === 0) {
       const highestModule = await prisma.courseModule.findFirst({
@@ -58,12 +56,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { id: courseId } = await params;
     const body = await req.json();
     const { moduleOrders } = ModuleReorderSchema.parse(body);
 
-    // Bulk update module orderIndex
     await prisma.$transaction(
       moduleOrders.map((m) =>
         prisma.courseModule.update({

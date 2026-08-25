@@ -9,7 +9,7 @@ export default async function AdminCourseDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await getSession();
-  if (!session || session.role !== "ADMIN") {
+  if (!session || (session.role !== "ADMIN" && session.role !== "TRAINER")) {
     redirect("/login");
   }
 
@@ -89,7 +89,6 @@ export default async function AdminCourseDetailPage({
     notFound();
   }
 
-  // Serialize dates for Client Component
   const serializedCourse = {
     ...course,
     createdAt: course.createdAt.toISOString(),

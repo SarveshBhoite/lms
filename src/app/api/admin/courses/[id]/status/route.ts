@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { CourseStatusUpdateSchema } from "@/validations/course.schema";
 
 export async function PATCH(
@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminSession = await requireAdmin();
+    const session = await requireTrainerOrAdmin();
     const { id } = await params;
     const body = await req.json();
     const { status } = CourseStatusUpdateSchema.parse(body);
@@ -21,7 +21,7 @@ export async function PATCH(
 
     await prisma.activityLog.create({
       data: {
-        userId: adminSession.userId,
+        userId: session.userId,
         action: "COURSE_STATUS_CHANGED",
         resource: `Course:${id}`,
         details: { title: updatedCourse.title, newStatus: status },

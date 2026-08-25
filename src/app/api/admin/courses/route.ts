@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { CourseCreateSchema } from "@/validations/course.schema";
 
 function slugify(text: string): string {
@@ -14,7 +14,7 @@ function slugify(text: string): string {
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("query") || "";
     const status = searchParams.get("status") || "ALL";
@@ -71,7 +71,6 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    // Calculate total lessons per course
     const formattedCourses = courses.map((course) => {
       const totalLessons = course.modules.reduce(
         (sum, m) => sum + (m._count?.lessons || 0),
@@ -94,11 +93,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const adminSession = await requireAdmin();
+    const session = await requireTrainerOrAdmin();
     const body = await req.json();
     const validatedData = CourseCreateSchema.parse(body);
 
-    // Verify assigned trainer exists and has TRAINER role or ADMIN role
     const trainerUser = await prisma.user.findUnique({
       where: { id: validatedData.trainerId },
     });
@@ -110,7 +108,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Generate unique slug
     let baseSlug = slugify(validatedData.title);
     if (!baseSlug) baseSlug = "course";
     let slug = baseSlug;
@@ -146,10 +143,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Log Activity
     await prisma.activityLog.create({
       data: {
-        userId: adminSession.userId,
+        userId: session.userId,
         action: "COURSE_CREATED",
         resource: `Course:${newCourse.id}`,
         details: {

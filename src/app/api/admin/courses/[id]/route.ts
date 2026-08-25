@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { requireAdmin, handleApiError } from "@/lib/rbac";
+import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { CourseUpdateSchema } from "@/validations/course.schema";
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await requireAdmin();
+    await requireTrainerOrAdmin();
     const { id } = await params;
 
     const course = await prisma.course.findUnique({
@@ -84,7 +84,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminSession = await requireAdmin();
+    const session = await requireTrainerOrAdmin();
     const { id } = await params;
     const body = await req.json();
     const validatedData = CourseUpdateSchema.parse(body);
@@ -136,7 +136,7 @@ export async function PATCH(
 
     await prisma.activityLog.create({
       data: {
-        userId: adminSession.userId,
+        userId: session.userId,
         action: "COURSE_UPDATED",
         resource: `Course:${updatedCourse.id}`,
         details: { title: updatedCourse.title, status: updatedCourse.status },
@@ -154,7 +154,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const adminSession = await requireAdmin();
+    const session = await requireTrainerOrAdmin();
     const { id } = await params;
 
     const course = await prisma.course.findUnique({
@@ -173,7 +173,7 @@ export async function DELETE(
 
     await prisma.activityLog.create({
       data: {
-        userId: adminSession.userId,
+        userId: session.userId,
         action: "COURSE_DELETED",
         resource: `Course:${id}`,
         details: { title: course.title },

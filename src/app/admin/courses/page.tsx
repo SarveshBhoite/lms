@@ -5,7 +5,7 @@ import CoursesClient from "./CoursesClient";
 
 export default async function AdminCoursesPage() {
   const session = await getSession();
-  if (!session || session.role !== "ADMIN") {
+  if (!session || (session.role !== "ADMIN" && session.role !== "TRAINER")) {
     redirect("/login");
   }
 
@@ -53,7 +53,6 @@ export default async function AdminCoursesPage() {
     }),
   ]);
 
-  // Format courses data
   const serializedCourses = courses.map((course) => {
     const totalLessons = course.modules.reduce(
       (sum, m) => sum + (m._count?.lessons || 0),
