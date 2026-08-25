@@ -59,18 +59,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row">
       {/* Mobile Top Nav */}
-      <div className="md:hidden h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50">
+      <div className="md:hidden h-16 border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-600 to-indigo-600 flex items-center justify-center shadow-sm">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-white text-base">EduPulse Admin</span>
+          <span className="font-bold text-slate-900 text-base">EduPulse Admin</span>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
+          className="p-2 rounded-lg bg-slate-100 text-slate-700 hover:text-slate-900"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -78,18 +78,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-slate-900/90 backdrop-blur-xl border-r border-slate-800/80 flex flex-col transition-transform duration-300 ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-sm ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         {/* Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 to-amber-500 flex items-center justify-center shadow-md shadow-rose-500/20">
+        <div className="h-16 px-6 border-b border-slate-200 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 to-indigo-600 flex items-center justify-center shadow-md shadow-rose-500/20">
             <ShieldCheck className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="font-bold text-sm text-white">JVM LMS</div>
-            <div className="text-[10px] text-rose-400 font-semibold uppercase tracking-wider">
+            <div className="font-extrabold text-sm text-slate-900">JVM LMS</div>
+            <div className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">
               Super Admin
             </div>
           </div>
@@ -99,7 +99,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {adminNavItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
             return (
               <Link
                 key={item.href}
@@ -107,11 +109,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                   isActive
-                    ? "bg-rose-600 text-white shadow-lg shadow-rose-600/20"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    ? "bg-rose-600 text-white shadow-md shadow-rose-600/20"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
                 {item.label}
               </Link>
             );
@@ -119,15 +121,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
 
         {/* User Card & Logout */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/40">
-          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+        <div className="p-3 border-t border-slate-200 bg-slate-50/50">
+          <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between shadow-xs">
             <div className="overflow-hidden mr-2">
-              <div className="text-xs font-semibold text-white truncate">{user?.name || "Aishwarya Sulagadle"}</div>
-              <div className="text-[10px] text-slate-400 font-mono truncate">{user?.email || "sulagadleaishwarya@gmail.com"}</div>
+              <div className="text-xs font-bold text-slate-900 truncate">
+                {user?.name || "Aishwarya Sulagadle"}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono truncate">
+                {user?.email || "sulagadleaishwarya@gmail.com"}
+              </div>
             </div>
             <button
               onClick={handleLogout}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition shrink-0"
+              className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition shrink-0"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -137,7 +143,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col">{children}</main>
+      <main className="flex-1 min-w-0 flex flex-col bg-slate-50">{children}</main>
     </div>
   );
 }

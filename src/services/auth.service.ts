@@ -83,6 +83,10 @@ export class AuthService {
       throw new Error("Invalid email or password.");
     }
 
+    if (user.isActive === false) {
+      throw new Error("Your account has been deactivated. Please contact an administrator.");
+    }
+
     // Update last login
     await prisma.user.update({
       where: { id: user.id },
