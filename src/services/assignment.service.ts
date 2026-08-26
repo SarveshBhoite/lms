@@ -1,13 +1,19 @@
 import prisma from "@/lib/prisma";
 import { AssignmentCreateInput, AssignmentEvaluationInput } from "@/validations/assignment.schema";
 import { SubmissionStatus } from "@prisma/client";
+import { verifyTrainerCourseAccess } from "@/lib/rbac";
 
 export class AssignmentService {
-  static async getTrainerAssignments(trainerId: string) {
+  static async getTrainerAssignments(trainerId: string, isAdmin = false) {
     return prisma.assignment.findMany({
-      where: {
-        course: { trainerId },
-      },
+      where: isAdmin
+        ? {}
+        : {
+            OR: [
+              { course: { trainerId } },
+              { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
+            ],
+          },
       include: {
         course: { select: { id: true, title: true } },
         submissions: {
@@ -22,9 +28,8 @@ export class AssignmentService {
   }
 
   static async createAssignment(trainerId: string, data: AssignmentCreateInput, isAdmin = false) {
-    const course = await prisma.course.findUnique({ where: { id: data.courseId } });
-    if (!course) throw new Error("Course not found");
-    if (!isAdmin && course.trainerId !== trainerId) throw new Error("Forbidden");
+    const hasAccess = await verifyTrainerCourseAccess(trainerId, data.courseId, isAdmin);
+    if (!hasAccess) throw new Error("Forbidden: You are not assigned to teach this course");
 
     return prisma.$transaction(async (tx) => {
       const asgn = await tx.assignment.create({
@@ -60,7 +65,8 @@ export class AssignmentService {
     });
 
     if (!submission) throw new Error("Submission not found");
-    if (!isAdmin && submission.assignment.course.trainerId !== trainerId) throw new Error("Forbidden");
+    const hasAccess = await verifyTrainerCourseAccess(trainerId, submission.assignment.courseId, isAdmin);
+    if (!hasAccess) throw new Error("Forbidden: You are not assigned to evaluate this submission");
 
     return prisma.$transaction(async (tx) => {
       const feedback = await tx.assignmentFeedback.upsert({
@@ -96,3 +102,4 @@ export class AssignmentService {
     });
   }
 }
+

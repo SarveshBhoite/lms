@@ -44,6 +44,45 @@ export async function requireTrainerOrAdmin(): Promise<SessionPayload> {
   return requireRole([Role.TRAINER, Role.ADMIN]);
 }
 
+export async function requireActiveTrainer(): Promise<SessionPayload> {
+  const session = await requireTrainerOrAdmin();
+  const prisma = (await import("./prisma")).default;
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { isActive: true, role: true },
+  });
+  if (!user || !user.isActive) {
+    throw new AuthError("Forbidden: Account is inactive or disabled", 403);
+  }
+  return session;
+}
+
+export async function verifyTrainerCourseAccess(trainerId: string, courseId: string, isRoleAdmin: boolean = false): Promise<boolean> {
+  if (isRoleAdmin) return true;
+  const prisma = (await import("./prisma")).default;
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { trainerId: true, batches: { select: { trainers: { select: { trainerId: true } } } } },
+  });
+  if (!course) return false;
+  if (course.trainerId === trainerId) return true;
+  const isBatchTrainer = course.batches.some((b) => b.trainers.some((t) => t.trainerId === trainerId));
+  return isBatchTrainer;
+}
+
+export async function verifyTrainerBatchAccess(trainerId: string, batchId: string, isRoleAdmin: boolean = false): Promise<boolean> {
+  if (isRoleAdmin) return true;
+  const prisma = (await import("./prisma")).default;
+  const batch = await prisma.batch.findUnique({
+    where: { id: batchId },
+    select: { courseId: true, course: { select: { trainerId: true } }, trainers: { select: { trainerId: true } } },
+  });
+  if (!batch) return false;
+  if (batch.course.trainerId === trainerId) return true;
+  if (batch.trainers.some((t) => t.trainerId === trainerId)) return true;
+  return false;
+}
+
 export async function requireStudent(): Promise<SessionPayload> {
   return requireRole([Role.STUDENT, Role.ADMIN]);
 }
@@ -70,3 +109,4 @@ export function handleApiError(error: unknown) {
     { status: 500 }
   );
 }
+

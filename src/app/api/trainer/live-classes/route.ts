@@ -1,22 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
-import { LiveClassCreateSchema, AttendanceMarkSchema } from "@/validations/batch.schema";
-import { BatchService } from "@/services/batch.service";
-import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
+import prisma from "@/lib/prisma";
+import { requireActiveTrainer, verifyTrainerBatchAccess, handleApiError, AuthError } from "@/lib/rbac";
+
+export async function GET(req: NextRequest) {
+  try {
+    const session = await requireActiveTrainer();
+    const isAdmin = session.role === "ADMIN";
+
+    const liveClasses = await prisma.liveClass.findMany({
+      where: isAdmin
+        ? {}
+        : {
+            OR: [
+              { trainerId: session.userId },
+              { batch: { trainers: { some: { trainerId: session.userId } } } },
+              { batch: { course: { trainerId: session.userId } } },
+            ],
+          },
+      include: {
+        batch: { select: { id: true, name: true, course: { select: { title: true } } } },
+        trainer: { select: { id: true, name: true, email: true } },
+        attendances: { select: { id: true, userId: true, status: true } },
+      },
+      orderBy: { scheduledDate: "asc" },
+    });
+
+    return NextResponse.json({ success: true, data: liveClasses });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireTrainerOrAdmin();
+    const session = await requireActiveTrainer();
+    const isAdmin = session.role === "ADMIN";
     const body = await req.json();
 
-    if (body.action === "attendance") {
-      const validated = AttendanceMarkSchema.parse(body);
-      const att = await BatchService.markAttendance(session.userId, validated);
-      return NextResponse.json({ success: true, data: att });
-    } else {
-      const validated = LiveClassCreateSchema.parse(body);
-      const liveClass = await BatchService.scheduleLiveClass(session.userId, validated);
-      return NextResponse.json({ success: true, data: liveClass }, { status: 201 });
+    const { batchId, title, scheduledDate, startTime, endTime, meetUrl, recordingUrl, description, status = "SCHEDULED" } = body;
+
+    if (!batchId || !title || !scheduledDate || !startTime || !endTime || !meetUrl) {
+      throw new Error("Missing required live class fields (batchId, title, scheduledDate, startTime, endTime, meetUrl)");
     }
+
+    // Strict batch access check
+    const hasBatchAccess = await verifyTrainerBatchAccess(session.userId, batchId, isAdmin);
+    if (!hasBatchAccess) {
+      throw new AuthError("Forbidden: You cannot schedule live classes for a batch assigned to another trainer", 403);
+    }
+
+    const liveClass = await prisma.liveClass.create({
+      data: {
+        batchId,
+        trainerId: session.userId,
+        title,
+        description: description || null,
+        scheduledDate: new Date(scheduledDate),
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        meetUrl,
+        recordingUrl: recordingUrl || null,
+        status,
+      },
+      include: {
+        batch: { select: { id: true, name: true, course: { select: { title: true } } } },
+        trainer: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    return NextResponse.json({ success: true, data: liveClass });
   } catch (error) {
     return handleApiError(error);
   }

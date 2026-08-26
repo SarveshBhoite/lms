@@ -1,12 +1,18 @@
 import prisma from "@/lib/prisma";
 import { QuizCreateInput } from "@/validations/quiz.schema";
+import { verifyTrainerCourseAccess } from "@/lib/rbac";
 
 export class QuizService {
-  static async getTrainerQuizzes(trainerId: string) {
+  static async getTrainerQuizzes(trainerId: string, isAdmin = false) {
     return prisma.quiz.findMany({
-      where: {
-        course: { trainerId },
-      },
+      where: isAdmin
+        ? {}
+        : {
+            OR: [
+              { course: { trainerId } },
+              { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
+            ],
+          },
       include: {
         course: { select: { id: true, title: true } },
         questions: {
@@ -21,9 +27,8 @@ export class QuizService {
   }
 
   static async createQuiz(trainerId: string, data: QuizCreateInput, isAdmin = false) {
-    const course = await prisma.course.findUnique({ where: { id: data.courseId } });
-    if (!course) throw new Error("Course not found");
-    if (!isAdmin && course.trainerId !== trainerId) throw new Error("Forbidden");
+    const hasAccess = await verifyTrainerCourseAccess(trainerId, data.courseId, isAdmin);
+    if (!hasAccess) throw new Error("Forbidden: You are not assigned to teach this course");
 
     return prisma.$transaction(async (tx) => {
       const quiz = await tx.quiz.create({
@@ -68,3 +73,4 @@ export class QuizService {
     });
   }
 }
+

@@ -20,7 +20,6 @@ import {
   Search,
   Menu,
   X,
-  ShieldCheck,
   Sparkles,
 } from "lucide-react";
 
@@ -96,21 +95,21 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="min-h-screen bg-[#06080F] text-slate-100 flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased">
       {/* Mobile Top Header */}
-      <div className="md:hidden h-16 border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50">
+      <div className="md:hidden h-16 border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="font-extrabold text-white text-sm">JVM LMS</div>
-            <div className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Faculty Portal</div>
+            <div className="font-extrabold text-slate-900 text-sm">JVM LMS</div>
+            <div className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Faculty Portal</div>
           </div>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
+          className="p-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -118,18 +117,18 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
 
       {/* Desktop & Drawer Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-[#090D1A]/95 backdrop-blur-xl border-r border-slate-800/80 flex flex-col transition-transform duration-300 ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-sm ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         {/* Portal Header */}
-        <div className="h-20 px-6 border-b border-slate-800/80 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/25 border border-amber-400/30">
+        <div className="h-20 px-6 border-b border-slate-200 flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/25 border border-amber-400/30">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="font-extrabold text-base text-white tracking-tight">JVM LMS</div>
-            <div className="text-[10px] text-amber-400 font-bold uppercase tracking-widest font-mono flex items-center gap-1">
+            <div className="font-extrabold text-base text-slate-900 tracking-tight">JVM LMS</div>
+            <div className="text-[10px] text-amber-600 font-bold uppercase tracking-widest font-mono flex items-center gap-1">
               <Sparkles className="w-2.5 h-2.5" /> Faculty Studio
             </div>
           </div>
@@ -139,7 +138,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
         <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
           {facultyNavGroups.map((group) => (
             <div key={group.group} className="space-y-1">
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-300 font-mono">
+              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
                 {group.group}
               </div>
               {group.items.map((item) => {
@@ -152,11 +151,11 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                       isActive
-                        ? "bg-amber-600 text-white shadow-lg shadow-amber-600/25 font-bold"
-                        : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                        ? "bg-amber-500 text-white shadow-md shadow-amber-500/20 font-bold"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
+                    <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
                     {item.label}
                   </Link>
                 );
@@ -166,15 +165,15 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
         </nav>
 
         {/* User Card & Logout */}
-        <div className="p-3 border-t border-slate-800/80 bg-slate-950/40">
-          <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+        <div className="p-3 border-t border-slate-200 bg-slate-50/50">
+          <div className="p-3 rounded-2xl bg-white border border-slate-200 flex items-center justify-between shadow-xs">
             <div className="overflow-hidden mr-2">
-              <div className="text-xs font-bold text-white truncate">{user?.name || "Prof. Marcus Thorne"}</div>
-              <div className="text-[10px] text-slate-400 font-mono truncate">{user?.email || "trainer@institute.edu"}</div>
+              <div className="text-xs font-bold text-slate-900 truncate">{user?.name || "Faculty Member"}</div>
+              <div className="text-[10px] text-slate-500 font-mono truncate">{user?.email || "trainer@institute.edu"}</div>
             </div>
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl bg-slate-800/80 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition shrink-0"
+              className="p-2 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition shrink-0"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
@@ -184,7 +183,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
       </aside>
 
       {/* Main Faculty Content Surface */}
-      <main className="flex-1 min-w-0 flex flex-col overflow-x-hidden">{children}</main>
+      <main className="flex-1 min-w-0 flex flex-col bg-slate-50 overflow-x-hidden">{children}</main>
     </div>
   );
 }
