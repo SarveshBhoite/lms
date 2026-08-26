@@ -72,6 +72,7 @@ export default function TrainerProfilePage() {
           setEmail(data.user.email || "");
           if (data.user.profile) {
             setPhone(data.user.profile.phone || "");
+            setAvatarUrl(data.user.profile.avatarUrl || "");
             setDesignation(data.user.profile.designation || "Senior Technical Instructor");
             setBio(data.user.profile.bio || "");
             setGithubUrl(data.user.profile.githubUrl || "");
@@ -95,6 +96,90 @@ export default function TrainerProfilePage() {
     setSkills(skills.filter((s) => s !== skillToRemove));
   };
 
+  // Photo Editor Modal State
+  const [photoEditorOpen, setPhotoEditorOpen] = useState(false);
+  const [tempPhotoUrl, setTempPhotoUrl] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [rotation, setRotation] = useState(0);
+  const [isGrayscale, setIsGrayscale] = useState(false);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Photo size must be less than 5MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        setTempPhotoUrl(reader.result);
+        // Reset editor filters
+        setZoom(1);
+        setBrightness(100);
+        setContrast(100);
+        setRotation(0);
+        setIsGrayscale(false);
+        setPhotoEditorOpen(true);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleOpenEditor = () => {
+    if (!avatarUrl) return;
+    setTempPhotoUrl(avatarUrl);
+    setZoom(1);
+    setBrightness(100);
+    setContrast(100);
+    setRotation(0);
+    setIsGrayscale(false);
+    setPhotoEditorOpen(true);
+  };
+
+  const handleApplyPhotoEdit = () => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      const size = 300;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+
+      if (ctx) {
+        ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) ${isGrayscale ? "grayscale(100%)" : "grayscale(0%)"}`;
+        ctx.translate(size / 2, size / 2);
+        ctx.rotate((rotation * Math.PI) / 180);
+        ctx.scale(zoom, zoom);
+
+        const aspect = img.width / img.height;
+        let drawWidth = size;
+        let drawHeight = size;
+        if (aspect > 1) {
+          drawWidth = size * aspect;
+        } else {
+          drawHeight = size / aspect;
+        }
+
+        ctx.drawImage(img, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
+        const editedDataUrl = canvas.toDataURL("image/jpeg", 0.9);
+        setAvatarUrl(editedDataUrl);
+        setPhotoEditorOpen(false);
+        setSuccessMsg("Photo edited successfully! Click 'Save Faculty Profile' to publish.");
+        setTimeout(() => setSuccessMsg(null), 3000);
+      } else {
+        setAvatarUrl(tempPhotoUrl);
+        setPhotoEditorOpen(false);
+      }
+    };
+    img.src = tempPhotoUrl;
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -115,6 +200,7 @@ export default function TrainerProfilePage() {
         body: JSON.stringify({
           name: name.trim(),
           phone: phone.trim(),
+          avatarUrl: avatarUrl.trim() || null,
           designation: designation.trim(),
           bio: formattedBio,
           githubUrl: githubUrl.trim() || null,
@@ -128,7 +214,7 @@ export default function TrainerProfilePage() {
         throw new Error(data.error || "Failed to update profile");
       }
 
-      setSuccessMsg("Faculty trainer profile, academic credentials, and security updated successfully.");
+      setSuccessMsg("Faculty trainer profile, photo, academic credentials, and security updated successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -153,6 +239,14 @@ export default function TrainerProfilePage() {
     );
   }
 
+  const PRESET_AVATARS = [
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=200&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&auto=format&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=200&auto=format&fit=crop&q=80",
+  ];
+
   return (
     <div className="p-4 sm:p-8 space-y-8 max-w-5xl w-full mx-auto">
       <div>
@@ -161,7 +255,7 @@ export default function TrainerProfilePage() {
         </div>
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Faculty Trainer Profile</h1>
         <p className="text-slate-400 text-xs sm:text-sm mt-1">
-          Manage your institutional identity, academic credentials, office hours, subject competencies, and account security.
+          Manage your institutional identity, profile photo, academic credentials, office hours, subject competencies, and account security.
         </p>
       </div>
 
@@ -180,13 +274,34 @@ export default function TrainerProfilePage() {
       )}
 
       <form onSubmit={handleSaveProfile} className="space-y-8">
-        {/* Profile Card Header with Avatar Preview */}
+        {/* Profile Card Header with Avatar Preview & Photo Controls */}
         <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-2xl relative overflow-hidden">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 flex items-center justify-center text-white text-3xl font-extrabold shadow-xl shadow-amber-500/20 border border-amber-400/30 shrink-0">
-            {name ? name.charAt(0).toUpperCase() : "T"}
+          <div className="relative group">
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={name || "Trainer Avatar"}
+                className="w-24 h-24 rounded-3xl object-cover border-2 border-amber-400/40 shadow-xl shadow-amber-500/20 shrink-0"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-amber-600 via-orange-500 to-amber-400 flex items-center justify-center text-white text-3xl font-extrabold shadow-xl shadow-amber-500/20 border border-amber-400/30 shrink-0">
+                {name ? name.charAt(0).toUpperCase() : "T"}
+              </div>
+            )}
+
+            <label className="absolute inset-0 bg-black/60 rounded-3xl flex flex-col items-center justify-center text-white text-[10px] font-bold opacity-0 group-hover:opacity-100 transition cursor-pointer gap-1">
+              <ImageIcon className="w-4 h-4 text-amber-300" />
+              <span>Change</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+            </label>
           </div>
 
-          <div className="space-y-2 text-center sm:text-left flex-1">
+          <div className="space-y-3 text-center sm:text-left flex-1">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">{name || "Faculty Member"}</h2>
               <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-[10px] font-bold uppercase">
@@ -197,8 +312,185 @@ export default function TrainerProfilePage() {
             <p className="text-xs text-slate-500 font-mono flex items-center justify-center sm:justify-start gap-1">
               <Mail className="w-3.5 h-3.5 text-amber-400/70" /> {email}
             </p>
+
+            {/* Photo Selection / Upload / Edit Action Buttons */}
+            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+              <label className="px-3 py-1.5 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 border border-amber-500/30 text-amber-300 text-xs font-bold font-mono flex items-center gap-1.5 transition cursor-pointer">
+                <ImageIcon className="w-3.5 h-3.5" /> Upload Photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  className="hidden"
+                />
+              </label>
+
+              {avatarUrl && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleOpenEditor}
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 hover:text-white text-xs font-bold font-mono flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Edit Photo
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAvatarUrl("")}
+                    className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-rose-300 text-xs font-bold font-mono transition cursor-pointer"
+                  >
+                    Remove Photo
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Preset Avatars Bar */}
+            <div className="pt-1 flex items-center justify-center sm:justify-start gap-2">
+              <span className="text-[10px] font-mono text-slate-500">Presets:</span>
+              <div className="flex gap-1.5">
+                {PRESET_AVATARS.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt="Preset"
+                    onClick={() => setAvatarUrl(url)}
+                    className={`w-7 h-7 rounded-full object-cover cursor-pointer border-2 transition hover:scale-110 ${
+                      avatarUrl === url ? "border-amber-400 ring-2 ring-amber-400/30" : "border-slate-700 opacity-70 hover:opacity-100"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Photo Editor Modal */}
+        {photoEditorOpen && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="max-w-md w-full glass-panel p-6 sm:p-7 rounded-3xl border border-slate-800 space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" /> Edit & Adjust Profile Photo
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setPhotoEditorOpen(false)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Live Filter / Crop Preview */}
+              <div className="w-48 h-48 mx-auto rounded-3xl overflow-hidden border-2 border-amber-400/50 shadow-2xl relative flex items-center justify-center bg-slate-950">
+                <img
+                  src={tempPhotoUrl}
+                  alt="Editor Preview"
+                  className="w-full h-full object-cover transition-all duration-150"
+                  style={{
+                    filter: `brightness(${brightness}%) contrast(${contrast}%) ${isGrayscale ? "grayscale(100%)" : "grayscale(0%)"}`,
+                    transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                  }}
+                />
+              </div>
+
+              {/* Adjustments Controls */}
+              <div className="space-y-3 text-xs">
+                {/* Zoom Slider */}
+                <div>
+                  <div className="flex justify-between text-slate-300 font-mono text-[11px] mb-1">
+                    <span>Zoom Scale</span>
+                    <span>{Math.round(zoom * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.8"
+                    max="2.5"
+                    step="0.05"
+                    value={zoom}
+                    onChange={(e) => setZoom(parseFloat(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Brightness Slider */}
+                <div>
+                  <div className="flex justify-between text-slate-300 font-mono text-[11px] mb-1">
+                    <span>Brightness</span>
+                    <span>{brightness}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="150"
+                    value={brightness}
+                    onChange={(e) => setBrightness(parseInt(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Contrast Slider */}
+                <div>
+                  <div className="flex justify-between text-slate-300 font-mono text-[11px] mb-1">
+                    <span>Contrast</span>
+                    <span>{contrast}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="150"
+                    value={contrast}
+                    onChange={(e) => setContrast(parseInt(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Rotate & Grayscale Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setRotation((r) => (r + 90) % 360)}
+                    className="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white text-xs font-mono font-bold transition cursor-pointer"
+                  >
+                    ↻ Rotate 90°
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsGrayscale(!isGrayscale)}
+                    className={`flex-1 py-2 rounded-xl border text-xs font-mono font-bold transition cursor-pointer ${
+                      isGrayscale
+                        ? "bg-amber-600/30 border-amber-500 text-amber-300"
+                        : "bg-slate-900 border-slate-700 text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    {isGrayscale ? "✓ B&W Filter" : "B&W Filter"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setPhotoEditorOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white text-xs font-bold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyPhotoEdit}
+                  className="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-amber-600/20 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" /> Apply Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Academic Details & Faculty Identification */}
         <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6 shadow-2xl">

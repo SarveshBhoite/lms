@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const session = await requireTrainerOrAdmin();
     const body = await req.json();
-    const { name, phone, bio, designation, githubUrl, linkedinUrl, websiteUrl, currentPassword, newPassword } = body;
+    const { name, phone, bio, designation, avatarUrl, githubUrl, linkedinUrl, websiteUrl, currentPassword, newPassword } = body;
 
     // Password change verification
     if (newPassword) {
@@ -70,6 +70,7 @@ export async function PATCH(req: NextRequest) {
             create: {
               phone: phone || null,
               bio: bio || null,
+              avatarUrl: avatarUrl || null,
               designation: designation || "Faculty Trainer",
               githubUrl: githubUrl || null,
               linkedinUrl: linkedinUrl || null,
@@ -78,6 +79,7 @@ export async function PATCH(req: NextRequest) {
             update: {
               phone: phone !== undefined ? phone : undefined,
               bio: bio !== undefined ? bio : undefined,
+              avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined,
               designation: designation !== undefined ? designation : undefined,
               githubUrl: githubUrl !== undefined ? githubUrl : undefined,
               linkedinUrl: linkedinUrl !== undefined ? linkedinUrl : undefined,
