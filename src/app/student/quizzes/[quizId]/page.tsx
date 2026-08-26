@@ -24,7 +24,7 @@ interface Option {
 interface Question {
   id: string;
   question: string;
-  type: "MCQ" | "TRUE_FALSE" | "FILL_BLANK";
+  type: "MCQ" | "MULTIPLE_ANSWER" | "TRUE_FALSE" | "FILL_BLANK";
   marks: number;
   explanation?: string;
   options: Option[];

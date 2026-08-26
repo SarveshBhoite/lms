@@ -14,7 +14,7 @@ export const QuestionCreateSchema = z.object({
   marks: z.number().int().min(1).default(1),
   explanation: z.string().optional().nullable(),
   orderIndex: z.number().int().default(0),
-  options: z.array(QuestionOptionSchema).min(2, "At least 2 options are required"),
+  options: z.array(QuestionOptionSchema).min(1, "At least 1 option or correct answer is required"),
 });
 
 export const QuizCreateSchema = z.object({

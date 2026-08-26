@@ -12,6 +12,7 @@ export default function TrainerCourseCreatePage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationHours, setDurationHours] = useState(40);
   const [level, setLevel] = useState("BEGINNER");
   const [objectives, setObjectives] = useState("");
@@ -32,6 +33,7 @@ export default function TrainerCourseCreatePage() {
         body: JSON.stringify({
           title,
           description,
+          thumbnailUrl: thumbnailUrl.trim() || undefined,
           durationHours: Number(durationHours),
           level,
           objectives: objList.length > 0 ? objList : ["Master foundational concepts", "Build scalable solutions"],
@@ -113,10 +115,10 @@ export default function TrainerCourseCreatePage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 font-mono">
-                Duration (Estimated Total Hours)
+                Duration (Hours)
               </label>
               <input
                 type="number"
@@ -143,6 +145,19 @@ export default function TrainerCourseCreatePage() {
                 <option value="ADVANCED">ADVANCED</option>
                 <option value="ALL_LEVELS">ALL_LEVELS</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 font-mono">
+                Thumbnail URL (Optional)
+              </label>
+              <input
+                type="url"
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-2xl text-white text-xs font-mono focus:outline-none focus:border-amber-500 transition"
+              />
             </div>
           </div>
 

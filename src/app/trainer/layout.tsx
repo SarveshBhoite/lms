@@ -13,6 +13,7 @@ import {
   Video,
   Calendar,
   BarChart3,
+  Bell,
   User,
   LogOut,
   Menu,

@@ -18,6 +18,7 @@ export default function TrainerCourseEditPage() {
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [durationHours, setDurationHours] = useState(40);
   const [level, setLevel] = useState("BEGINNER");
   const [status, setStatus] = useState("DRAFT");
@@ -32,6 +33,7 @@ export default function TrainerCourseEditPage() {
           const c = data.course;
           setTitle(c.title);
           setDescription(c.description);
+          setThumbnailUrl(c.thumbnailUrl || "");
           setDurationHours(c.durationHours);
           setLevel(c.level);
           setStatus(c.status);
@@ -59,6 +61,7 @@ export default function TrainerCourseEditPage() {
           courseId,
           title,
           description,
+          thumbnailUrl: thumbnailUrl.trim() || null,
           durationHours: Number(durationHours),
           level,
           status,
@@ -183,7 +186,7 @@ export default function TrainerCourseEditPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 font-mono">
                 Duration (Hours)
@@ -229,6 +232,19 @@ export default function TrainerCourseEditPage() {
                 <option value="UNPUBLISHED">UNPUBLISHED</option>
                 <option value="ARCHIVED">ARCHIVED</option>
               </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2 font-mono">
+                Thumbnail URL
+              </label>
+              <input
+                type="url"
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-2xl text-white text-xs font-mono focus:outline-none focus:border-amber-500 transition"
+              />
             </div>
           </div>
 

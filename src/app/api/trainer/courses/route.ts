@@ -39,9 +39,18 @@ export async function GET(req: NextRequest) {
     }
 
     const courses = await prisma.course.findMany({
+      where: session.role === "ADMIN" ? {} : { trainerId: session.userId },
       include: {
-        trainer: { select: { name: true } },
-        modules: { include: { lessons: true } },
+        trainer: { select: { name: true, email: true } },
+        modules: {
+          include: {
+            lessons: {
+              include: { resources: true },
+              orderBy: { orderIndex: "asc" },
+            },
+          },
+          orderBy: { orderIndex: "asc" },
+        },
         enrollments: true,
       },
       orderBy: { createdAt: "desc" },
