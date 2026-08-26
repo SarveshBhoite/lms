@@ -4,12 +4,12 @@ import { CourseStatus, Role } from "@prisma/client";
 
 export class CourseService {
   /**
-   * Get all courses belonging to a specific trainer
+   * Get all courses
    */
-  static async getTrainerCourses(trainerId: string) {
+  static async getTrainerCourses(trainerId?: string) {
     return prisma.course.findMany({
-      where: { trainerId },
       include: {
+        trainer: { select: { name: true, email: true } },
         modules: {
           include: { lessons: true },
           orderBy: { orderIndex: "asc" },
@@ -21,12 +21,13 @@ export class CourseService {
   }
 
   /**
-   * Get single course with ownership check
+   * Get single course
    */
-  static async getTrainerCourseById(courseId: string, trainerId: string, isAdmin = false) {
+  static async getTrainerCourseById(courseId: string) {
     const course = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
+        trainer: { select: { name: true, email: true } },
         modules: {
           include: {
             lessons: {
@@ -47,10 +48,6 @@ export class CourseService {
 
     if (!course) {
       throw new Error("Course not found");
-    }
-
-    if (!isAdmin && course.trainerId !== trainerId) {
-      throw new Error("Forbidden: You do not own this course");
     }
 
     return course;
@@ -97,10 +94,9 @@ export class CourseService {
   /**
    * Update course metadata
    */
-  static async updateCourse(courseId: string, trainerId: string, data: CourseUpdateInput, isAdmin = false) {
+  static async updateCourse(courseId: string, trainerId: string, data: CourseUpdateInput) {
     const existing = await prisma.course.findUnique({ where: { id: courseId } });
     if (!existing) throw new Error("Course not found");
-    if (!isAdmin && existing.trainerId !== trainerId) throw new Error("Forbidden");
 
     return prisma.$transaction(async (tx) => {
       const updated = await tx.course.update({
@@ -126,10 +122,9 @@ export class CourseService {
   /**
    * Create a syllabus module
    */
-  static async createModule(trainerId: string, data: ModuleCreateInput, isAdmin = false) {
+  static async createModule(trainerId: string, data: ModuleCreateInput) {
     const course = await prisma.course.findUnique({ where: { id: data.courseId } });
     if (!course) throw new Error("Course not found");
-    if (!isAdmin && course.trainerId !== trainerId) throw new Error("Forbidden");
 
     return prisma.$transaction(async (tx) => {
       const mod = await tx.courseModule.create({
@@ -157,13 +152,12 @@ export class CourseService {
   /**
    * Create a lesson in a module
    */
-  static async createLesson(trainerId: string, data: LessonCreateInput, isAdmin = false) {
+  static async createLesson(trainerId: string, data: LessonCreateInput) {
     const mod = await prisma.courseModule.findUnique({
       where: { id: data.moduleId },
       include: { course: true },
     });
     if (!mod) throw new Error("Module not found");
-    if (!isAdmin && mod.course.trainerId !== trainerId) throw new Error("Forbidden");
 
     return prisma.$transaction(async (tx) => {
       const lesson = await tx.lesson.create({

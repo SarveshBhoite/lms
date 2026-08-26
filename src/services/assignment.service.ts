@@ -3,11 +3,8 @@ import { AssignmentCreateInput, AssignmentEvaluationInput } from "@/validations/
 import { SubmissionStatus } from "@prisma/client";
 
 export class AssignmentService {
-  static async getTrainerAssignments(trainerId: string) {
+  static async getTrainerAssignments(trainerId?: string) {
     return prisma.assignment.findMany({
-      where: {
-        course: { trainerId },
-      },
       include: {
         course: { select: { id: true, title: true } },
         submissions: {
@@ -21,10 +18,9 @@ export class AssignmentService {
     });
   }
 
-  static async createAssignment(trainerId: string, data: AssignmentCreateInput, isAdmin = false) {
+  static async createAssignment(trainerId: string, data: AssignmentCreateInput) {
     const course = await prisma.course.findUnique({ where: { id: data.courseId } });
     if (!course) throw new Error("Course not found");
-    if (!isAdmin && course.trainerId !== trainerId) throw new Error("Forbidden");
 
     return prisma.$transaction(async (tx) => {
       const asgn = await tx.assignment.create({
@@ -32,11 +28,11 @@ export class AssignmentService {
           courseId: data.courseId,
           title: data.title,
           description: data.description,
-          instructions: data.instructions,
+          instructions: data.instructions || data.description,
           deadline: new Date(data.deadline),
           totalMarks: data.totalMarks,
-          allowedFileTypes: data.allowedFileTypes,
-          maxFileSizeMb: data.maxFileSizeMb,
+          allowedFileTypes: data.allowedFileTypes || ["URL", "ZIP", "PDF"],
+          maxFileSizeMb: data.maxFileSizeMb || 25,
         },
       });
 
@@ -53,14 +49,13 @@ export class AssignmentService {
     });
   }
 
-  static async evaluateSubmission(trainerId: string, data: AssignmentEvaluationInput, isAdmin = false) {
+  static async evaluateSubmission(trainerId: string, data: AssignmentEvaluationInput) {
     const submission = await prisma.assignmentSubmission.findUnique({
       where: { id: data.submissionId },
       include: { assignment: { include: { course: true } } },
     });
 
     if (!submission) throw new Error("Submission not found");
-    if (!isAdmin && submission.assignment.course.trainerId !== trainerId) throw new Error("Forbidden");
 
     return prisma.$transaction(async (tx) => {
       const feedback = await tx.assignmentFeedback.upsert({

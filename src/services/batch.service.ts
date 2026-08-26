@@ -3,11 +3,8 @@ import { LiveClassCreateInput, AttendanceMarkInput } from "@/validations/batch.s
 import { AttendanceStatus, LiveClassStatus } from "@prisma/client";
 
 export class BatchService {
-  static async getTrainerBatches(trainerId: string) {
+  static async getTrainerBatches(trainerId?: string) {
     return prisma.batch.findMany({
-      where: {
-        trainers: { some: { trainerId } },
-      },
       include: {
         course: true,
         students: {
@@ -31,9 +28,8 @@ export class BatchService {
     });
   }
 
-  static async getTrainerLiveClasses(trainerId: string) {
+  static async getTrainerLiveClasses(trainerId?: string) {
     return prisma.liveClass.findMany({
-      where: { trainerId },
       include: {
         batch: {
           include: {
@@ -48,6 +44,12 @@ export class BatchService {
   }
 
   static async scheduleLiveClass(trainerId: string, data: LiveClassCreateInput) {
+    const scheduledDateObj = new Date(data.scheduledDate);
+    const startTimeObj = data.startTime ? new Date(data.startTime) : scheduledDateObj;
+    const endTimeObj = data.endTime
+      ? new Date(data.endTime)
+      : new Date(scheduledDateObj.getTime() + 60 * 60 * 1000);
+
     return prisma.$transaction(async (tx) => {
       const liveClass = await tx.liveClass.create({
         data: {
@@ -55,11 +57,11 @@ export class BatchService {
           trainerId,
           title: data.title,
           description: data.description,
-          scheduledDate: new Date(data.scheduledDate),
-          startTime: new Date(data.startTime),
-          endTime: new Date(data.endTime),
+          scheduledDate: scheduledDateObj,
+          startTime: startTimeObj,
+          endTime: endTimeObj,
           meetUrl: data.meetUrl,
-          recordingUrl: data.recordingUrl,
+          recordingUrl: data.recordingUrl || null,
           status: LiveClassStatus.SCHEDULED,
         },
       });
@@ -69,7 +71,7 @@ export class BatchService {
           userId: trainerId,
           action: "LIVE_CLASS_CREATED",
           resource: `LiveClass:${liveClass.id}`,
-          details: { title: liveClass.title, batchId: liveClass.batchId },
+          details: { title: liveClass.title, scheduledDate: liveClass.scheduledDate },
         },
       });
 
@@ -78,9 +80,6 @@ export class BatchService {
   }
 
   static async markAttendance(trainerId: string, data: AttendanceMarkInput) {
-    const liveClass = await prisma.liveClass.findUnique({ where: { id: data.liveClassId } });
-    if (!liveClass || liveClass.trainerId !== trainerId) throw new Error("Forbidden or Class Not Found");
-
     return prisma.$transaction(async (tx) => {
       const att = await tx.attendance.upsert({
         where: {
@@ -102,9 +101,9 @@ export class BatchService {
       await tx.activityLog.create({
         data: {
           userId: trainerId,
-          action: "ATTENDANCE_UPDATED",
+          action: "ATTENDANCE_MARKED",
           resource: `Attendance:${att.id}`,
-          details: { status: att.status, userId: att.userId },
+          details: { status: att.status },
         },
       });
 
