@@ -1,136 +1,131 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import {
-  GraduationCap,
   LayoutDashboard,
   BookOpen,
-  HelpCircle,
-  FileText,
   Video,
+  HelpCircle,
+  FileCheck,
+  CheckSquare,
   Award,
   Bell,
   User,
+  GraduationCap,
   LogOut,
-  Menu,
-  X,
+  ChevronRight,
 } from "lucide-react";
+import prisma from "@/lib/prisma";
 
-const studentNavItems = [
-  { label: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
-  { label: "My Courses", href: "/student/courses", icon: BookOpen },
-  { label: "Quizzes", href: "/student/quizzes", icon: HelpCircle },
-  { label: "Assignments", href: "/student/assignments", icon: FileText },
-  { label: "Live Classes", href: "/student/live-classes", icon: Video },
-  { label: "Certificates", href: "/student/certificates", icon: Award },
-  { label: "Notifications", href: "/student/notifications", icon: Bell },
-  { label: "My Profile", href: "/student/profile", icon: User },
-];
+export default async function StudentLayout({ children }: { children: React.ReactNode }) {
+  const session = await getSession();
 
-export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  if (!session || (session.role !== "STUDENT" && session.role !== "ADMIN")) {
+    redirect("/login");
+  }
 
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.user) {
-          setUser(data.user);
-        }
-      });
-  }, []);
+  // Verify student isActive
+  const user = await prisma.user.findUnique({
+    where: { id: session.userId },
+    select: { isActive: true, name: true, email: true, profile: { select: { avatarUrl: true } } },
+  });
 
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  };
+  if (!user || !user.isActive) {
+    redirect("/login");
+  }
+
+  const unreadCount = await prisma.notification.count({
+    where: { userId: session.userId, isRead: false },
+  });
+
+  const navigation = [
+    { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
+    { name: "My Courses", href: "/student/courses", icon: BookOpen },
+    { name: "Live Classes", href: "/student/live-classes", icon: Video },
+    { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle },
+    { name: "Assignments", href: "/student/assignments", icon: FileCheck },
+    { name: "Attendance", href: "/student/attendance", icon: CheckSquare },
+    { name: "Certificates", href: "/student/certificates", icon: Award },
+    { name: "Notifications", href: "/student/notifications", icon: Bell, badge: unreadCount },
+    { name: "Profile", href: "/student/profile", icon: User },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
-      {/* Mobile Top Nav */}
-      <div className="md:hidden h-16 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-cyan-400 flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-white text-base">EduPulse Student</span>
-        </div>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg bg-slate-800 text-slate-300 hover:text-white"
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row selection:bg-indigo-500 selection:text-white">
       {/* Sidebar */}
-      <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-slate-900/90 backdrop-blur-xl border-r border-slate-800/80 flex flex-col transition-transform duration-300 ${
-          mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        {/* Logo */}
-        <div className="h-16 px-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <GraduationCap className="w-5 h-5 text-white" />
+      <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 shadow-xs">
+        <div>
+          {/* Header Branding */}
+          <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+            <Link href="/student/dashboard" className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/20">
+                <GraduationCap className="w-6 h-6" />
+              </div>
+              <div>
+                <span className="font-extrabold text-slate-900 text-base tracking-tight block">
+                  JVM LMS
+                </span>
+                <span className="text-[10px] font-mono text-indigo-600 font-bold uppercase tracking-wider block">
+                  Student Portal
+                </span>
+              </div>
+            </Link>
           </div>
-          <div>
-            <div className="font-bold text-sm text-white">JVM LMS</div>
-            <div className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">
-              Student Portal
-            </div>
-          </div>
+
+          {/* Navigation Links */}
+          <nav className="p-4 space-y-1">
+            {navigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="flex items-center justify-between px-3.5 py-2.5 rounded-2xl font-bold text-xs text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/70 transition group"
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className="w-4 h-4 text-slate-400 group-hover:text-indigo-600 transition" />
+                    <span>{item.name}</span>
+                  </div>
+                  {item.badge !== undefined && item.badge > 0 ? (
+                    <span className="px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono text-[10px] font-bold">
+                      {item.badge}
+                    </span>
+                  ) : (
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-400 transition" />
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {studentNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href || (item.href !== "/student/dashboard" && pathname.startsWith(item.href));
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                  isActive
-                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-400"}`} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User Card & Logout */}
-        <div className="p-3 border-t border-slate-800 bg-slate-950/40">
-          <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-            <div className="overflow-hidden mr-2">
-              <div className="text-xs font-semibold text-white truncate">{user?.name || "Sophia Martinez"}</div>
-              <div className="text-[10px] text-slate-400 font-mono truncate">{user?.email || "sophia.student@institute.edu"}</div>
+        {/* User Info & Logout Footer */}
+        <div className="p-4 border-t border-slate-100 space-y-3">
+          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-100 border border-indigo-200 text-indigo-700 font-extrabold flex items-center justify-center text-xs shrink-0">
+              {user.name.charAt(0)}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 hover:text-rose-400 text-slate-400 transition shrink-0"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="overflow-hidden">
+              <div className="font-bold text-slate-900 text-xs truncate">{user.name}</div>
+              <div className="text-[10px] text-slate-500 font-mono truncate">{user.email}</div>
+            </div>
           </div>
+
+          <form action="/api/auth/logout" method="POST">
+            <button
+              type="submit"
+              className="w-full py-2.5 px-3 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold text-xs transition flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4" /> Sign Out
+            </button>
+          </form>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col">{children}</main>
+      <main className="flex-1 overflow-y-auto min-h-screen">
+        {children}
+      </main>
     </div>
   );
 }

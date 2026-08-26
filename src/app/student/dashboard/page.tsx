@@ -1,175 +1,304 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { getSession } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
 import {
-  GraduationCap,
   BookOpen,
-  Play,
-  Award,
-  Calendar,
-  LogOut,
-  Clock,
-  CheckCircle2,
-  FileText,
-  HelpCircle,
   Video,
+  HelpCircle,
+  FileCheck,
+  Award,
+  ArrowRight,
+  Clock,
+  Play,
+  Bell,
+  CheckCircle2,
+  Users,
 } from "lucide-react";
 
-interface StudentUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-export default function StudentDashboardPage() {
-  const router = useRouter();
-  const [user, setUser] = useState<StudentUser | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/auth/me")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.user) {
-          setUser(data.user);
-        } else {
-          router.push("/login");
-        }
-      })
-      .catch(() => router.push("/login"))
-      .finally(() => setLoading(false));
-  }, [router]);
-
-  const handleLogout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mr-3"></div>
-        Loading Student Space...
-      </div>
-    );
+export default async function StudentDashboardPage() {
+  const session = await getSession();
+  if (!session || (session.role !== "STUDENT" && session.role !== "ADMIN")) {
+    redirect("/login");
   }
 
+  const studentId = session.userId;
+
+  const [
+    student,
+    enrollments,
+    courseProgresses,
+    liveClasses,
+    quizAttempts,
+    assignmentSubmissions,
+    notifications,
+    certificates,
+  ] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: studentId },
+      select: { name: true, email: true },
+    }),
+    prisma.enrollment.findMany({
+      where: { userId: studentId, status: "ACTIVE" },
+      include: {
+        course: {
+          include: {
+            trainer: { select: { name: true } },
+          },
+        },
+        batch: { select: { name: true } },
+      },
+    }),
+    prisma.courseProgress.findMany({
+      where: { userId: studentId },
+      include: { course: { select: { id: true, title: true } } },
+    }),
+    prisma.liveClass.findMany({
+      where: {
+        batch: { students: { some: { userId: studentId } } },
+        status: { in: ["SCHEDULED", "LIVE"] },
+      },
+      include: {
+        batch: { select: { name: true, course: { select: { title: true } } } },
+        trainer: { select: { name: true } },
+      },
+      orderBy: { scheduledDate: "asc" },
+      take: 3,
+    }),
+    prisma.quizAttempt.findMany({
+      where: { userId: studentId },
+      select: { quizId: true },
+    }),
+    prisma.assignmentSubmission.findMany({
+      where: { userId: studentId },
+      select: { assignmentId: true },
+    }),
+    prisma.notification.findMany({
+      where: { userId: studentId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+    }),
+    prisma.certificate.findMany({
+      where: { userId: studentId },
+      include: { course: { select: { title: true } } },
+    }),
+  ]);
+
+  const enrolledCourseIds = enrollments.map((e) => e.courseId);
+
+  const [availableQuizzes, availableAssignments] = await Promise.all([
+    prisma.quiz.findMany({
+      where: { courseId: { in: enrolledCourseIds }, status: "PUBLISHED" },
+      select: { id: true },
+    }),
+    prisma.assignment.findMany({
+      where: { courseId: { in: enrolledCourseIds } },
+      select: { id: true },
+    }),
+  ]);
+
+  const attemptedQuizIds = new Set(quizAttempts.map((q) => q.quizId));
+  const submittedAssignmentIds = new Set(assignmentSubmissions.map((a) => a.assignmentId));
+
+  const pendingQuizzesCount = availableQuizzes.filter((q) => !attemptedQuizIds.has(q.id)).length;
+  const pendingAssignmentsCount = availableAssignments.filter((a) => !submittedAssignmentIds.has(a.id)).length;
+
+  const totalProgressPcts = courseProgresses.map((cp) => cp.progressPercent);
+  const overallProgressPercent =
+    totalProgressPcts.length > 0
+      ? totalProgressPcts.reduce((a, b) => a + b, 0) / totalProgressPcts.length
+      : 0;
+
+  const lastActiveProgress = courseProgresses.sort(
+    (a, b) => new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime()
+  )[0];
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      {/* Top Navbar */}
-      <header className="h-16 border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-40 px-4 sm:px-8 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <GraduationCap className="w-5 h-5 text-white" />
+    <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
+      {/* Welcome Banner */}
+      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-1">
+          <div className="text-xs font-mono font-bold text-indigo-600 uppercase tracking-wider">
+            STUDENT DASHBOARD
           </div>
-          <div>
-            <div className="font-bold text-base text-white flex items-center gap-2">
-              EduPulse <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Student Portal</span>
-            </div>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
+            Welcome back, {student?.name}!
+          </h1>
+          <p className="text-slate-500 text-xs font-medium">
+            Continue learning your enrolled courses, view live sessions, and complete your tasks.
+          </p>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <div className="text-xs font-semibold text-white">{user?.name || "Sophia Martinez"}</div>
-            <div className="text-[11px] text-slate-400 font-mono">{user?.email || "sophia.student@institute.edu"}</div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-medium"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Layout */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-8">
-        {/* Welcome & Continue Learning Banner */}
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-950/60 via-purple-950/40 to-slate-900 border border-indigo-500/20 shadow-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-300 text-xs font-semibold border border-indigo-500/20">
-              Active Cohort: Next.js Cohort Alpha
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
-              Welcome back, {user?.name?.split(" ")[0] || "Sophia"}! 🚀
-            </h1>
-            <p className="text-slate-400 text-sm max-w-xl">
-              You are currently 33% through <span className="text-indigo-300 font-medium">Full-Stack Next.js 15 & TypeScript Mastery</span>.
-            </p>
-          </div>
-          <a
-            href="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4"
-            target="_blank"
-            rel="noreferrer"
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 hover:scale-[1.02] flex items-center gap-2 transition shrink-0"
+        {lastActiveProgress && (
+          <Link
+            href={`/student/courses/${lastActiveProgress.courseId}`}
+            className="px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2 transition shrink-0"
           >
             <Play className="w-4 h-4 fill-white" /> Continue Learning
-          </a>
+          </Link>
+        )}
+      </div>
+
+      {/* Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-mono text-slate-500 uppercase font-bold">Enrolled Courses</span>
+            <div className="w-9 h-9 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center">
+              <BookOpen className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900">{enrollments.length}</div>
+          <p className="text-[11px] text-slate-500 font-mono">Active cohorts enrolled</p>
         </div>
 
-        {/* Progress Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Enrolled Course Card */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Enrolled Course</span>
-              <BookOpen className="w-5 h-5 text-indigo-400" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Full-Stack Next.js 15 & TypeScript Mastery</h3>
-            <p className="text-xs text-slate-400">Trainer: Prof. Marcus Thorne</p>
-            
-            {/* Progress Bar */}
-            <div className="space-y-1.5 pt-2">
-              <div className="flex justify-between text-xs font-medium">
-                <span className="text-slate-300">Course Progress</span>
-                <span className="text-indigo-400">33.3% (1 / 3 Lessons)</span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full" style={{ width: "33.3%" }} />
-              </div>
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-mono text-slate-500 uppercase font-bold">Overall Progress</span>
+            <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
             </div>
           </div>
+          <div className="text-2xl font-black text-slate-900">{overallProgressPercent.toFixed(1)}%</div>
+          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+            <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${Math.min(overallProgressPercent, 100)}%` }}></div>
+          </div>
+        </div>
 
-          {/* Upcoming Live Class */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Live Session</span>
-              <Video className="w-5 h-5 text-cyan-400" />
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-mono text-slate-500 uppercase font-bold">Pending Quizzes</span>
+            <div className="w-9 h-9 rounded-2xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center">
+              <HelpCircle className="w-4 h-4" />
             </div>
-            <h3 className="text-lg font-bold text-white">Live Q&A & Code Review</h3>
-            <p className="text-xs text-slate-400">Date: Scheduled this week</p>
-            <a
-              href="https://meet.google.com/abc-defg-hij"
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-block w-full text-center py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition"
-            >
-              Join Google Meet
-            </a>
+          </div>
+          <div className="text-2xl font-black text-slate-900">{pendingQuizzesCount}</div>
+          <p className="text-[11px] text-purple-700 font-mono font-bold">Assessments to attempt</p>
+        </div>
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-mono text-slate-500 uppercase font-bold">Pending Assignments</span>
+            <div className="w-9 h-9 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center">
+              <FileCheck className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900">{pendingAssignmentsCount}</div>
+          <p className="text-[11px] text-rose-700 font-mono font-bold">Submissions due</p>
+        </div>
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-900">Enrolled Courses</h2>
+            <Link href="/student/courses" className="text-xs font-bold text-indigo-600 hover:underline">
+              View All Courses
+            </Link>
           </div>
 
-          {/* Quizzes & Assignments */}
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Pending Tasks</span>
-              <Award className="w-5 h-5 text-amber-400" />
+          {enrollments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {enrollments.map((en) => {
+                const cp = courseProgresses.find((p) => p.courseId === en.courseId);
+                const progPct = cp ? cp.progressPercent : 0;
+
+                return (
+                  <div key={en.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                        {en.batch?.name || "Cohort Member"}
+                      </span>
+                      <h3 className="font-bold text-slate-900 text-base">{en.course.title}</h3>
+                      <p className="text-xs text-slate-500 font-mono">Instructor: {en.course.trainer.name}</p>
+
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-[11px] font-mono text-slate-600">
+                          <span>Course Progress:</span>
+                          <strong className="text-slate-900">{progPct.toFixed(1)}%</strong>
+                        </div>
+                        <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                          <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${Math.min(progPct, 100)}%` }}></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/student/courses/${en.courseId}`}
+                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                    >
+                      <Play className="w-3.5 h-3.5 fill-white" /> Continue Learning
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
-            <div className="space-y-2 text-xs">
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <span>Next.js Core Concepts Quiz</span>
-                <span className="text-amber-400 font-semibold">Ready</span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <span>Auth & RBAC Milestone 1</span>
-                <span className="text-indigo-400 font-semibold">14 Days left</span>
-              </div>
+          ) : (
+            <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-2">
+              <BookOpen className="w-10 h-10 mx-auto text-slate-400" />
+              <p className="text-xs">No active course enrollments assigned to your account.</p>
             </div>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Video className="w-4 h-4 text-cyan-600" /> Upcoming Live Sessions
+            </h2>
+
+            {liveClasses.length > 0 ? (
+              <div className="space-y-3">
+                {liveClasses.map((lc) => (
+                  <div key={lc.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        lc.status === "LIVE" ? "bg-rose-50 text-rose-700 border border-rose-200 animate-pulse" : "bg-cyan-50 text-cyan-700 border border-cyan-200"
+                      }`}>
+                        {lc.status}
+                      </span>
+                      <span className="font-mono text-[10px] text-slate-500">{new Date(lc.scheduledDate).toLocaleDateString()}</span>
+                    </div>
+                    <div className="font-bold text-slate-900">{lc.title}</div>
+                    <a
+                      href={lc.meetUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block text-center w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition"
+                    >
+                      Join Google Meet
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 text-center py-4">No live sessions scheduled right now.</p>
+            )}
+          </div>
+
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Bell className="w-4 h-4 text-indigo-600" /> Recent Updates
+              </h2>
+              <Link href="/student/notifications" className="text-[11px] font-bold text-indigo-600 hover:underline">
+                View All
+              </Link>
+            </div>
+
+            {notifications.length > 0 ? (
+              <div className="space-y-2">
+                {notifications.map((notif) => (
+                  <div key={notif.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1 text-xs">
+                    <div className="font-bold text-slate-900 text-xs">{notif.title}</div>
+                    <p className="text-slate-600 text-[11px] leading-tight">{notif.message}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 text-center py-4">No notifications logged.</p>
+            )}
           </div>
         </div>
       </div>

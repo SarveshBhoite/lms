@@ -35,23 +35,55 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
                   status: { in: ["UPCOMING", "ONGOING"] },
                 },
               },
-              select: { batchId: true, batch: { select: { name: true } } },
+              select: {
+                batchId: true,
+                batch: {
+                  select: {
+                    id: true,
+                    name: true,
+                    status: true,
+                    trainers: {
+                      select: {
+                        trainer: { select: { name: true } },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
       },
     });
 
-    // Filter students: eligible if they have no active batch for this course, or if their active batch IS currentBatchId
-    const eligibleStudents = activeEnrollments
-      .map((e) => e.user)
-      .filter((u) => {
-        if (!u.studentBatches || u.studentBatches.length === 0) return true;
-        if (currentBatchId && u.studentBatches.some((sb) => sb.batchId === currentBatchId)) return true;
-        return false;
-      });
+    const students = activeEnrollments.map((e) => {
+      const u = e.user;
+      const activeBatches = u.studentBatches || [];
+      const otherActiveBatch = activeBatches.find(
+        (sb) => sb.batchId !== currentBatchId
+      );
 
-    return NextResponse.json({ success: true, data: eligibleStudents });
+      const isCurrentBatchMember = currentBatchId
+        ? activeBatches.some((sb) => sb.batchId === currentBatchId)
+        : false;
+
+      const isLocked = Boolean(otherActiveBatch);
+      const lockedBatchName = otherActiveBatch ? otherActiveBatch.batch.name : null;
+      const lockedTrainerName = otherActiveBatch?.batch.trainers[0]?.trainer?.name || "Faculty";
+
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        profile: u.profile,
+        isLocked,
+        lockedBatchName,
+        lockedTrainerName,
+        isCurrentBatchMember,
+      };
+    });
+
+    return NextResponse.json({ success: true, data: students });
   } catch (error) {
     return handleApiError(error);
   }

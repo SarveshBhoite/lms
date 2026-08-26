@@ -49,6 +49,32 @@ export async function POST(req: NextRequest) {
       throw new AuthError("Forbidden: You are not assigned to teach this course", 403);
     }
 
+    // Server-side check for duplicate active batch assignments within the same course
+    if (Array.isArray(studentIds) && studentIds.length > 0) {
+      const conflictingAssignments = await prisma.batchStudent.findMany({
+        where: {
+          userId: { in: studentIds },
+          batch: {
+            courseId,
+            status: { in: ["UPCOMING", "ONGOING"] },
+          },
+        },
+        include: {
+          user: { select: { name: true } },
+          batch: { select: { name: true } },
+        },
+      });
+
+      if (conflictingAssignments.length > 0) {
+        const conflictNames = conflictingAssignments
+          .map((c) => `"${c.user.name}" in batch "${c.batch.name}"`)
+          .join(", ");
+        throw new Error(
+          `Cannot assign student(s): ${conflictNames}. Students cannot be enrolled in multiple active batches for the same course.`
+        );
+      }
+    }
+
     // Create batch and automatically link creator to BatchTrainer
     const batch = await prisma.batch.create({
       data: {
@@ -67,7 +93,6 @@ export async function POST(req: NextRequest) {
 
     // Assign students if provided
     if (Array.isArray(studentIds) && studentIds.length > 0) {
-      // Validate students are enrolled in this course
       const validEnrollments = await prisma.enrollment.findMany({
         where: {
           courseId,

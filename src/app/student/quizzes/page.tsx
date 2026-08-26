@@ -1,51 +1,114 @@
 import Link from "next/link";
+import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { HelpCircle, Clock, Award, ArrowRight } from "lucide-react";
+import { redirect } from "next/navigation";
+import { HelpCircle, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 
 export default async function StudentQuizzesPage() {
+  const session = await getSession();
+  if (!session || (session.role !== "STUDENT" && session.role !== "ADMIN")) {
+    redirect("/login");
+  }
+
+  const studentId = session.userId;
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { userId: studentId, status: "ACTIVE" },
+    select: { courseId: true },
+  });
+
+  const enrolledCourseIds = enrollments.map((e) => e.courseId);
+
   const quizzes = await prisma.quiz.findMany({
-    where: { status: "PUBLISHED" },
+    where: {
+      courseId: { in: enrolledCourseIds },
+      status: "PUBLISHED",
+    },
     include: {
-      course: { select: { title: true } },
-      questions: true,
+      course: { select: { id: true, title: true } },
+      questions: { select: { id: true } },
+      quizAttempts: {
+        where: { userId: studentId },
+        orderBy: { startedAt: "desc" },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
 
   return (
-    <div className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Quizzes & Assessments</h1>
-        <p className="text-slate-400 text-sm mt-1">Test your mastery across enrolled modules and earn verified milestones.</p>
+    <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
+      <div className="flex justify-between items-center border-b border-slate-200 pb-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
+            <HelpCircle className="w-7 h-7 text-purple-600" /> Course Assessments & Quizzes
+          </h1>
+          <p className="text-slate-600 text-sm mt-1">
+            Test your knowledge with timed quizzes, view automatic scores, and inspect attempt history.
+          </p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {quizzes.map((quiz) => (
-          <div key={quiz.id} className="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col justify-between space-y-4">
-            <div className="space-y-2">
-              <div className="text-xs text-indigo-400 font-semibold">{quiz.course.title}</div>
-              <h3 className="text-lg font-bold text-white">{quiz.title}</h3>
-              <p className="text-xs text-slate-400 line-clamp-2">{quiz.description}</p>
-            </div>
+      {quizzes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {quizzes.map((qz) => {
+            const latestAttempt = qz.quizAttempts[0];
 
-            <div className="space-y-4 pt-2 border-t border-slate-800/80">
-              <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
-                <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5 text-amber-400" /> {quiz.timeLimitMinutes} Mins</span>
-                <span className="flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-emerald-400" /> Pass: {quiz.passingMarks}%</span>
-                <span className="flex items-center gap-1.5"><HelpCircle className="w-3.5 h-3.5 text-indigo-400" /> {quiz.questions.length} Questions</span>
-                <span className="text-slate-400 font-mono">Max: {quiz.maxAttempts} tries</span>
-              </div>
-
-              <Link
-                href={`/student/quizzes/${quiz.id}`}
-                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition"
+            return (
+              <div
+                key={qz.id}
+                className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition"
               >
-                Take Assessment <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
-        ))}
-      </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                      {qz.course.title}
+                    </span>
+                    <span className="text-xs text-slate-500 font-mono flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> {qz.timeLimitMinutes} Mins
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-base">{qz.title}</h3>
+                    {qz.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{qz.description}</p>}
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs text-slate-700 font-mono">
+                    <div className="flex justify-between">
+                      <span>Questions:</span>
+                      <strong className="text-slate-900">{qz.questions.length}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Passing Score:</span>
+                      <strong className="text-purple-700">{qz.passingMarks}%</strong>
+                    </div>
+                    {latestAttempt && (
+                      <div className="flex justify-between pt-1 border-t border-slate-200/60">
+                        <span>Best Result:</span>
+                        <strong className={latestAttempt.isPassed ? "text-emerald-700" : "text-rose-700"}>
+                          {latestAttempt.score.toFixed(1)}% ({latestAttempt.isPassed ? "PASSED" : "FAILED"})
+                        </strong>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Link
+                  href={`/student/quizzes/${qz.id}`}
+                  className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
+                >
+                  {latestAttempt ? "Retake Quiz / View Results" : "Attempt Quiz"}
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
+          <HelpCircle className="w-10 h-10 mx-auto text-slate-400" />
+          <p className="text-sm">No quizzes available for your enrolled courses right now.</p>
+        </div>
+      )}
     </div>
   );
 }

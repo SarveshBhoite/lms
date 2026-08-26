@@ -1,74 +1,106 @@
 import Link from "next/link";
-import { BookOpen, Search, Clock, ArrowRight, Play, Award, Layers } from "lucide-react";
+import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { redirect } from "next/navigation";
+import { BookOpen, Play, CheckCircle2, Clock } from "lucide-react";
 
 export default async function StudentCoursesPage() {
-  const courses = await prisma.course.findMany({
-    where: { status: "PUBLISHED" },
+  const session = await getSession();
+  if (!session || (session.role !== "STUDENT" && session.role !== "ADMIN")) {
+    redirect("/login");
+  }
+
+  const studentId = session.userId;
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { userId: studentId, status: "ACTIVE" },
     include: {
-      trainer: { select: { name: true } },
-      modules: {
-        include: { lessons: true },
+      course: {
+        include: {
+          trainer: { select: { name: true, email: true } },
+          modules: {
+            select: { id: true, lessons: { select: { id: true } } },
+          },
+        },
       },
+      batch: { select: { id: true, name: true } },
     },
-    orderBy: { createdAt: "desc" },
+  });
+
+  const courseProgresses = await prisma.courseProgress.findMany({
+    where: { userId: studentId },
   });
 
   return (
-    <div className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
+      <div className="flex justify-between items-center border-b border-slate-200 pb-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">Course Catalog</h1>
-          <p className="text-slate-400 text-sm mt-1">Explore all curriculum programs and continue your learning track.</p>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">My Enrolled Courses</h1>
+          <p className="text-slate-600 text-sm mt-1">
+            Access curriculum modules, video lessons, resources, quizzes, and assignments for your active cohorts.
+          </p>
         </div>
       </div>
 
-      {/* Courses Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {courses.map((course) => {
-          const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
+      {enrollments.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {enrollments.map((en) => {
+            const cp = courseProgresses.find((p) => p.courseId === en.courseId);
+            const progPct = cp ? cp.progressPercent : 0;
+            const completedCount = cp ? cp.completedLessonsCount : 0;
+            const totalLessons = en.course.modules.reduce((acc: number, m: any) => acc + m.lessons.length, 0);
 
-          return (
-            <div key={course.id} className="glass-panel rounded-2xl overflow-hidden border border-slate-800 flex flex-col group hover:border-indigo-500/40 transition">
-              <div className="h-44 bg-slate-800 relative overflow-hidden">
-                {course.thumbnailUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-tr from-indigo-900 to-slate-900 flex items-center justify-center">
-                    <BookOpen className="w-12 h-12 text-indigo-400/50" />
+            return (
+              <div
+                key={en.id}
+                className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition"
+              >
+                <div className="space-y-3">
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {en.batch?.name || "Enrolled Cohort"}
+                  </span>
+
+                  <h3 className="font-extrabold text-slate-900 text-lg">{en.course.title}</h3>
+                  <p className="text-xs text-slate-500 line-clamp-2">{en.course.description}</p>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-mono space-y-1 text-slate-600">
+                    <div className="flex justify-between">
+                      <span>Instructor:</span>
+                      <strong className="text-indigo-700">{en.course.trainer.name}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Completed:</span>
+                      <strong className="text-slate-900">{completedCount} / {totalLessons} Lessons</strong>
+                    </div>
                   </div>
-                )}
-                <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-900/80 backdrop-blur-md text-[10px] uppercase font-bold text-indigo-300 border border-slate-700">
-                  {course.level}
-                </div>
-              </div>
 
-              <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
-                <div>
-                  <h3 className="font-bold text-base text-white group-hover:text-indigo-400 transition">{course.title}</h3>
-                  <p className="text-xs text-slate-400 mt-2 line-clamp-2">{course.description}</p>
-                </div>
-
-                <div className="space-y-3 pt-2 border-t border-slate-800/80">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {course.durationHours} Hours</span>
-                    <span className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5" /> {totalLessons} Lessons</span>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-mono">
+                      <span>Overall Progress:</span>
+                      <strong className="text-indigo-700">{progPct.toFixed(1)}%</strong>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                      <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${Math.min(progPct, 100)}%` }}></div>
+                    </div>
                   </div>
-
-                  <Link
-                    href={`/student/courses/${course.id}`}
-                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs flex items-center justify-center gap-2 transition"
-                  >
-                    View Curriculum <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
                 </div>
+
+                <Link
+                  href={`/student/courses/${en.courseId}`}
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                >
+                  <Play className="w-4 h-4 fill-white" /> Continue Learning
+                </Link>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
+          <BookOpen className="w-10 h-10 mx-auto text-slate-400" />
+          <p className="text-sm">You have no active course enrollments right now.</p>
+        </div>
+      )}
     </div>
   );
 }

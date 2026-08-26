@@ -143,6 +143,8 @@ model User {
   certificates          Certificate[]
   notifications         Notification[]
   activityLogs          ActivityLog[]
+  studentNotes          TrainerNote[]            @relation("StudentNotes")
+  authorNotes           TrainerNote[]            @relation("AuthorNotes")
 
   @@index([email])
   @@index([role])
@@ -615,3 +617,19 @@ model ActivityLog {
   @@index([action])
   @@index([createdAt])
 }
+
+model TrainerNote {
+  id        String   @id @default(cuid())
+  studentId String
+  trainerId String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student   User     @relation("StudentNotes", fields: [studentId], references: [id], onDelete: Cascade)
+  trainer   User     @relation("AuthorNotes", fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([trainerId])
+}
+

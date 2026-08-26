@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { Users, Search, BookOpen, ArrowRight, ShieldAlert } from "lucide-react";
+import { Users, Search, BookOpen, ArrowRight, ShieldAlert, CheckSquare, HelpCircle, FileCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function TrainerStudentsPage({
@@ -60,6 +60,7 @@ export default async function TrainerStudentsPage({
         OR: [
           { name: { contains: q, mode: "insensitive" } },
           { email: { contains: q, mode: "insensitive" } },
+          { profile: { phone: { contains: q, mode: "insensitive" } } },
         ],
       },
     ];
@@ -90,9 +91,15 @@ export default async function TrainerStudentsPage({
         where: isAdmin ? {} : { batchId: { in: assignedBatchIds } },
         select: { batch: { select: { name: true } } },
       },
-      _count: {
-        select: { quizAttempts: true, assignmentSubmissions: true, attendances: true },
+      courseProgresses: {
+        where: isAdmin ? {} : { courseId: { in: assignedCourseIds } },
+        select: { progressPercent: true },
       },
+      quizAttempts: { select: { score: true } },
+      assignmentSubmissions: {
+        select: { feedback: { select: { marksAwarded: true } }, assignment: { select: { totalMarks: true } } },
+      },
+      attendances: { select: { status: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -102,14 +109,14 @@ export default async function TrainerStudentsPage({
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Assigned Scope Students</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">Faculty Student Scope</h1>
           <p className="text-slate-600 text-sm mt-1">
-            Displaying students enrolled in your assigned courses and academic batches.
+            Track student progress, attendance, quiz scores, assignment grading, and private academic notes for your assigned cohorts.
           </p>
         </div>
 
         <div className="px-3.5 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-mono flex items-center gap-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Account Management Disabled
+          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Account Controls Admin-Only
         </div>
       </div>
 
@@ -121,7 +128,7 @@ export default async function TrainerStudentsPage({
             type="text"
             name="q"
             defaultValue={q || ""}
-            placeholder="Search student by name or email..."
+            placeholder="Search student by name, email, or phone..."
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-indigo-500 shadow-xs"
           />
         </div>
@@ -164,48 +171,88 @@ export default async function TrainerStudentsPage({
       {/* Students Grid */}
       {students.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {students.map((student) => (
-            <div key={student.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition">
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold flex items-center justify-center text-sm">
-                    {student.name.charAt(0)}
+          {students.map((student) => {
+            const prog = student.courseProgresses[0];
+            const progressPercent = prog ? prog.progressPercent : 0;
+
+            const totalAtt = student.attendances.length;
+            const presentAtt = student.attendances.filter((a) => a.status === "PRESENT").length;
+            const attendancePercent = totalAtt > 0 ? (presentAtt / totalAtt) * 100 : 0;
+
+            const quizAvg =
+              student.quizAttempts.length > 0
+                ? student.quizAttempts.reduce((acc, q) => acc + q.score, 0) / student.quizAttempts.length
+                : 0;
+
+            const evaluatedSubs = student.assignmentSubmissions.filter((sub) => sub.feedback);
+            const assignmentAvg =
+              evaluatedSubs.length > 0
+                ? evaluatedSubs.reduce(
+                    (acc, sub) => acc + ((sub.feedback?.marksAwarded || 0) / (sub.assignment.totalMarks || 100)) * 100,
+                    0
+                  ) / evaluatedSubs.length
+                : 0;
+
+            return (
+              <div key={student.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold flex items-center justify-center text-sm">
+                      {student.name.charAt(0)}
+                    </div>
+                    <div className="overflow-hidden">
+                      <h3 className="font-bold text-slate-900 text-base truncate">{student.name}</h3>
+                      <p className="text-xs text-slate-500 font-mono truncate">{student.email}</p>
+                      {student.profile?.phone && <p className="text-[11px] text-slate-400 font-mono">{student.profile.phone}</p>}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-slate-900 text-base">{student.name}</h3>
-                    <p className="text-xs text-slate-500 font-mono">{student.email}</p>
+
+                  <div className="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100 font-mono">
+                    <div className="text-[11px] text-slate-500 truncate">
+                      Course: <span className="text-slate-900 font-semibold">{student.enrollments.map((e) => e.course.title).join(", ") || "None"}</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 truncate">
+                      Batch: <span className="text-cyan-700 font-semibold">{student.studentBatches.map((b) => b.batch.name).join(", ") || "Unassigned"}</span>
+                    </div>
+                  </div>
+
+                  {/* 4 Metric Badges */}
+                  <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-500 block text-[9px]">PROGRESS</span>
+                      <strong className="text-amber-700 font-bold">{progressPercent.toFixed(1)}%</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-500 block text-[9px]">ATTENDANCE</span>
+                      <strong className="text-emerald-700 font-bold">{attendancePercent.toFixed(1)}%</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-500 block text-[9px]">QUIZ AVG</span>
+                      <strong className="text-purple-700 font-bold">{quizAvg.toFixed(1)}%</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-slate-500 block text-[9px]">ASSIGNMENT AVG</span>
+                      <strong className="text-rose-700 font-bold">{assignmentAvg.toFixed(1)}%</strong>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                  <div className="text-[11px] text-slate-500 font-mono">
-                    Courses: <span className="text-slate-900 font-semibold">{student.enrollments.map((e) => e.course.title).join(", ") || "None"}</span>
-                  </div>
-                  <div className="text-[11px] text-slate-500 font-mono">
-                    Batches: <span className="text-cyan-700 font-semibold">{student.studentBatches.map((b) => b.batch.name).join(", ") || "Unassigned"}</span>
-                  </div>
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
+                  <Link
+                    href={`/trainer/students/${student.id}`}
+                    className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                  >
+                    Academic Profile & Notes <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
                 </div>
               </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-[10px] font-mono text-slate-500">
-                  {student._count.quizAttempts} Quizzes • {student._count.assignmentSubmissions} Submissions
-                </span>
-
-                <Link
-                  href={`/trainer/students/${student.id}`}
-                  className="py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-1.5 transition shadow-xs"
-                >
-                  Academic Profile <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
           <Users className="w-10 h-10 mx-auto text-slate-400" />
-          <p className="text-sm">No students matching the criteria found in your scope.</p>
+          <p className="text-sm">No students matching criteria found in your faculty scope.</p>
         </div>
       )}
     </div>

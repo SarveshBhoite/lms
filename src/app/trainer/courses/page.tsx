@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { BookOpen, ArrowRight, ShieldAlert } from "lucide-react";
+import { BookOpen, ArrowRight, Layers, FileCode2, Users, ShieldAlert, Clock } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function TrainerCoursesPage() {
@@ -23,9 +23,9 @@ export default async function TrainerCoursesPage() {
           ],
         },
     include: {
-      modules: { include: { lessons: { include: { resources: true } } } },
+      modules: { include: { lessons: true } },
       enrollments: true,
-      batches: { select: { id: true, name: true, status: true } },
+      batches: { select: { id: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -36,12 +36,12 @@ export default async function TrainerCoursesPage() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900">My Assigned Courses</h1>
           <p className="text-slate-600 text-sm mt-1">
-            Access curriculum overviews, module outlines, lesson resources, and active student cohorts for assigned courses.
+            Manage course curriculum, modules, lessons, learning resources, and view enrolled students.
           </p>
         </div>
 
         <div className="px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold font-mono flex items-center gap-2">
-          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Structure Admin-Controlled
+          <ShieldAlert className="w-3.5 h-3.5 text-amber-600" /> Core Creation Admin-Controlled
         </div>
       </div>
 
@@ -51,40 +51,59 @@ export default async function TrainerCoursesPage() {
             const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
 
             return (
-              <div key={course.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5 flex flex-col justify-between hover:shadow-md transition">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {course.status}
-                    </span>
-                    <span className="text-xs text-slate-500 font-mono">{course.level}</span>
+              <div key={course.id} className="bg-white rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between overflow-hidden hover:shadow-md transition">
+                <div>
+                  {/* Thumbnail */}
+                  <div className="h-44 w-full bg-slate-100 relative overflow-hidden">
+                    <img
+                      src={course.thumbnailUrl || "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop&q=80"}
+                      alt={course.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute top-3 right-3 flex items-center gap-2">
+                      <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-white/90 backdrop-blur-md text-emerald-700 border border-emerald-200 shadow-xs">
+                        {course.status}
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900">{course.title}</h3>
-                  <p className="text-xs text-slate-600 line-clamp-2">{course.description}</p>
+                  <div className="p-6 space-y-3">
+                    <div className="flex items-center justify-between text-xs text-slate-500 font-mono">
+                      <span className="font-bold text-slate-700">{course.level}</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-600" /> {course.durationHours} Hours</span>
+                    </div>
+
+                    <h3 className="text-lg font-bold text-slate-900">{course.title}</h3>
+                    <p className="text-xs text-slate-600 line-clamp-2">{course.description}</p>
+                  </div>
                 </div>
 
-                <div className="space-y-4 pt-3 border-t border-slate-100">
-                  <div className="grid grid-cols-3 gap-2 text-center font-mono">
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
+                <div className="p-6 pt-0 space-y-4">
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-4 gap-2 text-center font-mono border-t border-b border-slate-100 py-3">
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{course.modules.length}</div>
+                      <div className="text-[10px] text-slate-500">Modules</div>
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{totalLessons}</div>
+                      <div className="text-[10px] text-slate-500">Lessons</div>
+                    </div>
+                    <div>
                       <div className="text-xs font-bold text-indigo-600">{course.enrollments.length}</div>
                       <div className="text-[10px] text-slate-500">Students</div>
                     </div>
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="text-xs font-bold text-cyan-600">{course.modules.length}</div>
-                      <div className="text-[10px] text-slate-500">Modules</div>
-                    </div>
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                      <div className="text-xs font-bold text-amber-600">{totalLessons}</div>
-                      <div className="text-[10px] text-slate-500">Lessons</div>
+                    <div>
+                      <div className="text-xs font-bold text-cyan-600">{course.batches.length}</div>
+                      <div className="text-[10px] text-slate-500">Batches</div>
                     </div>
                   </div>
 
                   <Link
                     href={`/trainer/courses/${course.id}`}
-                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition"
+                    className="w-full py-2.5 px-4 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
                   >
-                    View Curriculum & Resources <ArrowRight className="w-3.5 h-3.5" />
+                    Open Course Studio <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>

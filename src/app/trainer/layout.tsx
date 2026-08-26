@@ -7,69 +7,38 @@ import {
   LayoutDashboard,
   BookOpen,
   Layers,
-  FileCode2,
   Users,
   HelpCircle,
   FileCheck,
-  Calendar,
   Video,
+  Calendar,
   BarChart3,
+  Bell,
   User,
   LogOut,
-  Bell,
-  Search,
   Menu,
   X,
   Sparkles,
 } from "lucide-react";
 
-interface NavGroup {
-  group: string;
-  items: {
-    label: string;
-    href: string;
-    icon: React.ComponentType<{ className?: string }>;
-  }[];
+interface NavItem {
+  label: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
-const facultyNavGroups: NavGroup[] = [
-  {
-    group: "Overview",
-    items: [
-      { label: "Dashboard", href: "/trainer/dashboard", icon: LayoutDashboard },
-    ],
-  },
-  {
-    group: "Teaching",
-    items: [
-      { label: "My Courses", href: "/trainer/courses", icon: BookOpen },
-      { label: "Modules", href: "/trainer/modules", icon: Layers },
-      { label: "Lessons", href: "/trainer/lessons", icon: FileCode2 },
-      { label: "Students", href: "/trainer/students", icon: Users },
-    ],
-  },
-  {
-    group: "Assessment",
-    items: [
-      { label: "Quizzes", href: "/trainer/quizzes", icon: HelpCircle },
-      { label: "Assignments", href: "/trainer/assignments", icon: FileCheck },
-    ],
-  },
-  {
-    group: "Batches",
-    items: [
-      { label: "My Batches", href: "/trainer/batches", icon: Layers },
-      { label: "Attendance", href: "/trainer/attendance", icon: Calendar },
-    ],
-  },
-  {
-    group: "Live & Reports",
-    items: [
-      { label: "Live Classes", href: "/trainer/live-classes", icon: Video },
-      { label: "Reports", href: "/trainer/reports", icon: BarChart3 },
-      { label: "Profile", href: "/trainer/profile", icon: User },
-    ],
-  },
+const trainerNavItems: NavItem[] = [
+  { label: "Dashboard", href: "/trainer/dashboard", icon: LayoutDashboard },
+  { label: "My Courses", href: "/trainer/courses", icon: BookOpen },
+  { label: "My Batches", href: "/trainer/batches", icon: Layers },
+  { label: "Students", href: "/trainer/students", icon: Users },
+  { label: "Quizzes", href: "/trainer/quizzes", icon: HelpCircle },
+  { label: "Assignments", href: "/trainer/assignments", icon: FileCheck },
+  { label: "Live Classes", href: "/trainer/live-classes", icon: Video },
+  { label: "Attendance", href: "/trainer/attendance", icon: Calendar },
+  { label: "Reports", href: "/trainer/reports", icon: BarChart3 },
+  { label: "Notifications", href: "/trainer/notifications", icon: Bell },
+  { label: "Profile", href: "/trainer/profile", icon: User },
 ];
 
 export default function TrainerLayout({ children }: { children: React.ReactNode }) {
@@ -134,34 +103,29 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
           </div>
         </div>
 
-        {/* Grouped Navigation Links */}
-        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-          {facultyNavGroups.map((group) => (
-            <div key={group.group} className="space-y-1">
-              <div className="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                {group.group}
-              </div>
-              {group.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname === item.href || (item.href !== "/trainer/dashboard" && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? "bg-amber-500 text-white shadow-md shadow-amber-500/20 font-bold"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                    }`}
-                  >
-                    <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
+        {/* Flat Ordered Navigation Links */}
+        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+          {trainerNavItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              pathname === item.href ||
+              (item.href !== "/trainer/dashboard" && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                  isActive
+                    ? "bg-amber-500 text-white shadow-md shadow-amber-500/20 font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* User Card & Logout */}

@@ -69,7 +69,34 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const studentsToRemove = currentStudentIds.filter((uid) => !studentIds.includes(uid));
     const studentsToAdd = studentIds.filter((uid) => !currentStudentIds.includes(uid));
 
-    // 2. Remove students no longer in list (do not delete account or learning history!)
+    // 2. Validate studentsToAdd: reject if any student is already in another UPCOMING or ONGOING batch for this course
+    if (studentsToAdd.length > 0) {
+      const conflictingAssignments = await prisma.batchStudent.findMany({
+        where: {
+          userId: { in: studentsToAdd },
+          batchId: { not: id },
+          batch: {
+            courseId: batch.courseId,
+            status: { in: ["UPCOMING", "ONGOING"] },
+          },
+        },
+        include: {
+          user: { select: { name: true } },
+          batch: { select: { name: true } },
+        },
+      });
+
+      if (conflictingAssignments.length > 0) {
+        const conflictNames = conflictingAssignments
+          .map((c) => `"${c.user.name}" in batch "${c.batch.name}"`)
+          .join(", ");
+        throw new Error(
+          `Cannot add student(s): ${conflictNames}. Student is locked in another active batch for this course.`
+        );
+      }
+    }
+
+    // 3. Remove students no longer in list (without deleting account, enrollment, or learning history)
     if (studentsToRemove.length > 0) {
       await prisma.batchStudent.deleteMany({
         where: {
@@ -89,30 +116,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
     }
 
-    // 3. Check for students to add and handle reassignment safely
+    // 4. Add new eligible students
     if (studentsToAdd.length > 0) {
-      // Find active enrollments for students to add
       const eligibleEnrollments = await prisma.enrollment.findMany({
         where: {
           courseId: batch.courseId,
           userId: { in: studentsToAdd },
           status: "ACTIVE",
         },
-        select: { userId: true, batchId: true },
+        select: { userId: true },
       });
 
       const validUserIds = eligibleEnrollments.map((e) => e.userId);
 
       if (validUserIds.length > 0) {
-        // Remove from old batch if reassigning
-        await prisma.batchStudent.deleteMany({
-          where: {
-            userId: { in: validUserIds },
-            batch: { courseId: batch.courseId },
-          },
-        });
-
-        // Add to current batch
         await prisma.batchStudent.createMany({
           data: validUserIds.map((userId) => ({
             batchId: id,
@@ -121,7 +138,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           skipDuplicates: true,
         });
 
-        // Link enrollment to new batch
         await prisma.enrollment.updateMany({
           where: {
             courseId: batch.courseId,

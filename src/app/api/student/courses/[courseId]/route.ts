@@ -1,0 +1,95 @@
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
+
+export async function GET(req: NextRequest, { params }: { params: Promise<{ courseId: string }> }) {
+  try {
+    const session = await getSession();
+    if (!session || (session.role !== "STUDENT" && session.role !== "ADMIN")) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { courseId } = await params;
+    const studentId = session.userId;
+
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { userId: studentId, courseId, status: "ACTIVE" },
+      include: {
+        batch: { select: { id: true, name: true, startDate: true, endDate: true } },
+      },
+    });
+
+    if (!enrollment && session.role !== "ADMIN") {
+      return NextResponse.json({ success: false, error: "Forbidden: You are not enrolled in this course" }, { status: 403 });
+    }
+
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        trainer: { select: { id: true, name: true, email: true } },
+        modules: {
+          orderBy: { orderIndex: "asc" },
+          include: {
+            lessons: {
+              orderBy: { orderIndex: "asc" },
+              include: {
+                resources: true,
+              },
+            },
+          },
+        },
+        quizzes: {
+          where: { status: "PUBLISHED" },
+          select: { id: true, title: true, description: true, passingMarks: true, timeLimitMinutes: true },
+        },
+        assignments: {
+          select: { id: true, title: true, description: true, deadline: true, totalMarks: true },
+        },
+      },
+    });
+
+    if (!course) {
+      return NextResponse.json({ success: false, error: "Course not found" }, { status: 404 });
+    }
+
+    const [lessonProgresses, courseProgress] = await Promise.all([
+      prisma.lessonProgress.findMany({
+        where: {
+          userId: studentId,
+          lesson: { module: { courseId } },
+        },
+        select: { lessonId: true, isCompleted: true, lastWatchedAt: true },
+      }),
+      prisma.courseProgress.findFirst({
+        where: { userId: studentId, courseId },
+      }),
+    ]);
+
+    const completedLessonIds = lessonProgresses.filter((lp) => lp.isCompleted).map((lp) => lp.lessonId);
+
+    const learningResources = course.modules.flatMap((m) =>
+      m.lessons.flatMap((l) =>
+        l.resources.map((r) => ({
+          id: r.id,
+          title: r.title,
+          type: r.fileType,
+          fileUrl: r.fileUrl,
+          description: `Resource for lesson: ${l.title}`,
+        }))
+      )
+    );
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...course,
+        learningResources,
+        batch: enrollment?.batch || null,
+        completedLessonIds,
+        progressPercent: courseProgress ? courseProgress.progressPercent : 0,
+      },
+    });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message || "Failed to fetch course detail" }, { status: 500 });
+  }
+}

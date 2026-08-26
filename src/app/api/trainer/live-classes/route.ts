@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
       throw new Error("Missing required live class fields (batchId, title, scheduledDate, startTime, endTime, meetUrl)");
     }
 
-    // Strict batch access check
     const hasBatchAccess = await verifyTrainerBatchAccess(session.userId, batchId, isAdmin);
     if (!hasBatchAccess) {
       throw new AuthError("Forbidden: You cannot schedule live classes for a batch assigned to another trainer", 403);
@@ -67,6 +66,24 @@ export async function POST(req: NextRequest) {
         trainer: { select: { id: true, name: true, email: true } },
       },
     });
+
+    // Send notifications to batch students
+    const batchStudents = await prisma.batchStudent.findMany({
+      where: { batchId },
+      select: { userId: true },
+    });
+
+    if (batchStudents.length > 0) {
+      await prisma.notification.createMany({
+        data: batchStudents.map((bs) => ({
+          userId: bs.userId,
+          title: `New Live Class Scheduled: ${title}`,
+          message: `Live class "${title}" for batch ${liveClass.batch.name} is scheduled for ${new Date(scheduledDate).toLocaleDateString()}.`,
+          type: "LIVE_CLASS_REMINDER",
+          actionUrl: `/student/live-classes`,
+        })),
+      });
+    }
 
     return NextResponse.json({ success: true, data: liveClass });
   } catch (error) {

@@ -37,8 +37,10 @@ function createPrismaClient(): PrismaClient {
   }
 }
 
-// Reuse existing global instance across hot reloads in development
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+// Ensure fresh instantiation when schema models are generated
+export const prisma = process.env.NODE_ENV === "development"
+  ? createPrismaClient()
+  : globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;

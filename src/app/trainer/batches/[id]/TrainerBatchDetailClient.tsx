@@ -24,6 +24,7 @@ import {
   FileCheck,
   HelpCircle,
   Award,
+  Lock,
 } from "lucide-react";
 
 interface StudentUser {
@@ -115,9 +116,19 @@ interface BatchDetail {
   liveClasses: LiveClassItem[];
 }
 
+interface ModalStudent {
+  id: string;
+  name: string;
+  email: string;
+  isLocked: boolean;
+  lockedBatchName?: string | null;
+  lockedTrainerName?: string | null;
+  isCurrentBatchMember: boolean;
+}
+
 export default function TrainerBatchDetailClient({
   initialBatch,
-  availableStudents,
+  availableStudents: initialAvailable,
   currentUserId,
 }: {
   initialBatch: BatchDetail;
@@ -131,8 +142,10 @@ export default function TrainerBatchDetailClient({
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Student Roster Modal
+  // Student Roster Modal State
   const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+  const [modalStudents, setModalStudents] = useState<ModalStudent[]>([]);
+  const [loadingModalStudents, setLoadingModalStudents] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState<string[]>(
     initialBatch.students.map((s) => s.userId)
   );
@@ -176,6 +189,21 @@ export default function TrainerBatchDetailClient({
     } catch (err) {
       console.error("Failed to refresh batch:", err);
     }
+  };
+
+  const openStudentRosterModal = () => {
+    setIsStudentsModalOpen(true);
+    setLoadingModalStudents(true);
+    setSelectedStudentIds(batch.students.map((s) => s.userId));
+
+    fetch(`/api/trainer/courses/${batch.courseId}/eligible-students?currentBatchId=${batch.id}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setModalStudents(data.data || []);
+        }
+      })
+      .finally(() => setLoadingModalStudents(false));
   };
 
   const handleSaveStudents = async () => {
@@ -329,6 +357,9 @@ export default function TrainerBatchDetailClient({
     });
   };
 
+  const availableModalStudents = modalStudents.filter((s) => !s.isLocked);
+  const lockedModalStudents = modalStudents.filter((s) => s.isLocked);
+
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
       {/* Toast Notification */}
@@ -386,10 +417,7 @@ export default function TrainerBatchDetailClient({
         </div>
 
         <button
-          onClick={() => {
-            setSelectedStudentIds(batch.students.map((s) => s.userId));
-            setIsStudentsModalOpen(true);
-          }}
+          onClick={openStudentRosterModal}
           className="px-5 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2 transition"
         >
           <UserCheck className="w-4 h-4" /> Manage Student Roster
@@ -735,15 +763,12 @@ export default function TrainerBatchDetailClient({
             <div>
               <h2 className="text-lg font-bold text-slate-900">Batch Student Roster</h2>
               <p className="text-xs text-slate-500">
-                Manage cohort members. Adding or removing students updates batch assignment without touching account history or course enrollment.
+                Manage cohort members. Removing a student clears batch assignment without deleting user account, course enrollment, or learning progress.
               </p>
             </div>
 
             <button
-              onClick={() => {
-                setSelectedStudentIds(batch.students.map((s) => s.userId));
-                setIsStudentsModalOpen(true);
-              }}
+              onClick={openStudentRosterModal}
               className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2 transition"
             >
               <Plus className="w-4 h-4" /> Add / Remove Students
@@ -927,37 +952,81 @@ export default function TrainerBatchDetailClient({
             </div>
 
             <p className="text-xs text-slate-500">
-              Select students enrolled in {batch.course.title} to add to this batch.
+              Select available students enrolled in {batch.course.title} to assign to this batch.
             </p>
 
-            <div className="max-h-60 overflow-y-auto space-y-2 pr-2 border border-slate-200 rounded-2xl p-2 bg-slate-50">
-              {availableStudents.map((s) => {
-                const isSelected = selectedStudentIds.includes(s.id);
-                return (
-                  <label
-                    key={s.id}
-                    onClick={() => {
-                      setSelectedStudentIds((prev) =>
-                        prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
+            {loadingModalStudents ? (
+              <div className="p-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-amber-600" /> Loading student eligibility...
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+                {/* Available Students */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-bold text-emerald-800 uppercase font-mono flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Selectable Students ({availableModalStudents.length})
+                  </div>
+
+                  <div className="space-y-1 border border-slate-200 rounded-2xl p-2 bg-slate-50/50">
+                    {availableModalStudents.map((s) => {
+                      const isSelected = selectedStudentIds.includes(s.id);
+                      return (
+                        <label
+                          key={s.id}
+                          onClick={() => {
+                            setSelectedStudentIds((prev) =>
+                              prev.includes(s.id) ? prev.filter((id) => id !== s.id) : [...prev, s.id]
+                            );
+                          }}
+                          className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+                            isSelected
+                              ? "bg-amber-50 border-amber-300 text-slate-900"
+                              : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input type="checkbox" checked={isSelected} onChange={() => {}} className="w-4 h-4 rounded text-amber-600" />
+                            <div>
+                              <div className="text-xs font-bold text-slate-900">{s.name}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{s.email}</div>
+                            </div>
+                          </div>
+                        </label>
                       );
-                    }}
-                    className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition ${
-                      isSelected
-                        ? "bg-amber-50 border-amber-300 text-slate-900"
-                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input type="checkbox" checked={isSelected} onChange={() => {}} className="w-4 h-4 rounded text-amber-600" />
-                      <div>
-                        <div className="text-xs font-bold text-slate-900">{s.name}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">{s.email}</div>
-                      </div>
+                    })}
+                  </div>
+                </div>
+
+                {/* Already Assigned / Locked Students */}
+                {lockedModalStudents.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-slate-100">
+                    <div className="text-[11px] font-bold text-slate-600 uppercase font-mono flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-amber-600" /> Locked in Another Active Batch ({lockedModalStudents.length})
                     </div>
-                  </label>
-                );
-              })}
-            </div>
+
+                    <div className="space-y-1 border border-slate-200 rounded-2xl p-2 bg-slate-100/60">
+                      {lockedModalStudents.map((s) => (
+                        <div
+                          key={s.id}
+                          className="p-3 rounded-xl border border-slate-200 bg-white/70 flex items-center justify-between opacity-75 cursor-not-allowed text-xs"
+                        >
+                          <div className="flex items-center gap-3">
+                            <input type="checkbox" disabled checked={false} className="w-4 h-4 rounded text-slate-400" />
+                            <div>
+                              <div className="font-bold text-slate-800">{s.name}</div>
+                              <div className="text-[10px] text-slate-500 font-mono">{s.email}</div>
+                            </div>
+                          </div>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200 font-bold flex items-center gap-1">
+                            <Lock className="w-3 h-3 text-amber-600" /> Assigned: {s.lockedBatchName} ({s.lockedTrainerName})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2">
               <button

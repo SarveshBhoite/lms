@@ -11,7 +11,26 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const liveClass = await prisma.liveClass.findUnique({
       where: { id },
       include: {
-        batch: { select: { id: true, name: true, courseId: true } },
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            courseId: true,
+            course: { select: { title: true } },
+            students: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profile: { select: { avatarUrl: true, phone: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
         trainer: { select: { id: true, name: true, email: true } },
         attendances: { include: { user: { select: { id: true, name: true, email: true } } } },
       },
@@ -38,16 +57,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const { id } = await params;
     const isAdmin = session.role === "ADMIN";
 
-    const liveClass = await prisma.liveClass.findUnique({
+    const existingClass = await prisma.liveClass.findUnique({
       where: { id },
-      select: { batchId: true },
+      include: {
+        batch: { select: { id: true, name: true } },
+      },
     });
 
-    if (!liveClass) {
+    if (!existingClass) {
       return NextResponse.json({ success: false, error: "Live class not found" }, { status: 404 });
     }
 
-    const hasAccess = await verifyTrainerBatchAccess(session.userId, liveClass.batchId, isAdmin);
+    const hasAccess = await verifyTrainerBatchAccess(session.userId, existingClass.batchId, isAdmin);
     if (!hasAccess) {
       throw new AuthError("Forbidden: You cannot modify live classes belonging to another trainer's batch", 403);
     }
@@ -74,6 +95,35 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       },
     });
 
+    // Send notifications to batch students if updated/cancelled or recording added
+    const batchStudents = await prisma.batchStudent.findMany({
+      where: { batchId: existingClass.batchId },
+      select: { userId: true },
+    });
+
+    if (batchStudents.length > 0) {
+      let notifTitle = `Live Class Updated: ${updated.title}`;
+      let notifMsg = `Live class "${updated.title}" details have been updated.`;
+
+      if (status === "CANCELLED") {
+        notifTitle = `Live Class Cancelled: ${updated.title}`;
+        notifMsg = `Live class "${updated.title}" for batch ${updated.batch.name} has been cancelled.`;
+      } else if (!existingClass.recordingUrl && recordingUrl) {
+        notifTitle = `Class Recording Available: ${updated.title}`;
+        notifMsg = `The recording for "${updated.title}" is now available to watch.`;
+      }
+
+      await prisma.notification.createMany({
+        data: batchStudents.map((bs) => ({
+          userId: bs.userId,
+          title: notifTitle,
+          message: notifMsg,
+          type: "LIVE_CLASS_REMINDER",
+          actionUrl: `/student/live-classes`,
+        })),
+      });
+    }
+
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
     return handleApiError(error);
@@ -88,7 +138,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const liveClass = await prisma.liveClass.findUnique({
       where: { id },
-      select: { batchId: true },
+      select: { batchId: true, title: true },
     });
 
     if (!liveClass) {
