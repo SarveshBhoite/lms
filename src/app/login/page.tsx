@@ -21,7 +21,7 @@ type LoginRole = "ADMIN" | "TRAINER" | "STUDENT";
 export default function LoginPage() {
   const router = useRouter();
   const [selectedRole, setSelectedRole] = useState<LoginRole>("STUDENT");
-  const [email, setEmail] = useState("sophia.student@institute.edu");
+  const [email, setEmail] = useState("student@institute.edu");
   const [password, setPassword] = useState("Password123!");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,13 +30,13 @@ export default function LoginPage() {
     setSelectedRole(role);
     setError(null);
     if (role === "ADMIN") {
-      setEmail("sulagadleaishwarya@gmail.com");
-      setPassword("123");
+      setEmail("rajb81008@gmail.com");
+      setPassword("12345678");
     } else if (role === "TRAINER") {
       setEmail("trainer@institute.edu");
       setPassword("Password123!");
     } else {
-      setEmail("sophia.student@institute.edu");
+      setEmail("student@institute.edu");
       setPassword("Password123!");
     }
   };
@@ -86,23 +86,18 @@ export default function LoginPage() {
 
       {/* Branding Header */}
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center">
-        <Link href="/" className="inline-flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/20 border border-indigo-500/30">
-            <GraduationCap className="w-7 h-7 text-white" />
-          </div>
-          <span className="text-2xl font-black text-slate-900 tracking-tight">
-            JVM LMS
-          </span>
+        <Link href="/" className="inline-flex items-center justify-center">
+          <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-14 w-auto object-contain drop-shadow-sm" />
         </Link>
-        <h2 className="mt-6 text-3xl font-extrabold text-slate-900 tracking-tight">
-          Institutional Login Portal
+        <h2 className="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Learning Portal
         </h2>
-        <p className="mt-2 text-xs text-slate-500 font-medium">
-          Select your institutional role to access your workspace
+        <p className="mt-1.5 text-xs text-slate-500 font-medium">
+          Sign in with your institutional credentials to continue
         </p>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
         {/* Role Selector Tabs */}
         <div className="p-1.5 rounded-2xl bg-slate-200/70 border border-slate-300 grid grid-cols-3 gap-1.5 mb-6 shadow-xs">
           <button
@@ -110,7 +105,7 @@ export default function LoginPage() {
             onClick={() => handleRoleTabChange("STUDENT")}
             className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               selectedRole === "STUDENT"
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-black"
+                ? "jvm-gradient-bg text-white shadow-md shadow-purple-900/20 font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
             }`}
           >
@@ -122,11 +117,11 @@ export default function LoginPage() {
             onClick={() => handleRoleTabChange("TRAINER")}
             className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               selectedRole === "TRAINER"
-                ? "bg-amber-600 text-white shadow-md shadow-amber-600/20 font-black"
+                ? "jvm-gradient-bg text-white shadow-md shadow-purple-900/20 font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5" /> Faculty
+            <BookOpen className="w-3.5 h-3.5" /> Trainer
           </button>
 
           <button
@@ -134,7 +129,7 @@ export default function LoginPage() {
             onClick={() => handleRoleTabChange("ADMIN")}
             className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
               selectedRole === "ADMIN"
-                ? "bg-rose-600 text-white shadow-md shadow-rose-600/20 font-black"
+                ? "jvm-gradient-bg text-white shadow-md shadow-purple-900/20 font-black"
                 : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
             }`}
           >
@@ -143,7 +138,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 space-y-6">
+        <div className="bg-white p-7 sm:p-8 rounded-3xl shadow-xl border border-slate-200/80 space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-center gap-3 text-rose-800 text-xs font-semibold">
               <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -166,7 +161,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@institute.edu"
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 text-xs font-medium transition shadow-xs"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-xs font-medium transition shadow-xs"
                 />
               </div>
             </div>
@@ -178,7 +173,7 @@ export default function LoginPage() {
                 </label>
                 <Link
                   href="/forgot-password"
-                  className="text-xs text-indigo-600 hover:text-indigo-700 font-bold transition"
+                  className="text-xs text-purple-700 hover:text-purple-800 font-bold transition"
                 >
                   Forgot password?
                 </Link>
@@ -193,7 +188,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 text-xs font-mono transition shadow-xs"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 text-xs font-medium transition shadow-xs"
                 />
               </div>
             </div>
@@ -201,13 +196,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`w-full mt-2 py-3.5 px-4 rounded-2xl text-white font-bold text-xs shadow-md transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 flex items-center justify-center gap-2 ${
-                selectedRole === "ADMIN"
-                  ? "bg-rose-600 hover:bg-rose-500 shadow-rose-600/20"
-                  : selectedRole === "TRAINER"
-                  ? "bg-amber-600 hover:bg-amber-500 shadow-amber-600/20"
-                  : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20"
-              }`}
+              className="w-full py-3.5 px-4 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white text-xs font-black tracking-wider uppercase transition-all shadow-lg shadow-purple-900/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isLoading ? (
                 <>

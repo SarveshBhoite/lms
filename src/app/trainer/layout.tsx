@@ -66,15 +66,10 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased">
       {/* Mobile Top Header */}
-      <div className="md:hidden h-16 border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      <div className="md:hidden h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/20">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="font-extrabold text-slate-900 text-sm">JVM LMS</div>
-            <div className="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Faculty Portal</div>
-          </div>
+          <img src="/jvm_logo-bg.png" alt="JVM Institute" className="h-8 w-auto object-contain" />
+          <span className="font-extrabold text-slate-900 text-sm tracking-tight">Trainer Studio</span>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -86,25 +81,22 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
 
       {/* Desktop & Drawer Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-sm ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-xs ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
         {/* Portal Header */}
-        <div className="h-20 px-6 border-b border-slate-200 flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-md shadow-amber-500/25 border border-amber-400/30">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="font-extrabold text-base text-slate-900 tracking-tight">JVM LMS</div>
-            <div className="text-[10px] text-amber-600 font-bold uppercase tracking-widest font-mono flex items-center gap-1">
-              <Sparkles className="w-2.5 h-2.5" /> Faculty Studio
-            </div>
+        <div className="h-20 px-5 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-10 w-auto object-contain" />
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
+              Trainer
+            </span>
           </div>
         </div>
 
         {/* Flat Ordered Navigation Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {trainerNavItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -115,14 +107,14 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
-                    ? "bg-amber-500 text-white shadow-md shadow-amber-500/20 font-bold"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    ? "jvm-gradient-bg text-white shadow-md shadow-purple-900/20 font-black"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
-                {item.label}
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
+                <span>{item.label}</span>
               </Link>
             );
           })}

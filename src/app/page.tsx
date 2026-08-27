@@ -22,34 +22,27 @@ export default function HomePage() {
       <div className="absolute top-1/3 left-1/4 w-[600px] h-[400px] ambient-glow-cyan blur-[120px] pointer-events-none" />
 
       {/* Navigation Header */}
-      <header className="sticky top-0 z-50 border-b border-slate-800/60 bg-[#06080F]/75 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/25 border border-indigo-400/30">
-              <GraduationCap className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <div className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-indigo-200 tracking-tight">
-                JVM LMS
-              </div>
-              <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-widest font-mono">
-                Academic Cloud Platform
-              </div>
-            </div>
-          </div>
+          <Link href="/" className="flex items-center gap-3">
+            <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-12 w-auto object-contain" />
+            <span className="hidden sm:inline-block px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-purple-100 text-[#7C248C]">
+              LMS Portal
+            </span>
+          </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link
               href="/login"
-              className="text-sm font-semibold text-slate-300 hover:text-white transition px-4 py-2"
+              className="text-xs sm:text-sm font-bold text-slate-700 hover:text-slate-900 transition px-3 sm:px-4 py-2"
             >
               Sign In
             </Link>
             <Link
-              href="/student/courses"
-              className="text-sm font-semibold bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              href="/login"
+              className="text-xs sm:text-sm font-black jvm-gradient-bg jvm-gradient-hover text-white px-5 py-2.5 rounded-xl shadow-md shadow-purple-900/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              Explore Catalog
+              Student & Faculty Portal
             </Link>
           </div>
         </div>
@@ -105,9 +98,9 @@ export default function HomePage() {
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-rose-500/20">
                   <div className="text-xs font-bold text-rose-400 flex items-center justify-between">
                     <span>Super Admin</span>
-                    <span className="text-[10px] font-mono text-slate-400">Pass: 123</span>
+                    <span className="text-[10px] font-mono text-slate-400">Pass: 12345678</span>
                   </div>
-                  <div className="text-xs text-slate-200 font-mono mt-1 truncate">sulagadleaishwarya@gmail.com</div>
+                  <div className="text-xs text-slate-200 font-mono mt-1 truncate">rajb81008@gmail.com</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-amber-500/20">
                   <div className="text-xs font-bold text-amber-400">Lead Trainer</div>
@@ -115,7 +108,7 @@ export default function HomePage() {
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-emerald-500/20">
                   <div className="text-xs font-bold text-emerald-400">Enrolled Student</div>
-                  <div className="text-xs text-slate-200 font-mono mt-1 truncate">sophia.student@institute.edu</div>
+                  <div className="text-xs text-slate-200 font-mono mt-1 truncate">student@institute.edu</div>
                 </div>
               </div>
             </div>

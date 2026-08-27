@@ -63,16 +63,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row">
       {/* Mobile Top Nav */}
-      <div className="md:hidden h-16 border-b border-slate-200 bg-white/90 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+      <div className="md:hidden h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-rose-600 to-indigo-600 flex items-center justify-center shadow-sm">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-bold text-slate-900 text-base">EduPulse Admin</span>
+          <img src="/jvm_logo-bg.png" alt="JVM Institute" className="h-8 w-auto object-contain" />
+          <span className="font-extrabold text-slate-900 text-sm tracking-tight">Admin Console</span>
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="p-2 rounded-lg bg-slate-100 text-slate-700 hover:text-slate-900"
+          className="p-2 rounded-xl bg-slate-100 text-slate-700 hover:text-slate-900"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -80,20 +78,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-sm ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-xs ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
-        {/* Logo */}
-        <div className="h-16 px-6 border-b border-slate-200 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-rose-600 to-indigo-600 flex items-center justify-center shadow-md shadow-rose-500/20">
-            <ShieldCheck className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="font-extrabold text-sm text-slate-900">JVM LMS</div>
-            <div className="text-[10px] text-rose-600 font-bold uppercase tracking-wider">
-              Super Admin
-            </div>
+        {/* Logo Header */}
+        <div className="h-20 px-5 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-10 w-auto object-contain" />
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-[#7C248C]">
+              Admin
+            </span>
           </div>
         </div>
 
@@ -109,14 +104,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
                   isActive
-                    ? "bg-rose-600 text-white shadow-md shadow-rose-600/20"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    ? "jvm-gradient-bg text-white shadow-md shadow-purple-900/20 font-black"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80"
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? "text-white" : "text-slate-500"}`} />
-                {item.label}
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-slate-500"}`} />
+                <span>{item.label}</span>
               </Link>
             );
           })}
@@ -127,10 +122,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="p-3 rounded-xl bg-white border border-slate-200 flex items-center justify-between shadow-xs">
             <div className="overflow-hidden mr-2">
               <div className="text-xs font-bold text-slate-900 truncate">
-                {user?.name || "Aishwarya Sulagadle"}
+                {user?.name || "Raj Bhoite"}
               </div>
               <div className="text-[10px] text-slate-500 font-mono truncate">
-                {user?.email || "sulagadleaishwarya@gmail.com"}
+                {user?.email || "rajb81008@gmail.com"}
               </div>
             </div>
             <button
