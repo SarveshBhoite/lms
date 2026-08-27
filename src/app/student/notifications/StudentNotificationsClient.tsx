@@ -74,8 +74,16 @@ export default function StudentNotificationsClient({
                   )}
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">{n.message}</p>
-                <div className="text-[10px] text-slate-400 font-mono pt-1">
-                  {new Date(n.createdAt).toLocaleString()}
+                <div className="text-[10px] text-slate-400 font-mono pt-1" suppressHydrationWarning>
+                  {new Date(n.createdAt).toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric",
+                    hour: "numeric",
+                    minute: "numeric",
+                    second: "numeric",
+                    hour12: true,
+                  })}
                 </div>
               </div>
 

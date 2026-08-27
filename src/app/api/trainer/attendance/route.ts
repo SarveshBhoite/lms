@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
 
     const liveClass = await prisma.liveClass.findUnique({
       where: { id: liveClassId },
-      select: { batchId: true },
+      select: { batchId: true, title: true },
     });
 
     if (!liveClass) {
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
       throw new AuthError("Forbidden: You do not have access to mark attendance for this batch", 403);
     }
 
-    // Upsert attendance for each student record
+    // Upsert attendance for each student record and send notification
     for (const record of records) {
       if (record.userId && record.status) {
         await prisma.attendance.upsert({
@@ -48,6 +48,17 @@ export async function POST(req: NextRequest) {
             recordedAt: new Date(),
           },
         });
+
+        // Notify student of updated attendance
+        await prisma.notification.create({
+          data: {
+            userId: record.userId,
+            title: "Attendance Recorded",
+            message: `Your attendance for live session '${liveClass.title}' was marked as ${record.status}.`,
+            type: "SYSTEM_ALERT",
+            actionUrl: "/student/attendance",
+          },
+        }).catch(() => {});
       }
     }
 
