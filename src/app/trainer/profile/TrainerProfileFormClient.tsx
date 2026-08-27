@@ -211,7 +211,7 @@ export default function TrainerProfileFormClient({ initialUser }: { initialUser:
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-2 disabled:opacity-50 transition"
+              className="px-6 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 disabled:opacity-50 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
               {submitting && <Loader2 className="w-4 h-4 animate-spin" />} Update Profile Settings
             </button>

@@ -57,39 +57,37 @@ export default async function TrainerAttendancePage() {
             const avgAttendancePct = totalPossible > 0 ? (totalPresent / totalPossible) * 100 : 0;
 
             return (
-              <div key={b.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-5 flex flex-col justify-between hover:shadow-md transition">
+              <div key={b.id} className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      {b.status}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
+                      {b.course.title}
                     </span>
-                    <span className="text-xs text-slate-500 font-mono">Course: {b.course.title}</span>
+                    <span className="text-xs text-slate-500 font-mono">{b.students.length} Learners</span>
                   </div>
 
-                  <h3 className="text-lg font-bold text-slate-900">{b.name}</h3>
+                  <h3 className="font-extrabold text-slate-900 text-lg">{b.name}</h3>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 font-mono text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Total Enrolled:</span>
-                      <strong className="text-slate-900">{b.students.length} Students</strong>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono border-t border-slate-100 pt-3">
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Total Classes</span>
+                      <strong className="text-slate-900">{totalClasses} Sessions</strong>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Live Sessions:</span>
-                      <strong className="text-cyan-700">{b.liveClasses.length} Classes</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Avg Attendance:</span>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Average Rate</span>
                       <strong className="text-emerald-700">{avgAttendancePct.toFixed(1)}%</strong>
                     </div>
                   </div>
                 </div>
 
-                <Link
-                  href={`/trainer/batches/${b.id}?tab=attendance`}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
-                >
-                  <CheckSquare className="w-4 h-4" /> Open Attendance Roster
-                </Link>
+                <div className="pt-2">
+                  <Link
+                    href={`/trainer/attendance/${b.id}`}
+                    className="w-full py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-purple-900/20 hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    Open Attendance Roster
+                  </Link>
+                </div>
               </div>
             );
           })}

@@ -102,40 +102,42 @@ export default async function TrainerReportsPage() {
         </p>
       </div>
 
-      {/* Summary Stat Cards */}
+      {/* Analytics Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-2">
-          <div className="text-xs font-bold uppercase text-slate-500 font-mono flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-600" /> Active Enrolled Students
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold uppercase text-slate-500">Quiz Passing Rate</span>
+            <HelpCircle className="w-5 h-5 text-[#7C248C]" />
           </div>
-          <div className="text-3xl font-black text-slate-900">{totalStudents}</div>
-          <div className="text-[11px] text-indigo-700 font-mono">Across {courses.length} Courses</div>
+          <div className="text-3xl font-black text-slate-900">{quizPassRate.toFixed(1)}%</div>
+          <p className="text-[11px] text-slate-500 font-mono">{totalQuizAttempts} total quiz submissions</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-2">
-          <div className="text-xs font-bold uppercase text-slate-500 font-mono flex items-center gap-2">
-            <HelpCircle className="w-4 h-4 text-purple-600" /> Quiz Pass Rate
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold uppercase text-slate-500">Assignment Avg</span>
+            <FileCheck className="w-5 h-5 text-[#E01E6A]" />
           </div>
-          <div className="text-3xl font-black text-purple-600">{quizPassRate.toFixed(1)}%</div>
-          <div className="text-[11px] text-slate-500 font-mono">{passedQuizAttempts} of {totalQuizAttempts} attempts passed</div>
+          <div className="text-3xl font-black text-slate-900">{avgAssignmentScore.toFixed(1)}%</div>
+          <p className="text-[11px] text-slate-500 font-mono">{evaluatedAssignmentsCount} submissions graded</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-2">
-          <div className="text-xs font-bold uppercase text-slate-500 font-mono flex items-center gap-2">
-            <FileCheck className="w-4 h-4 text-rose-600" /> Assignment Evaluated Rate
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold uppercase text-slate-500">Live Attendance</span>
+            <CheckSquare className="w-5 h-5 text-emerald-600" />
           </div>
-          <div className="text-3xl font-black text-rose-600">
-            {totalSubmissions > 0 ? ((gradedSubmissions / totalSubmissions) * 100).toFixed(1) : 0}%
-          </div>
-          <div className="text-[11px] text-slate-500 font-mono">{gradedSubmissions} of {totalSubmissions} submissions graded</div>
+          <div className="text-3xl font-black text-slate-900">{overallAttendanceRate.toFixed(1)}%</div>
+          <p className="text-[11px] text-slate-500 font-mono">{totalPresentAttendance} records marked present</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-2">
-          <div className="text-xs font-bold uppercase text-slate-500 font-mono flex items-center gap-2">
-            <CheckSquare className="w-4 h-4 text-emerald-600" /> Attendance Rate
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-mono font-bold uppercase text-slate-500">Assigned Cohorts</span>
+            <Users className="w-5 h-5 text-[#1E2B88]" />
           </div>
-          <div className="text-3xl font-black text-emerald-600">{overallAttendanceRate.toFixed(1)}%</div>
-          <div className="text-[11px] text-slate-500 font-mono">{presentRecords} present entries recorded</div>
+          <div className="text-3xl font-black text-slate-900">{batches.length}</div>
+          <p className="text-[11px] text-slate-500 font-mono">{totalStudents} active student enrollments</p>
         </div>
       </div>
 

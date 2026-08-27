@@ -89,8 +89,8 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
         <div className="h-20 px-5 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-10 w-auto object-contain" />
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-100 text-amber-800">
-              Trainer
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-[#7C248C]">
+              Faculty
             </span>
           </div>
         </div>

@@ -188,27 +188,6 @@ export default async function TrainerStudentsPage({
             const assignmentAvg =
               evaluatedSubs.length > 0
                 ? evaluatedSubs.reduce(
-                    (acc, sub) => acc + ((sub.feedback?.marksAwarded || 0) / (sub.assignment.totalMarks || 100)) * 100,
-                    0
-                  ) / evaluatedSubs.length
-                : 0;
-
-            return (
-              <div key={student.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 font-extrabold flex items-center justify-center text-sm">
-                      {student.name.charAt(0)}
-                    </div>
-                    <div className="overflow-hidden">
-                      <h3 className="font-bold text-slate-900 text-base truncate">{student.name}</h3>
-                      <p className="text-xs text-slate-500 font-mono truncate">{student.email}</p>
-                      {student.profile?.phone && <p className="text-[11px] text-slate-400 font-mono">{student.profile.phone}</p>}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100 font-mono">
-                    <div className="text-[11px] text-slate-500 truncate">
                       Course: <span className="text-slate-900 font-semibold">{student.enrollments.map((e) => e.course.title).join(", ") || "None"}</span>
                     </div>
                     <div className="text-[11px] text-slate-500 truncate">

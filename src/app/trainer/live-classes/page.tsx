@@ -190,7 +190,7 @@ export default function TrainerLiveClassesPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
-            <Video className="w-7 h-7 text-cyan-600" /> Live Interactive Classes Studio
+            <Video className="w-7 h-7 text-[#1E2B88]" /> Live Interactive Classes Studio
           </h1>
           <p className="text-slate-600 text-sm mt-1">
             Schedule Google Meet live interactive classes for assigned cohorts, stream recordings, and track attendance.
@@ -199,7 +199,7 @@ export default function TrainerLiveClassesPage() {
 
         <button
           onClick={() => setIsScheduleModalOpen(true)}
-          className="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center gap-2 transition shrink-0"
+          className="px-5 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition shrink-0 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Schedule Live Class
         </button>

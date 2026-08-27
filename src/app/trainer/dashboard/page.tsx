@@ -120,13 +120,13 @@ export default async function TrainerDashboardPage() {
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
       {/* Top Welcome Banner */}
-      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+      <div className="glass-panel p-8 rounded-3xl border border-slate-200/80 bg-gradient-to-r from-purple-50/70 via-indigo-50/50 to-slate-50 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
         <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold font-mono uppercase tracking-wider">
-            <Sparkles className="w-3 h-3 text-amber-600" /> Active Academic Quarter
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-200 text-[#7C248C] text-xs font-bold font-mono uppercase tracking-wider">
+            <Sparkles className="w-3 h-3 text-[#7C248C]" /> JVM Faculty Studio
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
-            Good Morning, {session.name} 🎓
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
+            Welcome back, {session.name} 🎓
           </h1>
           <p className="text-slate-600 text-sm max-w-2xl">
             Overview of your assigned academic scope, active student cohorts, live classes, and pending evaluation tasks.
@@ -135,7 +135,7 @@ export default async function TrainerDashboardPage() {
 
         <Link
           href="/trainer/batches/create"
-          className="px-5 py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-md shadow-amber-500/20 flex items-center gap-2 transition shrink-0"
+          className="px-5 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition shrink-0 hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus className="w-4 h-4" /> Create New Batch
         </Link>

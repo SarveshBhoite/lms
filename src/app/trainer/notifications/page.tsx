@@ -17,9 +17,9 @@ export default async function TrainerNotificationsPage() {
 
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-5xl w-full mx-auto">
-      <div>
+      <div className="border-b border-slate-200 pb-4">
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
-          <Bell className="w-6 h-6 text-amber-600" /> Notifications & Alerts
+          <Bell className="w-7 h-7 text-[#7C248C]" /> Notifications & Broadcasts
         </h1>
         <p className="text-slate-600 text-sm mt-1">
           Recent announcements, assignment submission updates, live class reminders, and system alerts.
@@ -31,19 +31,22 @@ export default async function TrainerNotificationsPage() {
           {notifications.map((n) => (
             <div
               key={n.id}
-              className={`p-5 rounded-2xl bg-white border shadow-xs flex items-start justify-between gap-4 transition ${
-                !n.isRead ? "border-amber-300 bg-amber-50/50" : "border-slate-200"
+              className={`p-5 rounded-3xl border shadow-xs flex items-start justify-between gap-4 transition ${
+                !n.isRead ? "bg-purple-50/50 border-purple-200/90" : "glass-card bg-white border-slate-200"
               }`}
             >
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 uppercase font-bold">
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-purple-100 text-[#7C248C] border border-purple-200 uppercase font-bold">
                     {n.type}
                   </span>
-                  <h3 className="font-bold text-slate-900 text-sm">{n.title}</h3>
+                  <h3 className="font-extrabold text-slate-900 text-sm">{n.title}</h3>
+                  {!n.isRead && (
+                    <span className="w-2 h-2 rounded-full bg-[#E01E6A] inline-block shrink-0" />
+                  )}
                 </div>
-                <p className="text-xs text-slate-700 pl-0.5">{n.message}</p>
-                <div className="text-[10px] text-slate-500 font-mono pt-1">
+                <p className="text-xs text-slate-600 pl-0.5 leading-relaxed">{n.message}</p>
+                <div className="text-[10px] text-slate-400 font-mono pt-1">
                   {new Date(n.createdAt).toLocaleString()}
                 </div>
               </div>
@@ -51,9 +54,9 @@ export default async function TrainerNotificationsPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
-          <Bell className="w-10 h-10 mx-auto text-slate-400" />
-          <p className="text-sm">No new notifications in your inbox.</p>
+        <div className="glass-card bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
+          <Bell className="w-10 h-10 mx-auto text-slate-300" />
+          <p className="text-sm font-semibold">No new notifications in your inbox.</p>
         </div>
       )}
     </div>
