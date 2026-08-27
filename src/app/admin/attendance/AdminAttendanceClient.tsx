@@ -144,7 +144,7 @@ export default function AdminAttendanceClient({
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
-            <CheckSquare className="w-7 h-7 text-rose-600" /> Institutional Attendance Control Hub
+            <CheckSquare className="w-7 h-7 text-[#7C248C]" /> Institutional Attendance Control Hub
           </h1>
           <p className="text-slate-600 text-sm mt-1">
             Real-time monitoring and administrative override for live session attendance across all cohorts and trainers.

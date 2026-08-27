@@ -64,23 +64,23 @@ export default async function AdminDashboardPage() {
   return (
     <div className="p-6 sm:p-10 space-y-10 max-w-7xl w-full mx-auto">
       {/* Top Banner */}
-      <div className="glass-panel p-8 rounded-3xl border border-slate-200 bg-gradient-to-r from-rose-50/60 via-indigo-50/40 to-slate-50 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm">
+      <div className="glass-panel p-8 rounded-3xl border border-slate-200/80 bg-gradient-to-r from-purple-50/70 via-indigo-50/50 to-slate-50 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
         <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-100 border border-rose-200 text-rose-700 text-xs font-bold font-mono uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-rose-600" /> Super Admin Control Center
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-200 text-[#7C248C] text-xs font-bold font-mono uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-[#7C248C]" /> Super Admin Control Center
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
             Welcome back, {session.name} 👋
           </h1>
           <p className="text-slate-600 text-sm max-w-2xl">
-            Real-time synchronization across system analytics, student enrollments, faculty operations, and course programs.
+            Real-time synchronization across JVM Institute analytics, student enrollments, faculty operations, and course programs.
           </p>
         </div>
 
         <div className="flex items-center gap-3 relative z-10 shrink-0">
           <Link
             href="/admin/students?action=new"
-            className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/20 flex items-center gap-2 transition"
+            className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
           >
             <UserPlus className="w-4 h-4" /> Add Student
           </Link>
@@ -164,9 +164,9 @@ export default async function AdminDashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
           <Link
             href="/admin/students?action=new"
-            className="p-4 rounded-2xl bg-rose-50/60 border border-rose-200/80 hover:bg-rose-100/80 transition flex flex-col items-center text-center space-y-2 group"
+            className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80 hover:bg-purple-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
           >
-            <div className="p-2.5 rounded-xl bg-rose-600 text-white group-hover:scale-110 transition-transform shadow-xs">
+            <div className="p-2.5 rounded-xl jvm-gradient-bg text-white group-hover:scale-110 transition-transform shadow-xs">
               <UserPlus className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-slate-900">Add Student</span>
@@ -175,9 +175,9 @@ export default async function AdminDashboardPage() {
 
           <Link
             href="/admin/trainers"
-            className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 hover:bg-amber-100/80 transition flex flex-col items-center text-center space-y-2 group"
+            className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 hover:bg-amber-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
           >
-            <div className="p-2.5 rounded-xl bg-amber-500 text-white group-hover:scale-110 transition-transform shadow-xs">
+            <div className="p-2.5 rounded-xl bg-amber-600 text-white group-hover:scale-110 transition-transform shadow-xs">
               <GraduationCap className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-slate-900">Add Trainer</span>
@@ -186,9 +186,9 @@ export default async function AdminDashboardPage() {
 
           <Link
             href="/admin/courses"
-            className="p-4 rounded-2xl bg-violet-50/60 border border-violet-200/80 hover:bg-violet-100/80 transition flex flex-col items-center text-center space-y-2 group"
+            className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 hover:bg-blue-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
           >
-            <div className="p-2.5 rounded-xl bg-violet-600 text-white group-hover:scale-110 transition-transform shadow-xs">
+            <div className="p-2.5 rounded-xl bg-[#1E2B88] text-white group-hover:scale-110 transition-transform shadow-xs">
               <BookOpen className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-slate-900">Create Course</span>
@@ -197,7 +197,7 @@ export default async function AdminDashboardPage() {
 
           <Link
             href="/admin/batches"
-            className="p-4 rounded-2xl bg-cyan-50/60 border border-cyan-200/80 hover:bg-cyan-100/80 transition flex flex-col items-center text-center space-y-2 group"
+            className="p-4 rounded-2xl bg-cyan-50/60 border border-cyan-200/80 hover:bg-cyan-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
           >
             <div className="p-2.5 rounded-xl bg-cyan-600 text-white group-hover:scale-110 transition-transform shadow-xs">
               <Layers className="w-5 h-5" />
@@ -208,9 +208,9 @@ export default async function AdminDashboardPage() {
 
           <Link
             href="/admin/enrollments"
-            className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-200/80 hover:bg-indigo-100/80 transition flex flex-col items-center text-center space-y-2 group"
+            className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80 hover:bg-purple-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
           >
-            <div className="p-2.5 rounded-xl bg-indigo-600 text-white group-hover:scale-110 transition-transform shadow-xs">
+            <div className="p-2.5 rounded-xl bg-[#7C248C] text-white group-hover:scale-110 transition-transform shadow-xs">
               <Users className="w-5 h-5" />
             </div>
             <span className="text-xs font-bold text-slate-900">Enroll Student</span>

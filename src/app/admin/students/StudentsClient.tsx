@@ -302,7 +302,7 @@ export default function StudentsClient({
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold font-mono uppercase tracking-wider mb-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-200 text-[#7C248C] text-xs font-bold font-mono uppercase tracking-wider mb-2">
             <Users className="w-3.5 h-3.5" /> Student Roster
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Student Management</h1>
@@ -316,7 +316,7 @@ export default function StudentsClient({
             resetForm();
             setIsAddModalOpen(true);
           }}
-          className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/20 flex items-center gap-2 transition"
+          className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Student
         </button>

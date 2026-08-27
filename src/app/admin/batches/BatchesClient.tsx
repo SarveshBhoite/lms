@@ -346,7 +346,7 @@ export default function BatchesClient({
             resetForm();
             setIsAddModalOpen(true);
           }}
-          className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/20 flex items-center gap-2 transition"
+          className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Create New Batch
         </button>

@@ -12,14 +12,14 @@ export default async function AdminActivityLogsPage() {
   return (
     <div className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-white">System Security & Audit Trail</h1>
-        <p className="text-slate-400 text-sm mt-1">Real-time log of security events, administrative changes, and user authentications.</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">System Security & Audit Trail</h1>
+        <p className="text-slate-500 text-sm mt-1">Real-time log of security events, administrative changes, and user authentications.</p>
       </div>
 
-      <div className="glass-panel rounded-2xl border border-slate-800 overflow-hidden">
+      <div className="glass-card rounded-3xl border border-slate-200 bg-white shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/80 border-b border-slate-800 text-slate-400 uppercase font-semibold">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-mono text-[11px] font-bold">
               <tr>
                 <th className="p-4">Action</th>
                 <th className="p-4">Resource</th>
@@ -27,14 +27,14 @@ export default async function AdminActivityLogsPage() {
                 <th className="p-4">Timestamp</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-slate-100 text-slate-700">
               {logs.length > 0 ? (
                 logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-slate-900/40 transition">
-                    <td className="p-4 font-mono font-semibold text-rose-400">{log.action}</td>
-                    <td className="p-4 text-slate-300 font-mono">{log.resource}</td>
-                    <td className="p-4">{log.user?.email || "System"}</td>
-                    <td className="p-4 text-slate-400">{new Date(log.createdAt).toLocaleString()}</td>
+                  <tr key={log.id} className="hover:bg-slate-50/70 transition">
+                    <td className="p-4 font-mono font-bold text-[#7C248C]">{log.action}</td>
+                    <td className="p-4 text-slate-800 font-mono">{log.resource}</td>
+                    <td className="p-4 font-semibold text-slate-900">{log.user?.email || "System"}</td>
+                    <td className="p-4 text-slate-500">{new Date(log.createdAt).toLocaleString()}</td>
                   </tr>
                 ))
               ) : (

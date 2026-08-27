@@ -384,13 +384,13 @@ export default function EnrollmentsClient({
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsBulkModalOpen(true)}
-            className="px-4 py-2.5 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition flex items-center gap-2"
+            className="px-4 py-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 text-[#7C248C] font-bold text-xs border border-purple-200 transition flex items-center gap-2 cursor-pointer"
           >
             <Users className="w-4 h-4" /> Bulk Enroll
           </button>
           <button
             onClick={() => setIsSingleModalOpen(true)}
-            className="px-5 py-2.5 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-lg shadow-rose-600/20 flex items-center gap-2 transition"
+            className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Enroll Student
           </button>
