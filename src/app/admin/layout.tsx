@@ -31,10 +31,8 @@ const adminNavItems = [
   { label: "Attendance Control", href: "/admin/attendance", icon: CheckSquare },
   { label: "Enrollments", href: "/admin/enrollments", icon: Users },
   { label: "Certificates Registry", href: "/admin/certificates", icon: Award },
-  { label: "Content Library", href: "/admin/content", icon: FileBox },
-  { label: "Broadcasts", href: "/admin/notifications", icon: Bell },
+  { label: "Notification", href: "/admin/notifications", icon: Bell },
   { label: "Reports & Analytics", href: "/admin/reports", icon: BarChart3 },
-  { label: "Audit Logs", href: "/admin/activity-logs", icon: Activity },
   { label: "System Settings", href: "/admin/settings", icon: Settings },
 ];
 

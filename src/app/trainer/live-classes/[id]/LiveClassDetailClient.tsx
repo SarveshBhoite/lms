@@ -19,6 +19,7 @@ import {
   BookOpen,
   Calendar,
   Save,
+  Upload,
 } from "lucide-react";
 
 interface StudentMember {
@@ -494,31 +495,83 @@ export default function LiveClassDetailClient({
 
       {/* ---------------- SECTION 4: RECORDING ---------------- */}
       {activeTab === "recording" && (
-        <form onSubmit={handleSaveRecording} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <Video className="w-5 h-5 text-cyan-600" /> Class Session Recording Link
-          </h2>
-          <p className="text-xs text-slate-500">
-            Publish Google Drive or YouTube recording URL. Saving sends an automated notification to all batch students.
-          </p>
+        <form onSubmit={handleSaveRecording} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <Video className="w-5 h-5 text-cyan-600" /> Class Session Recording File or Link
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Upload a recorded video session file directly from your computer or paste an external URL (Google Drive / YouTube).
+            </p>
+          </div>
+
+          {/* Direct File Upload Box */}
+          <div className="p-5 rounded-2xl bg-cyan-50/60 border border-dashed border-cyan-300 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center text-white shrink-0">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-slate-900">Upload Video Recording File from Device</h3>
+                <p className="text-[10px] text-slate-500 font-mono">Supports .mp4, .webm, .mkv, .mov files up to 500MB</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <label className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer transition inline-flex items-center gap-2">
+                {uploadingRecording ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                {uploadingRecording ? "Uploading Recording..." : "Choose Video File"}
+                <input
+                  type="file"
+                  accept="video/*"
+                  disabled={uploadingRecording}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setUploadingRecording(true);
+                    try {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      formData.append("category", "recordings");
+                      const res = await fetch("/api/upload", { method: "POST", body: formData });
+                      const data = await res.json();
+                      if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
+                      setRecordingUrlInput(data.data.url);
+                      showToast("success", `File "${data.data.fileName}" uploaded successfully!`);
+                    } catch (err: any) {
+                      showToast("error", err.message || "Failed to upload video file");
+                    } finally {
+                      setUploadingRecording(false);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+              {recordingUrlInput && (
+                <span className="text-xs font-mono text-cyan-700 font-bold truncate">
+                  Uploaded Path: {recordingUrlInput}
+                </span>
+              )}
+            </div>
+          </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Recording URL</label>
+            <label className="text-xs font-bold text-slate-700">Recording File URL / Path</label>
             <input
-              type="url"
+              type="text"
               required
-              placeholder="https://drive.google.com/file/d/..."
+              placeholder="/uploads/recordings/... or https://..."
               value={recordingUrlInput}
               onChange={(e) => setRecordingUrlInput(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-cyan-500 shadow-xs"
+              className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-cyan-500 shadow-xs font-mono"
             />
           </div>
 
           <div className="flex justify-end">
             <button
               type="submit"
-              disabled={actionLoading}
-              className="px-6 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center gap-2 transition"
+              disabled={actionLoading || uploadingRecording}
+              className="px-6 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center gap-2 transition disabled:opacity-50"
             >
               {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Publish Recording & Notify Students
             </button>

@@ -29,6 +29,7 @@ import {
   Database,
   Eye,
   File,
+  Upload,
 } from "lucide-react";
 
 interface ResourceItem {
@@ -122,6 +123,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
     orderIndex: 1,
     isFreePreview: false,
   });
+  const [uploadingLessonVideo, setUploadingLessonVideo] = useState(false);
 
   // Resource Modal States
   const [isResourceModalOpen, setIsResourceModalOpen] = useState(false);
@@ -132,6 +134,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
     fileUrl: "",
     isPublic: true,
   });
+  const [uploadingResource, setUploadingResource] = useState(false);
 
   // Delete Confirm Modal
   const [deletingTarget, setDeletingTarget] = useState<{ type: "module" | "lesson" | "resource"; id: string; title: string } | null>(null);
@@ -880,14 +883,63 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                 </div>
               </div>
 
+              {/* Device Video Upload Box */}
+              <div className="p-4 rounded-2xl bg-cyan-50/60 border border-dashed border-cyan-300 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <Video className="w-4 h-4 text-cyan-600 shrink-0" />
+                  <span className="font-bold text-slate-900 text-xs">Upload Video File from Device</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer transition inline-flex items-center gap-1.5">
+                    {uploadingLessonVideo ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    {uploadingLessonVideo ? "Uploading Video..." : "Choose Video File"}
+                    <input
+                      type="file"
+                      accept="video/*"
+                      disabled={uploadingLessonVideo}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingLessonVideo(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          formData.append("category", "lessons");
+                          const res = await fetch("/api/upload", { method: "POST", body: formData });
+                          const data = await res.json();
+                          if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
+
+                          setLessonForm((prev) => ({
+                            ...prev,
+                            contentUrl: data.data.url,
+                            contentType: "VIDEO",
+                          }));
+                          showToast("success", `Video file "${data.data.fileName}" uploaded!`);
+                        } catch (err: any) {
+                          showToast("error", err.message || "Failed to upload video");
+                        } finally {
+                          setUploadingLessonVideo(false);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {lessonForm.contentUrl && (
+                    <span className="text-[10px] font-mono text-cyan-800 font-bold truncate max-w-[200px]">
+                      {lessonForm.contentUrl}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Content URL / Video Link</label>
+                <label className="font-bold text-slate-700 block mb-1">Content URL / Video Path</label>
                 <input
                   type="text"
-                  placeholder="https://..."
+                  placeholder="/uploads/lessons/... or https://..."
                   value={lessonForm.contentUrl}
                   onChange={(e) => setLessonForm({ ...lessonForm, contentUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs font-mono"
                 />
               </div>
             </div>
@@ -896,7 +948,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
               <button type="button" onClick={() => setIsLessonModalOpen(false)} className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">
                 Cancel
               </button>
-              <button type="submit" disabled={actionLoading} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-2 shadow-xs">
+              <button type="submit" disabled={actionLoading || uploadingLessonVideo} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-2 shadow-xs disabled:opacity-50">
                 {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Save Lesson
               </button>
             </div>
@@ -909,7 +961,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <form onSubmit={handleResourceSubmit} className="bg-white p-6 rounded-3xl border border-slate-200 max-w-md w-full space-y-4 shadow-xl">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">Add Learning Resource</h3>
+              <h3 className="font-bold text-slate-900 text-base">Add Learning Resource / Lesson Note</h3>
               <button type="button" onClick={() => setIsResourceModalOpen(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
@@ -921,11 +973,60 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Cheat Sheet PDF or Code Repo"
+                  placeholder="e.g. Chapter 1 Lecture Notes PDF"
                   value={resourceForm.title}
                   onChange={(e) => setResourceForm({ ...resourceForm, title: e.target.value })}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-amber-500 shadow-xs"
                 />
+              </div>
+
+              {/* Device File Upload Box */}
+              <div className="p-4 rounded-2xl bg-amber-50/60 border border-dashed border-amber-300 space-y-2">
+                <div className="flex items-center gap-2.5">
+                  <Upload className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span className="font-bold text-slate-900 text-xs">Upload File from Device</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs cursor-pointer transition inline-flex items-center gap-1.5">
+                    {uploadingResource ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                    {uploadingResource ? "Uploading..." : "Browse Device Files"}
+                    <input
+                      type="file"
+                      disabled={uploadingResource}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setUploadingResource(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          formData.append("category", "lessons");
+                          const res = await fetch("/api/upload", { method: "POST", body: formData });
+                          const data = await res.json();
+                          if (!res.ok || !data.success) throw new Error(data.error || "Upload failed");
+
+                          setResourceForm((prev) => ({
+                            ...prev,
+                            title: prev.title || file.name,
+                            fileUrl: data.data.url,
+                            fileType: data.data.fileType,
+                          }));
+                          showToast("success", `File "${data.data.fileName}" uploaded!`);
+                        } catch (err: any) {
+                          showToast("error", err.message || "Failed to upload file");
+                        } finally {
+                          setUploadingResource(false);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  {resourceForm.fileUrl && (
+                    <span className="text-[10px] font-mono text-amber-800 font-bold truncate max-w-[200px]">
+                      {resourceForm.fileUrl}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -935,7 +1036,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                   placeholder="PDF, ZIP, CODE, PPT, LINK, DATASET"
                   value={resourceForm.fileType}
                   onChange={(e) => setResourceForm({ ...resourceForm, fileType: e.target.value.toUpperCase() })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs uppercase font-mono"
                 />
               </div>
 
@@ -944,10 +1045,10 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                 <input
                   type="text"
                   required
-                  placeholder="https://..."
+                  placeholder="/uploads/lessons/... or https://..."
                   value={resourceForm.fileUrl}
                   onChange={(e) => setResourceForm({ ...resourceForm, fileUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs font-mono"
                 />
               </div>
             </div>
@@ -956,7 +1057,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
               <button type="button" onClick={() => setIsResourceModalOpen(false)} className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">
                 Cancel
               </button>
-              <button type="submit" disabled={actionLoading} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-2 shadow-xs">
+              <button type="submit" disabled={actionLoading || uploadingResource} className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs flex items-center gap-2 shadow-xs disabled:opacity-50">
                 {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Save Resource
               </button>
             </div>
