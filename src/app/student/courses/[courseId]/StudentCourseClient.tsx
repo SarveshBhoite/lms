@@ -159,18 +159,18 @@ export default function StudentCourseClient({
             <strong className="text-indigo-700">{progressPct.toFixed(1)}%</strong>
           </div>
           <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${Math.min(progressPct, 100)}%` }}></div>
+            <div className="bg-[#7C248C] h-2 rounded-full" style={{ width: `${Math.min(progressPct, 100)}%` }}></div>
           </div>
         </div>
       </div>
 
-      {/* Tabs Bar */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-1">
+      {/* ---------------- NAVIGATION TABS ---------------- */}
+      <div className="flex gap-2 border-b border-slate-200 overflow-x-auto">
         <button
           onClick={() => setActiveTab("player")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "player"
-              ? "border-indigo-600 text-indigo-700 bg-indigo-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/60 font-black"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -181,7 +181,7 @@ export default function StudentCourseClient({
           onClick={() => setActiveTab("resources")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "resources"
-              ? "border-indigo-600 text-indigo-700 bg-indigo-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/60 font-black"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -192,7 +192,7 @@ export default function StudentCourseClient({
           onClick={() => setActiveTab("quizzes")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "quizzes"
-              ? "border-indigo-600 text-indigo-700 bg-indigo-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/60 font-black"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -203,7 +203,7 @@ export default function StudentCourseClient({
           onClick={() => setActiveTab("assignments")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "assignments"
-              ? "border-indigo-600 text-indigo-700 bg-indigo-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/60 font-black"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -214,7 +214,7 @@ export default function StudentCourseClient({
           onClick={() => setActiveTab("overview")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "overview"
-              ? "border-indigo-600 text-indigo-700 bg-indigo-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/60 font-black"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -228,10 +228,10 @@ export default function StudentCourseClient({
           {/* Main Video / Content Display Area */}
           <div className="lg:col-span-2 space-y-6">
             {activeLesson ? (
-              <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+              <div className="glass-card bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
                 <div className="flex justify-between items-start gap-4">
                   <div>
-                    <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
                       {activeLesson.contentType}
                     </span>
                     <h2 className="text-xl font-bold text-slate-900 mt-2">{activeLesson.title}</h2>
@@ -243,7 +243,7 @@ export default function StudentCourseClient({
                     className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-xs ${
                       completedIds.includes(activeLesson.id)
                         ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
-                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
+                        : "jvm-gradient-bg jvm-gradient-hover text-white shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                     }`}
                   >
                     {markingComplete ? (

@@ -26,6 +26,8 @@ import {
   GraduationCap,
   LayoutGrid,
   List,
+  Upload,
+  Image as ImageIcon,
 } from "lucide-react";
 
 interface CourseItem {
@@ -101,6 +103,46 @@ export default function CoursesClient({
     objectivesText: "",
     prerequisitesText: "",
   });
+  const [uploadLoading, setUploadLoading] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate type and size (5MB max)
+    if (!file.type.startsWith("image/")) {
+      showToast("error", "Please select a valid image file (PNG, JPG, WEBP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("error", "Image size exceeds 5MB limit.");
+      return;
+    }
+
+    setUploadLoading(true);
+    try {
+      const data = new FormData();
+      data.append("file", file);
+
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        body: data,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to upload image to Cloudinary");
+      }
+
+      setFormData((prev) => ({ ...prev, thumbnailUrl: json.url }));
+      showToast("success", "Thumbnail uploaded to Cloudinary successfully!");
+    } catch (err: any) {
+      console.error(err);
+      showToast("error", err.message || "Failed to upload image");
+    } finally {
+      setUploadLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (searchParams.get("action") === "new") {
@@ -807,16 +849,69 @@ export default function CoursesClient({
                 />
               </div>
 
-              {/* Thumbnail URL */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Thumbnail Image URL</label>
-                <input
-                  type="url"
-                  placeholder="https://images.unsplash.com/photo-..."
-                  value={formData.thumbnailUrl}
-                  onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-rose-500"
-                />
+              {/* Thumbnail Image Upload (Cloudinary) */}
+              <div className="space-y-2">
+                <label className="font-bold text-slate-700 flex items-center justify-between">
+                  <span>Course Thumbnail *</span>
+                  <span className="text-[10px] text-slate-400 font-mono">PNG, JPG, WEBP (Max 5MB)</span>
+                </label>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+                  {formData.thumbnailUrl ? (
+                    <div className="relative w-28 h-20 rounded-2xl overflow-hidden border border-slate-200 shrink-0 bg-slate-100 group">
+                      <img
+                        src={formData.thumbnailUrl}
+                        alt="Course Thumbnail Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, thumbnailUrl: "" })}
+                        className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-[10px] font-bold"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-28 h-20 rounded-2xl border-2 border-dashed border-slate-200 shrink-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+                      <ImageIcon className="w-6 h-6 stroke-1" />
+                      <span className="text-[9px] mt-0.5">No image</span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 space-y-2 w-full">
+                    <label className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-purple-300 bg-white text-slate-700 font-bold text-xs cursor-pointer transition shadow-xs hover:bg-purple-50/50">
+                      {uploadLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 text-[#7C248C] animate-spin" />
+                          <span>Uploading to Cloudinary...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 text-[#7C248C]" />
+                          <span>Upload Image from Device</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={uploadLoading}
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="relative">
+                      <input
+                        type="url"
+                        placeholder="Or paste image URL directly..."
+                        value={formData.thumbnailUrl}
+                        onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-[11px] focus:outline-none focus:border-[#7C248C]"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Trainer & Level & Duration */}
