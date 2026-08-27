@@ -116,23 +116,23 @@ export default async function StudentDashboardPage() {
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
       {/* Welcome Banner */}
-      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-1">
-          <div className="text-xs font-mono font-bold text-indigo-600 uppercase tracking-wider">
-            STUDENT DASHBOARD
+      <div className="glass-panel p-8 rounded-3xl border border-slate-200/80 bg-gradient-to-r from-purple-50/70 via-indigo-50/50 to-slate-50 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
+        <div className="space-y-1 relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 border border-purple-200 text-[#7C248C] text-[11px] font-bold font-mono uppercase tracking-wider mb-1">
+            JVM Student Portal
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-            Welcome back, {student?.name}!
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            Welcome back, {student?.name}! 👋
           </h1>
-          <p className="text-slate-500 text-xs font-medium">
-            Continue learning your enrolled courses, view live sessions, and complete your tasks.
+          <p className="text-slate-600 text-xs font-medium max-w-2xl">
+            Continue learning your enrolled programs, attend live sessions, and track your milestone achievements.
           </p>
         </div>
 
         {lastActiveProgress && (
           <Link
             href={`/student/courses/${lastActiveProgress.courseId}`}
-            className="px-6 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/20 flex items-center gap-2 transition shrink-0"
+            className="px-6 py-3.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition shrink-0 hover:scale-[1.02] active:scale-[0.98]"
           >
             <Play className="w-4 h-4 fill-white" /> Continue Learning
           </Link>
@@ -141,50 +141,50 @@ export default async function StudentDashboardPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-xs font-mono text-slate-500 uppercase font-bold">Enrolled Courses</span>
-            <div className="w-9 h-9 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-blue-50 border border-blue-200 text-[#1E2B88] flex items-center justify-center">
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{enrollments.length}</div>
+          <div className="text-2xl font-extrabold text-slate-900">{enrollments.length}</div>
           <p className="text-[11px] text-slate-500 font-mono">Active cohorts enrolled</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-xs font-mono text-slate-500 uppercase font-bold">Overall Progress</span>
             <div className="w-9 h-9 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center">
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{overallProgressPercent.toFixed(1)}%</div>
+          <div className="text-2xl font-extrabold text-slate-900">{overallProgressPercent.toFixed(1)}%</div>
           <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${Math.min(overallProgressPercent, 100)}%` }}></div>
+            <div className="jvm-gradient-bg h-1.5 rounded-full" style={{ width: `${Math.min(overallProgressPercent, 100)}%` }}></div>
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-xs font-mono text-slate-500 uppercase font-bold">Pending Quizzes</span>
-            <div className="w-9 h-9 rounded-2xl bg-purple-50 border border-purple-200 text-purple-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-purple-50 border border-purple-200 text-[#7C248C] flex items-center justify-center">
               <HelpCircle className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{pendingQuizzesCount}</div>
-          <p className="text-[11px] text-purple-700 font-mono font-bold">Assessments to attempt</p>
+          <div className="text-2xl font-extrabold text-slate-900">{pendingQuizzesCount}</div>
+          <p className="text-[11px] text-[#7C248C] font-mono font-bold">Assessments to attempt</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-3">
           <div className="flex justify-between items-center">
             <span className="text-xs font-mono text-slate-500 uppercase font-bold">Pending Assignments</span>
-            <div className="w-9 h-9 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-2xl bg-pink-50 border border-pink-200 text-[#E01E6A] flex items-center justify-center">
               <FileCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">{pendingAssignmentsCount}</div>
-          <p className="text-[11px] text-rose-700 font-mono font-bold">Submissions due</p>
+          <div className="text-2xl font-extrabold text-slate-900">{pendingAssignmentsCount}</div>
+          <p className="text-[11px] text-[#E01E6A] font-mono font-bold">Submissions due</p>
         </div>
       </div>
 
@@ -193,7 +193,7 @@ export default async function StudentDashboardPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-slate-900">Enrolled Courses</h2>
-            <Link href="/student/courses" className="text-xs font-bold text-indigo-600 hover:underline">
+            <Link href="/student/courses" className="text-xs font-bold text-[#7C248C] hover:underline">
               View All Courses
             </Link>
           </div>
@@ -205,9 +205,9 @@ export default async function StudentDashboardPage() {
                 const progPct = cp ? cp.progressPercent : 0;
 
                 return (
-                  <div key={en.id} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
+                  <div key={en.id} className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4 flex flex-col justify-between">
                     <div className="space-y-3">
-                      <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                      <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
                         {en.batch?.name || "Cohort Member"}
                       </span>
                       <h3 className="font-bold text-slate-900 text-base">{en.course.title}</h3>
@@ -219,14 +219,14 @@ export default async function StudentDashboardPage() {
                           <strong className="text-slate-900">{progPct.toFixed(1)}%</strong>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                          <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${Math.min(progPct, 100)}%` }}></div>
+                          <div className="jvm-gradient-bg h-2 rounded-full" style={{ width: `${Math.min(progPct, 100)}%` }}></div>
                         </div>
                       </div>
                     </div>
 
                     <Link
                       href={`/student/courses/${en.courseId}`}
-                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                      className="w-full py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                     >
                       <Play className="w-3.5 h-3.5 fill-white" /> Continue Learning
                     </Link>
@@ -235,7 +235,7 @@ export default async function StudentDashboardPage() {
               })}
             </div>
           ) : (
-            <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-2">
+            <div className="glass-card p-12 rounded-3xl border border-slate-200 bg-white text-center text-slate-500 space-y-2">
               <BookOpen className="w-10 h-10 mx-auto text-slate-400" />
               <p className="text-xs">No active course enrollments assigned to your account.</p>
             </div>
@@ -243,37 +243,43 @@ export default async function StudentDashboardPage() {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Video className="w-4 h-4 text-cyan-600" /> Upcoming Live Sessions
+              <Video className="w-4 h-4 text-[#1E2B88]" /> Upcoming Live Sessions
             </h2>
 
             {liveClasses.length > 0 ? (
               <div className="space-y-3">
                 {liveClasses.map((lc) => (
-                  <div key={lc.id} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
-                    <div className="flex justify-between items-center">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        lc.status === "LIVE" ? "bg-rose-50 text-rose-700 border border-rose-200 animate-pulse" : "bg-cyan-50 text-cyan-700 border border-cyan-200"
-                      }`}>
+                  <div key={lc.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-100 text-[#7C248C]">
                         {lc.status}
                       </span>
-                      <span className="font-mono text-[10px] text-slate-500">{new Date(lc.scheduledDate).toLocaleDateString()}</span>
+                      <span className="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(lc.scheduledDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
                     </div>
-                    <div className="font-bold text-slate-900">{lc.title}</div>
-                    <a
-                      href={lc.meetUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block text-center w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition"
-                    >
-                      Join Google Meet
-                    </a>
+
+                    <h4 className="font-bold text-slate-900 text-xs">{lc.title}</h4>
+                    <p className="text-[11px] text-slate-500 font-mono">Cohort: {lc.batch.name}</p>
+
+                    {lc.meetUrl && (
+                      <a
+                        href={lc.meetUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-full py-2 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white text-[11px] font-bold flex items-center justify-center gap-1.5 transition shadow-xs hover:scale-[1.01]"
+                      >
+                        <Video className="w-3.5 h-3.5" /> Join Google Meet
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-500 text-center py-4">No live sessions scheduled right now.</p>
+              <p className="text-xs text-slate-400 text-center py-4">No live sessions scheduled today.</p>
             )}
           </div>
 

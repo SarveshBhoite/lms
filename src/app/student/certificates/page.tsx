@@ -38,11 +38,11 @@ export default async function StudentCertificatesPage() {
           {certificates.map((cert) => (
             <div
               key={cert.id}
-              className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition"
+              className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4 flex flex-col justify-between"
             >
               <div className="space-y-3">
                 <div className="flex justify-between items-center font-mono">
-                  <span className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+                  <span className="text-xs font-bold text-[#7C248C] bg-purple-50 border border-purple-200 px-3 py-1 rounded-full">
                     {cert.certificateNumber}
                   </span>
                   <span className="text-xs text-slate-500">{new Date(cert.issueDate).toLocaleDateString()}</span>
@@ -57,14 +57,12 @@ export default async function StudentCertificatesPage() {
                   <CheckCircle2 className="w-3.5 h-3.5" /> Verified Credential
                 </span>
 
-                <a
-                  href={`/api/student/certificates/${cert.id}/download`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs flex items-center gap-1.5 transition"
+                <Link
+                  href={`/verify/certificate/${cert.id}`}
+                  className="px-4 py-2 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm hover:scale-[1.02]"
                 >
-                  <Download className="w-3.5 h-3.5" /> View Certificate
-                </a>
+                  <Download className="w-3.5 h-3.5" /> View & Download
+                </Link>
               </div>
             </div>
           ))}

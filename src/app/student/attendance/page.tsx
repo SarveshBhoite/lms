@@ -50,34 +50,36 @@ export default async function StudentAttendancePage() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+      <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4">
         {attendances.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold font-mono">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-mono text-[11px] font-bold">
                 <tr>
                   <th className="p-4">Live Class Title</th>
                   <th className="p-4">Course & Batch</th>
-                  <th className="p-4">Scheduled Date</th>
-                  <th className="p-4">Attendance Status</th>
+                  <th className="p-4">Date</th>
+                  <th className="p-4">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700 font-mono">
+              <tbody className="divide-y divide-slate-100 text-slate-700">
                 {attendances.map((att) => (
-                  <tr key={att.id} className="hover:bg-slate-50 transition">
+                  <tr key={att.id} className="hover:bg-slate-50/70 transition">
                     <td className="p-4 font-bold text-slate-900">{att.liveClass.title}</td>
-                    <td className="p-4 font-bold text-cyan-700">
+                    <td className="p-4 text-slate-600 font-mono">
                       {att.liveClass.batch.course.title} ({att.liveClass.batch.name})
                     </td>
-                    <td className="p-4 text-slate-500">{new Date(att.liveClass.scheduledDate).toLocaleDateString()}</td>
+                    <td className="p-4 text-slate-500 font-mono">{new Date(att.liveClass.scheduledDate).toLocaleDateString()}</td>
                     <td className="p-4">
-                      <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                        att.status === "PRESENT"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : att.status === "ABSENT"
-                          ? "bg-rose-50 text-rose-700 border border-rose-200"
-                          : "bg-amber-50 text-amber-700 border border-amber-200"
-                      }`}>
+                      <span
+                        className={`text-[10px] font-bold font-mono px-2.5 py-1 rounded-full border ${
+                          att.status === "PRESENT"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : att.status === "LATE"
+                            ? "bg-amber-50 text-amber-700 border-amber-200"
+                            : "bg-rose-50 text-rose-700 border-rose-200"
+                        }`}
+                      >
                         {att.status}
                       </span>
                     </td>
@@ -87,9 +89,7 @@ export default async function StudentAttendancePage() {
             </table>
           </div>
         ) : (
-          <div className="p-12 text-center text-xs text-slate-500">
-            No attendance records logged for your account yet.
-          </div>
+          <div className="p-8 text-center text-slate-500 text-xs">No attendance records logged yet.</div>
         )}
       </div>
     </div>

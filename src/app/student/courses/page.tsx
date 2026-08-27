@@ -53,20 +53,20 @@ export default async function StudentCoursesPage() {
             return (
               <div
                 key={en.id}
-                className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition"
+                className="glass-card rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4 flex flex-col justify-between"
               >
                 <div className="space-y-3">
-                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
                     {en.batch?.name || "Enrolled Cohort"}
                   </span>
 
                   <h3 className="font-extrabold text-slate-900 text-lg">{en.course.title}</h3>
                   <p className="text-xs text-slate-500 line-clamp-2">{en.course.description}</p>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-mono space-y-1 text-slate-600">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-mono space-y-1 text-slate-600">
                     <div className="flex justify-between">
                       <span>Instructor:</span>
-                      <strong className="text-indigo-700">{en.course.trainer.name}</strong>
+                      <strong className="text-[#7C248C]">{en.course.trainer.name}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Completed:</span>
@@ -75,21 +75,21 @@ export default async function StudentCoursesPage() {
                   </div>
 
                   <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span>Overall Progress:</span>
-                      <strong className="text-indigo-700">{progPct.toFixed(1)}%</strong>
+                    <div className="flex justify-between text-[11px] font-mono text-slate-600">
+                      <span>Progress:</span>
+                      <strong className="text-slate-900">{progPct.toFixed(1)}%</strong>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                      <div className="bg-indigo-600 h-2 rounded-full" style={{ width: `${Math.min(progPct, 100)}%` }}></div>
+                      <div className="jvm-gradient-bg h-2 rounded-full" style={{ width: `${Math.min(progPct, 100)}%` }}></div>
                     </div>
                   </div>
                 </div>
 
                 <Link
                   href={`/student/courses/${en.courseId}`}
-                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-xs"
+                  className="w-full py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-purple-900/20 hover:scale-[1.01] active:scale-[0.99]"
                 >
-                  <Play className="w-4 h-4 fill-white" /> Continue Learning
+                  <Play className="w-4 h-4 fill-white" /> Open Course Studio
                 </Link>
               </div>
             );

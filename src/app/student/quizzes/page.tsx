@@ -56,11 +56,11 @@ export default async function StudentQuizzesPage() {
             return (
               <div
                 key={qz.id}
-                className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4 flex flex-col justify-between hover:shadow-md transition"
+                className="glass-card rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4 flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                    <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
                       {qz.course.title}
                     </span>
                     <span className="text-xs text-slate-500 font-mono flex items-center gap-1">
@@ -73,32 +73,35 @@ export default async function StudentQuizzesPage() {
                     {qz.description && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{qz.description}</p>}
                   </div>
 
-                  <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-1 text-xs text-slate-700 font-mono">
+                  <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs font-mono space-y-1 text-slate-600">
                     <div className="flex justify-between">
-                      <span>Questions:</span>
+                      <span>Total Questions:</span>
                       <strong className="text-slate-900">{qz.questions.length}</strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Passing Score:</span>
-                      <strong className="text-purple-700">{qz.passingMarks}%</strong>
+                      <strong className="text-slate-900">{qz.passingScore}%</strong>
                     </div>
-                    {latestAttempt && (
-                      <div className="flex justify-between pt-1 border-t border-slate-200/60">
-                        <span>Best Result:</span>
-                        <strong className={latestAttempt.isPassed ? "text-emerald-700" : "text-rose-700"}>
-                          {latestAttempt.score.toFixed(1)}% ({latestAttempt.isPassed ? "PASSED" : "FAILED"})
-                        </strong>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                <Link
-                  href={`/student/quizzes/${qz.id}`}
-                  className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
-                >
-                  {latestAttempt ? "Retake Quiz / View Results" : "Attempt Quiz"}
-                </Link>
+                <div className="space-y-2 pt-2">
+                  {latestAttempt ? (
+                    <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+                      <span className="text-slate-600 font-mono">Last Score:</span>
+                      <strong className={latestAttempt.scorePercent >= qz.passingScore ? "text-emerald-700 font-bold" : "text-rose-700 font-bold"}>
+                        {latestAttempt.scorePercent}% ({latestAttempt.scorePercent >= qz.passingScore ? "Passed" : "Failed"})
+                      </strong>
+                    </div>
+                  ) : null}
+
+                  <Link
+                    href={`/student/quizzes/${qz.id}`}
+                    className="w-full py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-purple-900/20 hover:scale-[1.01] active:scale-[0.99]"
+                  >
+                    {latestAttempt ? "Retake Quiz" : "Start Assessment"}
+                  </Link>
+                </div>
               </div>
             );
           })}
