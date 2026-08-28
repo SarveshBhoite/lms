@@ -383,7 +383,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
           onClick={() => setActiveTab("resources")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "resources"
-              ? "border-amber-600 text-amber-700 bg-amber-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/50"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -391,10 +391,21 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
         </button>
 
         <button
+          onClick={() => setActiveTab("batches")}
+          className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+            activeTab === "batches"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          <Layers className="w-4 h-4" /> Assigned Batches ({course.batches.length})
+        </button>
+
+        <button
           onClick={() => setActiveTab("students")}
           className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
             activeTab === "students"
-              ? "border-amber-600 text-amber-700 bg-amber-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/50"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
@@ -565,35 +576,22 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                             </div>
                           )}
 
-                          {/* Learning Resources under this lesson */}
-                          <div className="pl-6 pt-2 flex items-center justify-between flex-wrap gap-2">
-                            <div className="flex flex-wrap gap-2">
+                          {/* Attached Lesson Resources */}
+                          {les.resources.length > 0 && (
+                            <div className="pl-6 pt-1 flex flex-wrap gap-2">
                               {les.resources.map((res) => (
-                                <span
+                                <a
                                   key={res.id}
-                                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-mono font-bold text-slate-700 flex items-center gap-1.5"
+                                  href={res.fileUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:border-purple-300 text-[10px] font-mono font-bold text-slate-700 hover:text-[#7C248C] flex items-center gap-1.5 shadow-xs transition"
                                 >
-                                  <Download className="w-3 h-3 text-amber-600" /> {res.title} ({res.fileType})
-                                  <button
-                                    onClick={() => setDeletingTarget({ type: "resource", id: res.id, title: res.title })}
-                                    className="text-rose-600 hover:text-rose-700 ml-1"
-                                  >
-                                    ×
-                                  </button>
-                                </span>
+                                  <Download className="w-3 h-3 text-[#7C248C]" /> {res.title} ({res.fileType.split("/")[1]?.toUpperCase() || "FILE"})
+                                </a>
                               ))}
                             </div>
-
-                            <button
-                              onClick={() => {
-                                setSelectedLessonIdForResource(les.id);
-                                setIsResourceModalOpen(true);
-                              }}
-                              className="text-[10px] font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
-                            >
-                              <Plus className="w-3 h-3" /> Add Resource
-                            </button>
-                          </div>
+                          )}
                         </div>
                       ))
                     ) : (
@@ -615,32 +613,41 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
       {/* ---------------- SECTION 3: LEARNING RESOURCES ---------------- */}
       {activeTab === "resources" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Course Learning Resources</h2>
-              <p className="text-xs text-slate-500">
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <FileCode2 className="w-5 h-5 text-[#7C248C]" /> Course Learning Resources & Datasets
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
                 All attached PDFs, datasets, slides, source code archives, and reference documentation.
               </p>
             </div>
+
+            <Link
+              href="/trainer/content"
+              className="px-4 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition hover:scale-[1.02]"
+            >
+              <Plus className="w-4 h-4" /> Global Content Library
+            </Link>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4">
             {totalResources > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {course.modules.flatMap((m) =>
                   m.lessons.flatMap((l) =>
                     l.resources.map((res) => (
-                      <div key={res.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between">
-                        <div className="space-y-1">
+                      <div key={res.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between shadow-xs">
+                        <div className="space-y-2">
                           <div className="flex justify-between items-center">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-bold">
-                              {res.fileType}
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-50 text-[#7C248C] border border-purple-200 font-bold">
+                              {res.fileType.split("/")[1]?.toUpperCase() || "FILE"}
                             </span>
                             <span className="text-[10px] text-slate-500 font-mono">
                               Lesson: {l.title}
                             </span>
                           </div>
-                          <h3 className="font-bold text-slate-900 text-sm mt-1">{res.title}</h3>
+                          <h3 className="font-bold text-slate-900 text-xs line-clamp-1">{res.title}</h3>
                         </div>
 
                         <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
@@ -648,7 +655,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                             href={res.fileUrl}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs font-bold text-amber-700 hover:text-amber-800 flex items-center gap-1"
+                            className="text-xs font-bold text-[#7C248C] hover:text-purple-900 flex items-center gap-1"
                           >
                             <Download className="w-3.5 h-3.5" /> Download Asset
                           </a>
@@ -667,7 +674,69 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                 )}
               </div>
             ) : (
-              <div className="p-12 text-center text-xs text-slate-500">No learning resources uploaded yet.</div>
+              <div className="p-12 text-center text-xs text-slate-500">No learning resources uploaded yet. Add them directly inside the HTML Lesson Studio.</div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- SECTION: ASSIGNED BATCHES ---------------- */}
+      {activeTab === "batches" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-[#7C248C]" /> Assigned Batches & Cohorts
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Active student cohorts and schedules mapped to this course container.
+              </p>
+            </div>
+
+            <Link
+              href="/trainer/batches"
+              className="px-4 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-xs transition hover:scale-[1.02]"
+            >
+              <Plus className="w-4 h-4" /> Manage All Batches
+            </Link>
+          </div>
+
+          <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs">
+            {course.batches.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {course.batches.map((b: any) => (
+                  <div
+                    key={b.id}
+                    className="p-6 rounded-3xl bg-slate-50 border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between"
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
+                          {b.status}
+                        </span>
+                      </div>
+
+                      <h4 className="font-bold text-slate-900 text-base">{b.name}</h4>
+                      {b.startDate && b.endDate && (
+                        <p className="text-xs text-slate-500 font-mono">
+                          {new Date(b.startDate).toLocaleDateString()} — {new Date(b.endDate).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-200 text-xs font-semibold text-slate-700 flex justify-between items-center">
+                      <span>Students Enrolled:</span>
+                      <span className="text-[#7C248C] font-bold font-mono text-sm">
+                        {b._count?.students ?? 0} Learners
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-12 text-center text-slate-400 text-xs">
+                No active or upcoming batches assigned to this course yet.
+              </div>
             )}
           </div>
         </div>

@@ -49,7 +49,15 @@ export default async function TrainerCourseDetailPage({ params }: { params: Prom
         },
       },
       batches: {
-        select: { id: true, name: true, status: true },
+        orderBy: { startDate: "desc" },
+        select: {
+          id: true,
+          name: true,
+          status: true,
+          startDate: true,
+          endDate: true,
+          _count: { select: { students: true } },
+        },
       },
     },
   });

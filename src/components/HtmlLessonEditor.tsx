@@ -386,7 +386,7 @@ export default function HtmlLessonEditor({
       {/* Main Studio Body */}
       <div className="flex-1 flex flex-col p-6 max-w-[1700px] w-full mx-auto space-y-6">
         {/* Lesson Metadata Panel */}
-        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
           <div className="space-y-1 sm:col-span-2">
             <label className="font-bold text-slate-700">Lesson Title *</label>
             <input
@@ -400,22 +400,7 @@ export default function HtmlLessonEditor({
           </div>
 
           <div className="space-y-1">
-            <label className="font-bold text-slate-700">Content Mode</label>
-            <select
-              value={contentType}
-              onChange={(e) => setContentType(e.target.value as any)}
-              className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
-            >
-              <option value="TEXT">Rich HTML & Text Article</option>
-              <option value="VIDEO">Video Lecture (Embed / URL)</option>
-              <option value="PDF">PDF Presentation / Document</option>
-              <option value="CODE">Interactive Code Repository</option>
-              <option value="LINK">External Resource Link</option>
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="font-bold text-slate-700">Est. Duration (Mins)</label>
+            <label className="font-bold text-slate-700">Estimated Duration (Minutes)</label>
             <input
               type="number"
               min={1}
@@ -424,19 +409,6 @@ export default function HtmlLessonEditor({
               className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
             />
           </div>
-
-          {contentType !== "TEXT" && (
-            <div className="space-y-1 sm:col-span-4">
-              <label className="font-bold text-slate-700">Primary Media URL (YouTube, MP4, PDF Link)</label>
-              <input
-                type="url"
-                value={contentUrl}
-                onChange={(e) => setContentUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=... or https://res.cloudinary.com/..."
-                className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
-              />
-            </div>
-          )}
         </div>
 
         {/* Split Editor + Live Preview Area */}
