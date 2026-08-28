@@ -488,26 +488,12 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedModuleIdForLesson(mod.id);
-                          setEditingLesson(null);
-                          setLessonForm({
-                            title: "",
-                            description: "",
-                            contentType: "VIDEO",
-                            contentUrl: "",
-                            textContent: "",
-                            durationMinutes: 15,
-                            orderIndex: mod.lessons.length + 1,
-                            isFreePreview: false,
-                          });
-                          setIsLessonModalOpen(true);
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 transition"
+                      <Link
+                        href={`/trainer/courses/${course.id}/modules/${mod.id}/lessons/create`}
+                        className="px-3 py-1.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-1 transition shadow-xs hover:scale-[1.02]"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Add Lesson
-                      </button>
+                        <Plus className="w-3.5 h-3.5" /> HTML Lesson Studio
+                      </Link>
 
                       <button
                         onClick={() => {
@@ -539,39 +525,30 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
                   <div className="space-y-2 pt-2 border-t border-slate-100">
                     {mod.lessons.length > 0 ? (
                       mod.lessons.map((les, lIdx) => (
-                        <div key={les.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <div key={les.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2.5">
-                              {getContentTypeIcon(les.contentType)}
-                              <span className="text-xs font-bold text-slate-900">
+                              <div className="p-1.5 rounded-lg bg-purple-50 text-[#7C248C]">
+                                {getContentTypeIcon(les.contentType)}
+                              </div>
+                              <Link
+                                href={`/trainer/courses/${course.id}/modules/${mod.id}/lessons/${les.id}/edit`}
+                                className="text-xs font-bold text-slate-900 hover:text-[#7C248C] transition"
+                              >
                                 {lIdx + 1}. {les.title}
-                              </span>
+                              </Link>
                               <span className="text-[10px] font-mono text-slate-500 uppercase">({les.contentType})</span>
                             </div>
 
                             <div className="flex items-center gap-2">
                               <span className="text-xs text-slate-500 font-mono">{les.durationMinutes} mins</span>
-                              <button
-                                onClick={() => {
-                                  setSelectedModuleIdForLesson(mod.id);
-                                  setEditingLesson(les);
-                                  setLessonForm({
-                                    title: les.title,
-                                    description: les.description || "",
-                                    contentType: les.contentType,
-                                    contentUrl: les.contentUrl || "",
-                                    textContent: les.textContent || "",
-                                    durationMinutes: les.durationMinutes,
-                                    orderIndex: les.orderIndex,
-                                    isFreePreview: les.isFreePreview,
-                                  });
-                                  setIsLessonModalOpen(true);
-                                }}
-                                className="p-1 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700"
-                                title="Edit Lesson"
+                              <Link
+                                href={`/trainer/courses/${course.id}/modules/${mod.id}/lessons/${les.id}/edit`}
+                                className="px-2.5 py-1 rounded-lg bg-purple-50 hover:bg-purple-100 text-[#7C248C] font-bold text-[11px] border border-purple-200 flex items-center gap-1 transition"
+                                title="Open HTML Studio"
                               >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
+                                <Edit2 className="w-3 h-3" /> Edit Studio
+                              </Link>
                               <button
                                 onClick={() => setDeletingTarget({ type: "lesson", id: les.id, title: les.title })}
                                 className="p-1 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-600"

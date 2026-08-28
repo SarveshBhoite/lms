@@ -80,7 +80,7 @@ export default async function StudentQuizzesPage() {
                     </div>
                     <div className="flex justify-between">
                       <span>Passing Score:</span>
-                      <strong className="text-slate-900">{qz.passingScore}%</strong>
+                      <strong className="text-slate-900">{qz.passingMarks}%</strong>
                     </div>
                   </div>
                 </div>
@@ -89,8 +89,8 @@ export default async function StudentQuizzesPage() {
                   {latestAttempt ? (
                     <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
                       <span className="text-slate-600 font-mono">Last Score:</span>
-                      <strong className={latestAttempt.scorePercent >= qz.passingScore ? "text-emerald-700 font-bold" : "text-rose-700 font-bold"}>
-                        {latestAttempt.scorePercent}% ({latestAttempt.scorePercent >= qz.passingScore ? "Passed" : "Failed"})
+                      <strong className={latestAttempt.score >= qz.passingMarks ? "text-emerald-700 font-bold" : "text-rose-700 font-bold"}>
+                        {latestAttempt.score}% ({latestAttempt.score >= qz.passingMarks ? "Passed" : "Failed"})
                       </strong>
                     </div>
                   ) : null}

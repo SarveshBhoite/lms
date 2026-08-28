@@ -188,30 +188,64 @@ export default async function TrainerStudentsPage({
             const assignmentAvg =
               evaluatedSubs.length > 0
                 ? evaluatedSubs.reduce(
-                      Course: <span className="text-slate-900 font-semibold">{student.enrollments.map((e) => e.course.title).join(", ") || "None"}</span>
+                    (acc, sub) =>
+                      acc +
+                      ((sub.feedback?.marksAwarded || 0) / (sub.assignment.totalMarks || 100)) * 100,
+                    0
+                  ) / evaluatedSubs.length
+                : 0;
+
+            return (
+              <div
+                key={student.id}
+                className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-2xl bg-purple-100 border border-purple-200 text-[#7C248C] font-extrabold flex items-center justify-center text-sm">
+                      {student.name.charAt(0)}
+                    </div>
+                    <div className="overflow-hidden">
+                      <h3 className="font-bold text-slate-900 text-base truncate">{student.name}</h3>
+                      <p className="text-xs text-slate-500 font-mono truncate">{student.email}</p>
+                      {student.profile?.phone && (
+                        <p className="text-[11px] text-slate-400 font-mono">{student.profile.phone}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 text-xs text-slate-600 pt-2 border-t border-slate-100 font-mono">
+                    <div className="text-[11px] text-slate-500 truncate">
+                      Course:{" "}
+                      <span className="text-slate-900 font-semibold">
+                        {student.enrollments.map((e) => e.course.title).join(", ") || "None"}
+                      </span>
                     </div>
                     <div className="text-[11px] text-slate-500 truncate">
-                      Batch: <span className="text-cyan-700 font-semibold">{student.studentBatches.map((b) => b.batch.name).join(", ") || "Unassigned"}</span>
+                      Batch:{" "}
+                      <span className="text-[#7C248C] font-semibold">
+                        {student.studentBatches.map((b) => b.batch.name).join(", ") || "Unassigned"}
+                      </span>
                     </div>
                   </div>
 
                   {/* 4 Metric Badges */}
                   <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-slate-500 block text-[9px]">PROGRESS</span>
-                      <strong className="text-amber-700 font-bold">{progressPercent.toFixed(1)}%</strong>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase">PROGRESS</span>
+                      <strong className="text-slate-900 font-bold">{progressPercent.toFixed(1)}%</strong>
                     </div>
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-slate-500 block text-[9px]">ATTENDANCE</span>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase">ATTENDANCE</span>
                       <strong className="text-emerald-700 font-bold">{attendancePercent.toFixed(1)}%</strong>
                     </div>
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-slate-500 block text-[9px]">QUIZ AVG</span>
-                      <strong className="text-purple-700 font-bold">{quizAvg.toFixed(1)}%</strong>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase">QUIZ AVG</span>
+                      <strong className="text-[#7C248C] font-bold">{quizAvg.toFixed(1)}%</strong>
                     </div>
-                    <div className="p-2 rounded-xl bg-slate-50 border border-slate-200">
-                      <span className="text-slate-500 block text-[9px]">ASSIGNMENT AVG</span>
-                      <strong className="text-rose-700 font-bold">{assignmentAvg.toFixed(1)}%</strong>
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
+                      <span className="text-slate-400 block text-[9px] font-bold uppercase">ASSIGNMENT AVG</span>
+                      <strong className="text-[#E01E6A] font-bold">{assignmentAvg.toFixed(1)}%</strong>
                     </div>
                   </div>
                 </div>
@@ -219,9 +253,10 @@ export default async function TrainerStudentsPage({
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
                   <Link
                     href={`/trainer/students/${student.id}`}
-                    className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-xs"
+                    className="w-full py-2.5 px-3 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-1.5 transition shadow-md shadow-purple-900/20 hover:scale-[1.01] active:scale-[0.99]"
                   >
-                    Academic Profile & Notes <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Academic Profile & Notes</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
@@ -229,9 +264,9 @@ export default async function TrainerStudentsPage({
           })}
         </div>
       ) : (
-        <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
-          <Users className="w-10 h-10 mx-auto text-slate-400" />
-          <p className="text-sm">No students matching criteria found in your faculty scope.</p>
+        <div className="glass-card bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500 space-y-3">
+          <Users className="w-10 h-10 mx-auto text-slate-300" />
+          <p className="text-sm font-semibold">No students matching criteria found in your faculty scope.</p>
         </div>
       )}
     </div>

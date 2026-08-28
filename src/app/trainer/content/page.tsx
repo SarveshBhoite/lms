@@ -1,16 +1,27 @@
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
-import AdminContentClient from "./AdminContentClient";
+import AdminContentClient from "@/app/admin/content/AdminContentClient";
 
-export default async function AdminContentLibraryPage() {
+export default async function TrainerContentLibraryPage() {
   const session = await getSession();
-  if (!session || (session.role !== "ADMIN" && session.role !== "TRAINER")) {
+  if (!session || (session.role !== "TRAINER" && session.role !== "ADMIN")) {
     redirect("/login");
   }
 
+  const trainerId = session.userId;
+  const isAdmin = session.role === "ADMIN";
+
   const [courses, resources] = await Promise.all([
     prisma.course.findMany({
+      where: isAdmin
+        ? {}
+        : {
+            OR: [
+              { trainerId },
+              { batches: { some: { trainers: { some: { trainerId } } } } },
+            ],
+          },
       select: {
         id: true,
         title: true,
@@ -30,6 +41,20 @@ export default async function AdminContentLibraryPage() {
       orderBy: { title: "asc" },
     }),
     prisma.resource.findMany({
+      where: isAdmin
+        ? {}
+        : {
+            lesson: {
+              module: {
+                course: {
+                  OR: [
+                    { trainerId },
+                    { batches: { some: { trainers: { some: { trainerId } } } } },
+                  ],
+                },
+              },
+            },
+          },
       include: {
         lesson: {
           select: {

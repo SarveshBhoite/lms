@@ -30,6 +30,7 @@ interface NavItem {
 const trainerNavItems: NavItem[] = [
   { label: "Dashboard", href: "/trainer/dashboard", icon: LayoutDashboard },
   { label: "My Courses", href: "/trainer/courses", icon: BookOpen },
+  { label: "Content Library", href: "/trainer/content", icon: Layers },
   { label: "My Batches", href: "/trainer/batches", icon: Layers },
   { label: "Students", href: "/trainer/students", icon: Users },
   { label: "Quizzes", href: "/trainer/quizzes", icon: HelpCircle },

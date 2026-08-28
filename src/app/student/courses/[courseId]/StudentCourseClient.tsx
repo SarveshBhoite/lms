@@ -260,43 +260,72 @@ export default function StudentCourseClient({
                   </button>
                 </div>
 
-                {/* Lesson Player Renderers */}
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 min-h-[300px] flex flex-col justify-center items-center">
-                  {activeLesson.contentType === "VIDEO" && activeLesson.contentUrl ? (
-                    activeLesson.contentUrl.includes("youtube.com") || activeLesson.contentUrl.includes("youtu.be") ? (
-                      <iframe
-                        src={activeLesson.contentUrl.replace("watch?v=", "embed/")}
-                        className="w-full aspect-video rounded-xl"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video src={activeLesson.contentUrl} controls className="w-full aspect-video rounded-xl" />
-                    )
-                  ) : activeLesson.contentType === "TEXT" && activeLesson.textContent ? (
-                    <div className="w-full text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-sans p-4 bg-white rounded-xl border border-slate-200">
-                      {activeLesson.textContent}
+                {/* Lesson Player & Content Renderers */}
+                <div className="space-y-6">
+                  {/* If video lesson */}
+                  {activeLesson.contentType === "VIDEO" && activeLesson.contentUrl && (
+                    <div className="rounded-2xl overflow-hidden shadow-xs border border-slate-200 bg-black">
+                      {activeLesson.contentUrl.includes("youtube.com") || activeLesson.contentUrl.includes("youtu.be") ? (
+                        <iframe
+                          src={activeLesson.contentUrl.replace("watch?v=", "embed/")}
+                          className="w-full aspect-video rounded-2xl"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <video src={activeLesson.contentUrl} controls className="w-full aspect-video rounded-2xl" />
+                      )}
                     </div>
-                  ) : activeLesson.contentUrl ? (
-                    <div className="text-center space-y-3 p-6">
-                      <FileText className="w-12 h-12 text-indigo-600 mx-auto" />
-                      <div className="text-xs text-slate-600">This lesson contains external document / material resource.</div>
-                      <a
-                        href={activeLesson.contentUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-xs shadow-xs"
-                      >
-                        Open Resource Link <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                  )}
+
+                  {/* Rich HTML Content Body */}
+                  {activeLesson.textContent ? (
+                    <div
+                      className="p-6 bg-slate-50/70 border border-slate-200/80 rounded-2xl text-slate-800 text-sm leading-relaxed prose prose-slate max-w-none shadow-xs"
+                      dangerouslySetInnerHTML={{ __html: activeLesson.textContent }}
+                    />
+                  ) : !activeLesson.contentUrl ? (
+                    <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-200">
+                      No content has been published for this lesson yet.
                     </div>
-                  ) : (
-                    <div className="text-xs text-slate-500">No content uploaded for this lesson yet.</div>
+                  ) : null}
+
+                  {/* Dedicated Resources specifically assigned to this lesson */}
+                  {course.learningResources.filter((r) => r.description?.includes(activeLesson.title)).length > 0 && (
+                    <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Download className="w-4 h-4 text-[#7C248C]" />
+                        <h4 className="text-xs font-extrabold text-slate-900 uppercase font-mono tracking-wider">
+                          Downloadable Assets for this Lesson
+                        </h4>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {course.learningResources
+                          .filter((r) => r.description?.includes(activeLesson.title))
+                          .map((res) => (
+                            <a
+                              key={res.id}
+                              href={res.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-3 bg-white rounded-xl border border-slate-200 hover:border-purple-300 flex items-center justify-between gap-2 shadow-xs transition hover:scale-[1.01]"
+                            >
+                              <div className="flex items-center gap-2.5 overflow-hidden">
+                                <FileText className="w-4 h-4 text-[#7C248C] shrink-0" />
+                                <span className="text-xs font-bold text-slate-800 truncate">{res.title}</span>
+                              </div>
+                              <span className="px-2 py-1 rounded-lg jvm-gradient-bg text-white text-[10px] font-bold shrink-0">
+                                Download
+                              </span>
+                            </a>
+                          ))}
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500">
-                Select a lesson from the curriculum sidebar to begin watching.
+              <div className="glass-card bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500">
+                Select a lesson from the curriculum sidebar to begin learning.
               </div>
             )}
           </div>

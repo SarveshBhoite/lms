@@ -115,11 +115,11 @@ export default async function TrainerReportsPage() {
 
         <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-mono font-bold uppercase text-slate-500">Assignment Avg</span>
+            <span className="text-xs font-mono font-bold uppercase text-slate-500">Evaluated Tasks</span>
             <FileCheck className="w-5 h-5 text-[#E01E6A]" />
           </div>
-          <div className="text-3xl font-black text-slate-900">{avgAssignmentScore.toFixed(1)}%</div>
-          <p className="text-[11px] text-slate-500 font-mono">{evaluatedAssignmentsCount} submissions graded</p>
+          <div className="text-3xl font-black text-slate-900">{gradedSubmissions}</div>
+          <p className="text-[11px] text-slate-500 font-mono">{totalSubmissions} submissions submitted</p>
         </div>
 
         <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
@@ -128,7 +128,7 @@ export default async function TrainerReportsPage() {
             <CheckSquare className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="text-3xl font-black text-slate-900">{overallAttendanceRate.toFixed(1)}%</div>
-          <p className="text-[11px] text-slate-500 font-mono">{totalPresentAttendance} records marked present</p>
+          <p className="text-[11px] text-slate-500 font-mono">{presentRecords} records marked present</p>
         </div>
 
         <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-2">
