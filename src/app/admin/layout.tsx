@@ -27,14 +27,14 @@ const adminNavItems = [
   { label: "Students", href: "/admin/students", icon: Users },
   { label: "Trainers & Faculty", href: "/admin/trainers", icon: GraduationCap },
   { label: "Course Catalog", href: "/admin/courses", icon: BookOpen },
+  { label: "Content Library", href: "/admin/content", icon: FileBox },
   { label: "Batches & Cohorts", href: "/admin/batches", icon: Layers },
   { label: "Attendance Control", href: "/admin/attendance", icon: CheckSquare },
   { label: "Enrollments", href: "/admin/enrollments", icon: Users },
   { label: "Certificates Registry", href: "/admin/certificates", icon: Award },
-  { label: "Content Library", href: "/admin/content", icon: FileBox },
-  { label: "Broadcasts", href: "/admin/notifications", icon: Bell },
+  { label: "Notifications", href: "/admin/notifications", icon: Bell },
   { label: "Reports & Analytics", href: "/admin/reports", icon: BarChart3 },
-  { label: "Audit Logs", href: "/admin/activity-logs", icon: Activity },
+  { label: "Activity Logs", href: "/admin/activity-logs", icon: Activity },
   { label: "System Settings", href: "/admin/settings", icon: Settings },
 ];
 
