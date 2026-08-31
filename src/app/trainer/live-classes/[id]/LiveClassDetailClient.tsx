@@ -102,6 +102,7 @@ export default function LiveClassDetailClient({
 
   // Recording State
   const [recordingUrlInput, setRecordingUrlInput] = useState(initialClass.recordingUrl || "");
+  const [uploadingRecording, setUploadingRecording] = useState(false);
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });

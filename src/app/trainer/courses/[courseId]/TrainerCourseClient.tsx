@@ -99,7 +99,7 @@ interface CourseDetailData {
 export default function TrainerCourseClient({ initialCourse }: { initialCourse: CourseDetailData }) {
   const router = useRouter();
   const [course, setCourse] = useState<CourseDetailData>(initialCourse);
-  const [activeTab, setActiveTab] = useState<"overview" | "modules" | "resources" | "students">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "modules" | "resources" | "batches" | "students">("overview");
 
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
