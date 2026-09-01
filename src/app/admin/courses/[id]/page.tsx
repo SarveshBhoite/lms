@@ -15,7 +15,7 @@ export default async function AdminCourseDetailPage({
 
   const { id } = await params;
 
-  const [course, trainers] = await Promise.all([
+  const [course, trainers, allStudents] = await Promise.all([
     prisma.course.findUnique({
       where: { id },
       include: {
@@ -83,6 +83,19 @@ export default async function AdminCourseDetailPage({
       },
       orderBy: { name: "asc" },
     }),
+    prisma.user.findMany({
+      where: {
+        role: "STUDENT",
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profile: { select: { phone: true, avatarUrl: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
   ]);
 
   if (!course) {
@@ -129,6 +142,7 @@ export default async function AdminCourseDetailPage({
     <CourseDetailClient
       initialCourse={serializedCourse as any}
       trainers={trainers}
+      allStudents={allStudents as any}
     />
   );
 }

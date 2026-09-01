@@ -750,14 +750,16 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Course Enrolled Students</h2>
-              <p className="text-xs text-slate-500">
-                View student learning progress percentages and cohort mappings. Read-only administrative controls.
+              <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-[#7C248C]" /> Enrolled Students Directory ({course.enrollments.length})
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                View student learning progress, quiz attempts, and cohort mappings. Student enrollment is managed exclusively by Institute Administrators.
               </p>
             </div>
 
-            <div className="px-3 py-1.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-xs font-mono flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5 text-amber-600" /> Account Edits Disabled
+            <div className="px-3.5 py-1.5 rounded-full bg-purple-50 border border-purple-200 text-[#7C248C] text-xs font-mono flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5" /> Read-Only • Admin-Managed Enrollment
             </div>
           </div>
 
