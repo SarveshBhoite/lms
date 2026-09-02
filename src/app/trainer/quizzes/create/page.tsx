@@ -3,22 +3,32 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, HelpCircle, Plus, Trash2, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ChevronLeft, HelpCircle, Plus, Trash2, Loader2, CheckCircle2, AlertTriangle, Lock, BookOpen } from "lucide-react";
 
 interface CourseItem {
   id: string;
   title: string;
 }
 
+interface LessonOption {
+  id: string;
+  title: string;
+  moduleTitle: string;
+}
+
 export default function TrainerCreateQuizPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<CourseItem[]>([]);
+  const [lessons, setLessons] = useState<LessonOption[]>([]);
   const [loadingCourses, setLoadingCourses] = useState(true);
+  const [loadingLessons, setLoadingLessons] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const [form, setForm] = useState({
     courseId: "",
+    lessonId: "",
+    isRequiredForUnlock: false,
     title: "",
     description: "",
     timeLimitMinutes: 30,
@@ -61,6 +71,35 @@ export default function TrainerCreateQuizPage() {
       })
       .finally(() => setLoadingCourses(false));
   }, []);
+
+  useEffect(() => {
+    if (!form.courseId) return;
+
+    setLoadingLessons(true);
+    fetch(`/api/trainer/courses/${form.courseId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.modules) {
+          const fetchedLessons: LessonOption[] = [];
+          data.data.modules.forEach((mod: any) => {
+            if (mod.lessons) {
+              mod.lessons.forEach((les: any) => {
+                fetchedLessons.push({
+                  id: les.id,
+                  title: les.title,
+                  moduleTitle: mod.title,
+                });
+              });
+            }
+          });
+          setLessons(fetchedLessons);
+        } else {
+          setLessons([]);
+        }
+      })
+      .catch(() => setLessons([]))
+      .finally(() => setLoadingLessons(false));
+  }, [form.courseId]);
 
   const addQuestion = () => {
     setQuestions([
@@ -114,6 +153,7 @@ export default function TrainerCreateQuizPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          lessonId: form.lessonId || null,
           questions,
         }),
       });
@@ -162,7 +202,7 @@ export default function TrainerCreateQuizPage() {
           <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2">
             <HelpCircle className="w-6 h-6 text-purple-600" /> Create Quiz Assessment
           </h1>
-          <p className="text-slate-600 text-xs mt-1">Configure quiz parameters and add multiple-choice questions.</p>
+          <p className="text-slate-600 text-xs mt-1">Configure quiz parameters, attach to lessons, and set unlock rules.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -174,7 +214,7 @@ export default function TrainerCreateQuizPage() {
               ) : (
                 <select
                   value={form.courseId}
-                  onChange={(e) => setForm({ ...form, courseId: e.target.value })}
+                  onChange={(e) => setForm({ ...form, courseId: e.target.value, lessonId: "" })}
                   className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-purple-500 shadow-xs"
                 >
                   {courses.map((c) => (
@@ -187,11 +227,31 @@ export default function TrainerCreateQuizPage() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">Attach to Lesson (Optional)</label>
+              {loadingLessons ? (
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500">Loading lessons...</div>
+              ) : (
+                <select
+                  value={form.lessonId}
+                  onChange={(e) => setForm({ ...form, lessonId: e.target.value })}
+                  className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-purple-500 shadow-xs"
+                >
+                  <option value="">Course Level (No specific lesson attached)</option>
+                  {lessons.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.moduleTitle} ➔ {l.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
               <label className="text-xs font-bold text-slate-700">Quiz Title *</label>
               <input
                 type="text"
                 required
-                placeholder="e.g. JavaScript Async & Promises Assessment"
+                placeholder="e.g. Lesson 1 Quiz: Python Fundamentals Assessment"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-purple-500 shadow-xs"
@@ -209,15 +269,52 @@ export default function TrainerCreateQuizPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700">Passing Score (%)</label>
+              <label className="text-xs font-bold text-slate-700">Passing Score (%) *</label>
               <input
                 type="number"
+                min={1}
+                max={100}
                 value={form.passingMarks}
                 onChange={(e) => setForm({ ...form, passingMarks: Number(e.target.value) })}
                 className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none shadow-xs"
               />
             </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-700">Max Allowed Attempts *</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                value={form.maxAttempts}
+                onChange={(e) => setForm({ ...form, maxAttempts: Number(e.target.value) })}
+                className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none shadow-xs"
+              />
+            </div>
           </div>
+
+          {/* Lesson Gate Unlock Option */}
+          {form.lessonId && (
+            <div className="p-5 rounded-2xl bg-purple-50/70 border border-purple-200 space-y-2">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isRequiredForUnlock}
+                  onChange={(e) => setForm({ ...form, isRequiredForUnlock: e.target.checked })}
+                  className="mt-0.5 w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
+                />
+                <div>
+                  <span className="text-xs font-extrabold text-purple-950 flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-purple-700" /> Require passing this quiz to unlock the next lesson
+                  </span>
+                  <p className="text-[11px] text-purple-800 mt-0.5">
+                    When enabled, students cannot access the subsequent lesson until they score at least{" "}
+                    <strong>{form.passingMarks}%</strong> on this quiz.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Questions Section */}
           <div className="space-y-6 pt-6 border-t border-slate-100">

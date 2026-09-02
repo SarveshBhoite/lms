@@ -52,7 +52,7 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
     notFound();
   }
 
-  const [lessonProgresses, courseProgress] = await Promise.all([
+  const [lessonProgresses, courseProgress, unlockStatuses] = await Promise.all([
     prisma.lessonProgress.findMany({
       where: {
         userId: studentId,
@@ -63,6 +63,7 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
     prisma.courseProgress.findFirst({
       where: { userId: studentId, courseId },
     }),
+    (await import("@/lib/quizUnlock")).getCourseLessonUnlockStatuses(studentId, courseId),
   ]);
 
   const completedLessonIds = lessonProgresses.filter((lp) => lp.isCompleted).map((lp) => lp.lessonId);
@@ -85,6 +86,7 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
     batch: enrollment?.batch || null,
     completedLessonIds,
     progressPercent: courseProgress ? courseProgress.progressPercent : 0,
+    unlockStatuses,
   };
 
   return <StudentCourseClient initialCourse={initialData as any} currentUserId={session.userId} />;

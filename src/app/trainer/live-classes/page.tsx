@@ -18,6 +18,7 @@ import {
   X,
   ArrowRight,
   User,
+  Sparkles,
 } from "lucide-react";
 
 interface LiveClassItem {
@@ -31,6 +32,7 @@ interface LiveClassItem {
   endTime: string;
   meetUrl: string;
   recordingUrl?: string | null;
+  googleEventId?: string | null;
   status: "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED";
   batch: { id: string; name: string; course: { title: string } };
   trainer: { id: string; name: string; email: string };
@@ -48,6 +50,10 @@ export default function TrainerLiveClassesPage() {
   const [batches, setBatches] = useState<BatchOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+
+  // Google Status
+  const [googleConnected, setGoogleConnected] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,6 +75,7 @@ export default function TrainerLiveClassesPage() {
     endTime: "11:30",
     meetUrl: "",
     recordingUrl: "",
+    autoCreateMeet: true,
   });
 
   const showToast = (type: "success" | "error", text: string) => {
@@ -102,12 +109,32 @@ export default function TrainerLiveClassesPage() {
           }
         }
       });
+
+    fetch("/api/google/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.data?.isConnected) {
+          setGoogleConnected(true);
+          setGoogleEmail(data.data.email || null);
+          setForm((prev) => ({ ...prev, autoCreateMeet: true }));
+        } else {
+          setGoogleConnected(false);
+          setForm((prev) => ({ ...prev, autoCreateMeet: false }));
+        }
+      });
   }, []);
 
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.batchId || !form.title || !form.scheduledDate || !form.startTime || !form.endTime || !form.meetUrl) {
-      showToast("error", "Please fill in all required live class fields");
+
+    const isAuto = form.autoCreateMeet && googleConnected;
+    if (!form.batchId || !form.title || !form.scheduledDate || !form.startTime || !form.endTime) {
+      showToast("error", "Please fill in all required class details");
+      return;
+    }
+
+    if (!isAuto && !form.meetUrl) {
+      showToast("error", "Please enter a manual Google Meet link or enable auto-generation by connecting Google Account.");
       return;
     }
 
@@ -126,16 +153,17 @@ export default function TrainerLiveClassesPage() {
           scheduledDate: new Date(form.scheduledDate).toISOString(),
           startTime: startDateTime.toISOString(),
           endTime: endDateTime.toISOString(),
-          meetUrl: form.meetUrl,
+          meetUrl: form.meetUrl || null,
           recordingUrl: form.recordingUrl || null,
           status: "SCHEDULED",
+          autoCreateMeet: isAuto,
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to schedule live class");
 
-      showToast("success", `Live class "${form.title}" scheduled & students notified!`);
+      showToast("success", `Live class "${form.title}" scheduled successfully!`);
       setIsScheduleModalOpen(false);
       setForm({
         batchId: batches[0]?.id || "",
@@ -146,6 +174,7 @@ export default function TrainerLiveClassesPage() {
         endTime: "11:30",
         meetUrl: "",
         recordingUrl: "",
+        autoCreateMeet: googleConnected,
       });
       fetchLiveClasses();
     } catch (err: any) {
@@ -305,9 +334,16 @@ export default function TrainerLiveClassesPage() {
                     >
                       {lc.status}
                     </span>
-                    <span className="text-[11px] font-mono text-slate-500">
-                      {new Date(lc.scheduledDate).toLocaleDateString()}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {lc.googleEventId && (
+                        <span className="text-[10px] font-extrabold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-blue-600" /> Google Synced
+                        </span>
+                      )}
+                      <span className="text-[11px] font-mono text-slate-500">
+                        {new Date(lc.scheduledDate).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
@@ -411,11 +447,44 @@ export default function TrainerLiveClassesPage() {
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
           <form onSubmit={handleScheduleSubmit} className="bg-white p-6 rounded-3xl border border-slate-200 max-w-lg w-full space-y-4 shadow-xl">
             <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">Schedule Live Class (Google Meet)</h3>
+              <h3 className="font-bold text-slate-900 text-base">Schedule Live Class</h3>
               <button type="button" onClick={() => setIsScheduleModalOpen(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Google Status Helper Banner */}
+            {googleConnected ? (
+              <div className="p-3.5 rounded-2xl bg-blue-50/70 border border-blue-200 space-y-1">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.autoCreateMeet}
+                    onChange={(e) => setForm({ ...form, autoCreateMeet: e.target.checked })}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-bold text-blue-950 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Auto-generate Google Meet & Sync Google Calendar
+                  </span>
+                </label>
+                <p className="text-[11px] text-blue-700 pl-7 font-mono">
+                  Connected Google Account: {googleEmail}
+                </p>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-900">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <span>Google Account is not connected. Enter a manual Meet URL below, or:</span>
+                  <Link
+                    href="/trainer/profile"
+                    className="block font-bold text-blue-700 hover:underline"
+                  >
+                    ➔ Connect Google Account in Profile Settings for auto-generation
+                  </Link>
+                </div>
+              </div>
+            )}
 
             <div className="space-y-3 text-xs">
               <div>
@@ -479,17 +548,19 @@ export default function TrainerLiveClassesPage() {
                 </div>
               </div>
 
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">Google Meet Link *</label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://meet.google.com/xyz-abc-def"
-                  value={form.meetUrl}
-                  onChange={(e) => setForm({ ...form, meetUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-cyan-500 shadow-xs"
-                />
-              </div>
+              {(!googleConnected || !form.autoCreateMeet) && (
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">Google Meet Link *</label>
+                  <input
+                    type="url"
+                    required={!form.autoCreateMeet}
+                    placeholder="https://meet.google.com/xyz-abc-def"
+                    value={form.meetUrl}
+                    onChange={(e) => setForm({ ...form, meetUrl: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-cyan-500 shadow-xs"
+                  />
+                </div>
+              )}
 
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Recording URL (Optional)</label>

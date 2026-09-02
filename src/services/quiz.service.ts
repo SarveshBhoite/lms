@@ -15,6 +15,7 @@ export class QuizService {
           },
       include: {
         course: { select: { id: true, title: true } },
+        lesson: { select: { id: true, title: true } },
         questions: {
           include: { options: true },
         },
@@ -34,6 +35,8 @@ export class QuizService {
       const quiz = await tx.quiz.create({
         data: {
           courseId: data.courseId,
+          lessonId: data.lessonId || null,
+          isRequiredForUnlock: data.isRequiredForUnlock ?? false,
           title: data.title,
           description: data.description,
           timeLimitMinutes: data.timeLimitMinutes,

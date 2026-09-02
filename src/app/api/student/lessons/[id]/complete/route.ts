@@ -25,6 +25,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const courseId = lesson.module.courseId;
 
+    // Check server-side if lesson is unlocked for student
+    const { checkSingleLessonUnlocked } = await import("@/lib/quizUnlock");
+    const unlockCheck = await checkSingleLessonUnlocked(studentId, lessonId);
+    if (!unlockCheck.isUnlocked) {
+      return NextResponse.json(
+        { success: false, error: unlockCheck.lockReason || "This lesson is locked until previous lesson and quiz are completed." },
+        { status: 403 }
+      );
+    }
+
     // 1. Upsert LessonProgress
     await prisma.lessonProgress.upsert({
       where: {
@@ -83,6 +93,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         completedAt: isCompleted ? new Date() : null,
       },
     });
+
+    // 5. Automatically generate Certificate if course is completed
+    let certificate = null;
+    if (isCompleted) {
+      try {
+        const { generateCertificateForUser } = await import("@/lib/certificates");
+        certificate = await generateCertificateForUser(studentId, courseId);
+      } catch (certErr) {
+        console.error("Auto certificate generation notice:", certErr);
+      }
+    }
 
     return NextResponse.json({
       success: true,

@@ -19,6 +19,8 @@ export const QuestionCreateSchema = z.object({
 
 export const QuizCreateSchema = z.object({
   courseId: z.string().min(1, "Course ID is required"),
+  lessonId: z.string().optional().nullable(),
+  isRequiredForUnlock: z.boolean().default(false),
   title: z.string().min(3, "Quiz title is required").max(100),
   description: z.string().optional().nullable(),
   timeLimitMinutes: z.number().int().min(5).max(180).default(30),

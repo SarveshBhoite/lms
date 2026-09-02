@@ -21,7 +21,12 @@ import {
   Check,
   X,
   AlertTriangle,
+  Lock,
+  ShieldAlert,
+  Award,
+  ArrowRight,
 } from "lucide-react";
+import { LessonUnlockStatus } from "@/lib/quizUnlock";
 
 interface LessonItem {
   id: string;
@@ -64,6 +69,7 @@ interface CourseDetailData {
   completedLessonIds: string[];
   progressPercent: number;
   lastAccessedLessonId?: string | null;
+  unlockStatuses?: Record<string, LessonUnlockStatus>;
 }
 
 export default function StudentCourseClient({
@@ -77,11 +83,20 @@ export default function StudentCourseClient({
   const [course, setCourse] = useState<CourseDetailData>(initialCourse);
   const [completedIds, setCompletedIds] = useState<string[]>(initialCourse.completedLessonIds);
   const [progressPct, setProgressPct] = useState<number>(initialCourse.progressPercent);
+  const [unlockStatuses, setUnlockStatuses] = useState<Record<string, LessonUnlockStatus>>(
+    initialCourse.unlockStatuses || {}
+  );
 
-  // Find initial lesson to play
+  // Find initial lesson to play (first unlocked or last accessed)
   const allLessons = course.modules.flatMap((m) => m.lessons);
   const defaultLesson =
-    allLessons.find((l) => l.id === course.lastAccessedLessonId) || allLessons[0] || null;
+    allLessons.find((l) => {
+      const status = unlockStatuses[l.id];
+      return status ? status.isUnlocked && !status.isCompleted : false;
+    }) ||
+    allLessons.find((l) => l.id === course.lastAccessedLessonId) ||
+    allLessons[0] ||
+    null;
 
   const [activeLesson, setActiveLesson] = useState<LessonItem | null>(defaultLesson);
   const [activeTab, setActiveTab] = useState<"player" | "overview" | "resources" | "quizzes" | "assignments">("player");
@@ -92,6 +107,9 @@ export default function StudentCourseClient({
     setToastMessage({ type, text });
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  const activeUnlockStatus = activeLesson ? unlockStatuses[activeLesson.id] : null;
+  const isCurrentLessonUnlocked = activeUnlockStatus ? activeUnlockStatus.isUnlocked : true;
 
   const handleMarkComplete = async (lessonId: string) => {
     setMarkingComplete(true);
@@ -107,6 +125,16 @@ export default function StudentCourseClient({
         setCompletedIds((prev) => [...prev, lessonId]);
       }
       setProgressPct(data.data.progressPercent);
+
+      // Re-fetch unlock statuses to open up the next lesson
+      const unlockRes = await fetch(`/api/student/courses/${course.id}/unlock-status`);
+      if (unlockRes.ok) {
+        const unlockData = await unlockRes.json();
+        if (unlockData.success) {
+          setUnlockStatuses(unlockData.data);
+        }
+      }
+
       showToast("success", "Lesson marked complete!");
     } catch (err: any) {
       showToast("error", err.message || "Failed to mark complete");
@@ -239,15 +267,21 @@ export default function StudentCourseClient({
 
                   <button
                     onClick={() => handleMarkComplete(activeLesson.id)}
-                    disabled={markingComplete || completedIds.includes(activeLesson.id)}
+                    disabled={markingComplete || completedIds.includes(activeLesson.id) || !isCurrentLessonUnlocked}
                     className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-xs ${
-                      completedIds.includes(activeLesson.id)
+                      !isCurrentLessonUnlocked
+                        ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                        : completedIds.includes(activeLesson.id)
                         ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
                         : "jvm-gradient-bg jvm-gradient-hover text-white shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
                     }`}
                   >
                     {markingComplete ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : !isCurrentLessonUnlocked ? (
+                      <>
+                        <Lock className="w-4 h-4 text-slate-400" /> Locked
+                      </>
                     ) : completedIds.includes(activeLesson.id) ? (
                       <>
                         <Check className="w-4 h-4 text-emerald-600" /> Completed
@@ -260,68 +294,163 @@ export default function StudentCourseClient({
                   </button>
                 </div>
 
-                {/* Lesson Player & Content Renderers */}
-                <div className="space-y-6">
-                  {/* If video lesson */}
-                  {activeLesson.contentType === "VIDEO" && activeLesson.contentUrl && (
-                    <div className="rounded-2xl overflow-hidden shadow-xs border border-slate-200 bg-black">
-                      {activeLesson.contentUrl.includes("youtube.com") || activeLesson.contentUrl.includes("youtu.be") ? (
-                        <iframe
-                          src={activeLesson.contentUrl.replace("watch?v=", "embed/")}
-                          className="w-full aspect-video rounded-2xl"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <video src={activeLesson.contentUrl} controls className="w-full aspect-video rounded-2xl" />
-                      )}
-                    </div>
-                  )}
-
-                  {/* Rich HTML Content Body */}
-                  {activeLesson.textContent ? (
-                    <div
-                      className="p-6 bg-slate-50/70 border border-slate-200/80 rounded-2xl text-slate-800 text-sm leading-relaxed prose prose-slate max-w-none shadow-xs"
-                      dangerouslySetInnerHTML={{ __html: activeLesson.textContent }}
-                    />
-                  ) : !activeLesson.contentUrl ? (
-                    <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-200">
-                      No content has been published for this lesson yet.
-                    </div>
-                  ) : null}
-
-                  {/* Dedicated Resources specifically assigned to this lesson */}
-                  {course.learningResources.filter((r) => r.description?.includes(activeLesson.title)).length > 0 && (
-                    <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <Download className="w-4 h-4 text-[#7C248C]" />
-                        <h4 className="text-xs font-extrabold text-slate-900 uppercase font-mono tracking-wider">
-                          Downloadable Assets for this Lesson
-                        </h4>
+                {/* LOCKED STATE BANNER */}
+                {!isCurrentLessonUnlocked ? (
+                  <div className="p-8 rounded-2xl bg-amber-50/90 border border-amber-200 text-amber-900 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+                        <Lock className="w-5 h-5" />
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {course.learningResources
-                          .filter((r) => r.description?.includes(activeLesson.title))
-                          .map((res) => (
-                            <a
-                              key={res.id}
-                              href={res.fileUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="p-3 bg-white rounded-xl border border-slate-200 hover:border-purple-300 flex items-center justify-between gap-2 shadow-xs transition hover:scale-[1.01]"
+                      <div>
+                        <h3 className="font-extrabold text-sm text-amber-950 uppercase tracking-wide">
+                          Lesson Locked
+                        </h3>
+                        <p className="text-xs text-amber-800 mt-0.5">
+                          {activeUnlockStatus?.lockReason || "Complete the previous lesson and pass its required quiz to unlock."}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* UNLOCKED LESSON PLAYER CONTENT */
+                  <div className="space-y-6">
+                    {/* Attached Lesson Quiz Banner */}
+                    {activeUnlockStatus?.attachedQuiz && (
+                      <div
+                        className={`p-5 rounded-2xl border space-y-3 ${
+                          activeUnlockStatus.attachedQuiz.isPassed
+                            ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+                            : activeUnlockStatus.attachedQuiz.userAttemptsCount >= activeUnlockStatus.attachedQuiz.maxAttempts
+                            ? "bg-rose-50/80 border-rose-200 text-rose-900"
+                            : "bg-purple-50/80 border-purple-200 text-purple-950"
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                activeUnlockStatus.attachedQuiz.isPassed
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : activeUnlockStatus.attachedQuiz.userAttemptsCount >= activeUnlockStatus.attachedQuiz.maxAttempts
+                                  ? "bg-rose-100 text-rose-700"
+                                  : "bg-purple-100 text-[#7C248C]"
+                              }`}
                             >
-                              <div className="flex items-center gap-2.5 overflow-hidden">
-                                <FileText className="w-4 h-4 text-[#7C248C] shrink-0" />
-                                <span className="text-xs font-bold text-slate-800 truncate">{res.title}</span>
+                              <HelpCircle className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-extrabold text-xs uppercase font-mono tracking-wider">
+                                  Lesson Quiz: {activeUnlockStatus.attachedQuiz.title}
+                                </h4>
+                                {activeUnlockStatus.attachedQuiz.isRequiredForUnlock && (
+                                  <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                                    Required for Next Lesson
+                                  </span>
+                                )}
                               </div>
-                              <span className="px-2 py-1 rounded-lg jvm-gradient-bg text-white text-[10px] font-bold shrink-0">
-                                Download
-                              </span>
-                            </a>
-                          ))}
+                              <p className="text-xs mt-0.5">
+                                Passing Marks: <strong className="font-mono">{activeUnlockStatus.attachedQuiz.passingMarks}%</strong> | Attempts:{" "}
+                                <strong className="font-mono">
+                                  {activeUnlockStatus.attachedQuiz.userAttemptsCount}/{activeUnlockStatus.attachedQuiz.maxAttempts}
+                                </strong>
+                                {activeUnlockStatus.attachedQuiz.userBestScore !== null && (
+                                  <span>
+                                    {" "}
+                                    | Best Score: <strong className="font-mono">{activeUnlockStatus.attachedQuiz.userBestScore}%</strong>
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <Link
+                            href={`/student/quizzes/${activeUnlockStatus.attachedQuiz.id}`}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 ${
+                              activeUnlockStatus.attachedQuiz.isPassed
+                                ? "bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                                : activeUnlockStatus.attachedQuiz.canAttempt
+                                ? "jvm-gradient-bg text-white shadow-md hover:scale-[1.02] cursor-pointer"
+                                : "bg-slate-200 text-slate-500 cursor-not-allowed pointer-events-none"
+                            }`}
+                          >
+                            {activeUnlockStatus.attachedQuiz.isPassed ? (
+                              <>
+                                <CheckCircle2 className="w-4 h-4" /> Passed <ArrowRight className="w-3.5 h-3.5" />
+                              </>
+                            ) : activeUnlockStatus.attachedQuiz.canAttempt ? (
+                              <>
+                                Attempt Quiz <ArrowRight className="w-3.5 h-3.5" />
+                              </>
+                            ) : (
+                              "Max Attempts Reached"
+                            )}
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+
+                    {/* Video Player */}
+                    {activeLesson.contentType === "VIDEO" && activeLesson.contentUrl && (
+                      <div className="rounded-2xl overflow-hidden shadow-xs border border-slate-200 bg-black">
+                        {activeLesson.contentUrl.includes("youtube.com") || activeLesson.contentUrl.includes("youtu.be") ? (
+                          <iframe
+                            src={activeLesson.contentUrl.replace("watch?v=", "embed/")}
+                            className="w-full aspect-video rounded-2xl"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <video src={activeLesson.contentUrl} controls className="w-full aspect-video rounded-2xl" />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Text Body */}
+                    {activeLesson.textContent ? (
+                      <div
+                        className="p-6 bg-slate-50/70 border border-slate-200/80 rounded-2xl text-slate-800 text-sm leading-relaxed prose prose-slate max-w-none shadow-xs"
+                        dangerouslySetInnerHTML={{ __html: activeLesson.textContent }}
+                      />
+                    ) : !activeLesson.contentUrl ? (
+                      <div className="p-8 text-center text-slate-400 text-xs bg-slate-50 rounded-2xl border border-slate-200">
+                        No content has been published for this lesson yet.
+                      </div>
+                    ) : null}
+
+                    {/* Resources */}
+                    {course.learningResources.filter((r) => r.description?.includes(activeLesson.title)).length > 0 && (
+                      <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-200/80 space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Download className="w-4 h-4 text-[#7C248C]" />
+                          <h4 className="text-xs font-extrabold text-slate-900 uppercase font-mono tracking-wider">
+                            Downloadable Assets for this Lesson
+                          </h4>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {course.learningResources
+                            .filter((r) => r.description?.includes(activeLesson.title))
+                            .map((res) => (
+                              <a
+                                key={res.id}
+                                href={res.fileUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-3 bg-white rounded-xl border border-slate-200 hover:border-purple-300 flex items-center justify-between gap-2 shadow-xs transition hover:scale-[1.01]"
+                              >
+                                <div className="flex items-center gap-2.5 overflow-hidden">
+                                  <FileText className="w-4 h-4 text-[#7C248C] shrink-0" />
+                                  <span className="text-xs font-bold text-slate-800 truncate">{res.title}</span>
+                                </div>
+                                <span className="px-2 py-1 rounded-lg jvm-gradient-bg text-white text-[10px] font-bold shrink-0">
+                                  Download
+                                </span>
+                              </a>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="glass-card bg-white p-12 rounded-3xl border border-slate-200 text-center text-slate-500">
@@ -330,7 +459,7 @@ export default function StudentCourseClient({
             )}
           </div>
 
-          {/* Curriculum Sidebar */}
+          {/* Curriculum Sidebar with Unlock Indicators */}
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4 h-fit">
             <h2 className="text-base font-bold text-slate-900">Modules & Lessons Stream</h2>
 
@@ -344,27 +473,51 @@ export default function StudentCourseClient({
                   <div className="space-y-1">
                     {m.lessons.map((l) => {
                       const isSelected = activeLesson?.id === l.id;
-                      const isCompleted = completedIds.includes(l.id);
+                      const status = unlockStatuses[l.id];
+                      const isUnlocked = status ? status.isUnlocked : true;
+                      const isCompleted = completedIds.includes(l.id) || Boolean(status?.isCompleted);
+                      const hasQuiz = Boolean(status?.attachedQuiz);
 
                       return (
                         <button
                           key={l.id}
-                          onClick={() => setActiveLesson(l)}
+                          onClick={() => {
+                            if (isUnlocked) setActiveLesson(l);
+                          }}
+                          disabled={!isUnlocked}
                           className={`w-full p-3 rounded-2xl border text-left flex items-center justify-between text-xs transition ${
-                            isSelected
+                            !isUnlocked
+                              ? "bg-slate-100/80 border-slate-200 text-slate-400 cursor-not-allowed"
+                              : isSelected
                               ? "bg-indigo-50 border-indigo-300 text-indigo-900 font-bold"
                               : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
                           }`}
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
-                            {isCompleted ? (
+                            {!isUnlocked ? (
+                              <Lock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                            ) : isCompleted ? (
                               <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                             ) : (
-                              <Play className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <Play className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
                             )}
                             <span className="truncate">{l.title}</span>
                           </div>
-                          <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-1">{l.durationMinutes}m</span>
+
+                          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                            {hasQuiz && (
+                              <span
+                                className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                                  status?.attachedQuiz?.isPassed
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : "bg-purple-100 text-purple-800"
+                                }`}
+                              >
+                                Quiz
+                              </span>
+                            )}
+                            <span className="text-[10px] font-mono text-slate-400">{l.durationMinutes}m</span>
+                          </div>
                         </button>
                       );
                     })}

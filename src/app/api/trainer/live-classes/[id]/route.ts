@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireActiveTrainer, verifyTrainerBatchAccess, handleApiError, AuthError } from "@/lib/rbac";
+import { updateGoogleMeetEvent, deleteGoogleMeetEvent } from "@/lib/google/googleCalendar.service";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -56,8 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const session = await requireActiveTrainer();
     const { id } = await params;
     const isAdmin = session.role === "ADMIN";
-
-    const existingClass = await prisma.liveClass.findUnique({
+   const existingClass = await prisma.liveClass.findUnique({
       where: { id },
       include: {
         batch: { select: { id: true, name: true } },
@@ -85,6 +85,36 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (recordingUrl !== undefined) dataToUpdate.recordingUrl = recordingUrl || null;
     if (description !== undefined) dataToUpdate.description = description || null;
     if (status) dataToUpdate.status = status;
+
+    // Sync with Google Calendar if googleEventId is present
+    if (existingClass.googleEventId) {
+      try {
+        if (status === "CANCELLED") {
+          await deleteGoogleMeetEvent({
+            userId: session.userId,
+            googleEventId: existingClass.googleEventId,
+          });
+        } else {
+          const updatedStart = startTime ? new Date(startTime) : existingClass.startTime;
+          const updatedEnd = endTime ? new Date(endTime) : existingClass.endTime;
+
+          const gResult = await updateGoogleMeetEvent({
+            userId: session.userId,
+            googleEventId: existingClass.googleEventId,
+            title: title || existingClass.title,
+            description: description !== undefined ? description : existingClass.description,
+            startTime: updatedStart,
+            endTime: updatedEnd,
+          });
+
+          if (gResult.meetUrl && !meetUrl) {
+            dataToUpdate.meetUrl = gResult.meetUrl;
+          }
+        }
+      } catch (gErr) {
+        console.warn("Failed to sync Google Calendar event update:", gErr);
+      }
+    }
 
     const updated = await prisma.liveClass.update({
       where: { id },
@@ -138,7 +168,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     const liveClass = await prisma.liveClass.findUnique({
       where: { id },
-      select: { batchId: true, title: true },
+      select: { batchId: true, title: true, googleEventId: true, trainerId: true },
     });
 
     if (!liveClass) {
@@ -148,6 +178,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const hasAccess = await verifyTrainerBatchAccess(session.userId, liveClass.batchId, isAdmin);
     if (!hasAccess) {
       throw new AuthError("Forbidden: You cannot delete live classes belonging to another trainer's batch", 403);
+    }
+
+    if (liveClass.googleEventId) {
+      try {
+        await deleteGoogleMeetEvent({
+          userId: session.userId,
+          googleEventId: liveClass.googleEventId,
+        });
+      } catch (gErr) {
+        console.warn("Failed to delete Google Calendar event during class deletion:", gErr);
+      }
     }
 
     await prisma.liveClass.delete({

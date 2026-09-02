@@ -165,8 +165,12 @@ export default function CoursesClient({
       if (trainerFilter) params.set("trainerId", trainerFilter);
 
       const res = await fetch(`/api/admin/courses?${params.toString()}`);
+      if (!res.ok) {
+        console.warn(`Fetch /api/admin/courses returned status ${res.status}`);
+        return;
+      }
       const data = await res.json();
-      if (data.success) {
+      if (data?.success && Array.isArray(data.data)) {
         setCourses(data.data);
       }
     } catch (err) {

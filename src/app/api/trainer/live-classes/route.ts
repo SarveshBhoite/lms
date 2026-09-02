@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireActiveTrainer, verifyTrainerBatchAccess, handleApiError, AuthError } from "@/lib/rbac";
+import { createGoogleMeetEvent } from "@/lib/google/googleCalendar.service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -37,15 +38,59 @@ export async function POST(req: NextRequest) {
     const isAdmin = session.role === "ADMIN";
     const body = await req.json();
 
-    const { batchId, title, scheduledDate, startTime, endTime, meetUrl, recordingUrl, description, status = "SCHEDULED" } = body;
+    const {
+      batchId,
+      title,
+      scheduledDate,
+      startTime,
+      endTime,
+      meetUrl: inputMeetUrl,
+      recordingUrl,
+      description,
+      status = "SCHEDULED",
+      autoCreateMeet = false,
+    } = body;
 
-    if (!batchId || !title || !scheduledDate || !startTime || !endTime || !meetUrl) {
-      throw new Error("Missing required live class fields (batchId, title, scheduledDate, startTime, endTime, meetUrl)");
+    if (!batchId || !title || !scheduledDate || !startTime || !endTime) {
+      throw new Error("Missing required live class fields (batchId, title, scheduledDate, startTime, endTime)");
     }
 
     const hasBatchAccess = await verifyTrainerBatchAccess(session.userId, batchId, isAdmin);
     if (!hasBatchAccess) {
       throw new AuthError("Forbidden: You cannot schedule live classes for a batch assigned to another trainer", 403);
+    }
+
+    let finalMeetUrl = inputMeetUrl || "";
+    let googleEventId: string | null = null;
+
+    const startDateTime = new Date(startTime);
+    const endDateTime = new Date(endTime);
+
+    // If auto-create is enabled OR if meetUrl was left empty, attempt Google Calendar event & Meet creation
+    if (autoCreateMeet || !finalMeetUrl) {
+      try {
+        const googleMeetResult = await createGoogleMeetEvent({
+          userId: session.userId,
+          title,
+          description: description || null,
+          startTime: startDateTime,
+          endTime: endDateTime,
+        });
+
+        finalMeetUrl = googleMeetResult.meetUrl;
+        googleEventId = googleMeetResult.eventId;
+      } catch (gErr: any) {
+        if (!finalMeetUrl) {
+          throw new Error(
+            gErr.message ||
+              "Google Account not connected. Please connect your Google Account in profile settings or provide a manual Google Meet link."
+          );
+        }
+      }
+    }
+
+    if (!finalMeetUrl) {
+      throw new Error("Google Meet URL is required (either auto-generated or manually entered).");
     }
 
     const liveClass = await prisma.liveClass.create({
@@ -55,9 +100,10 @@ export async function POST(req: NextRequest) {
         title,
         description: description || null,
         scheduledDate: new Date(scheduledDate),
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        meetUrl,
+        startTime: startDateTime,
+        endTime: endDateTime,
+        meetUrl: finalMeetUrl,
+        googleEventId,
         recordingUrl: recordingUrl || null,
         status,
       },

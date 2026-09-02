@@ -14,13 +14,31 @@ export async function GET(req: NextRequest) {
     const certificates = await prisma.certificate.findMany({
       where: { userId: studentId },
       include: {
-        course: { select: { id: true, title: true, level: true, durationHours: true } },
+        course: {
+          select: {
+            id: true,
+            title: true,
+            level: true,
+            durationHours: true,
+            trainer: { select: { name: true } },
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
       orderBy: { issueDate: "desc" },
     });
 
     return NextResponse.json({ success: true, data: certificates });
   } catch (error: any) {
-    return NextResponse.json({ success: false, error: error.message || "Failed to fetch certificates" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || "Failed to fetch certificates" },
+      { status: 500 }
+    );
   }
 }
