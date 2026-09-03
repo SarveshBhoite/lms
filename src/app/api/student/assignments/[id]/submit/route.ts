@@ -13,15 +13,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const studentId = session.userId;
     const body = await req.json();
 
-    const { fileUrl, fileName = "assignment_submission.pdf", fileSize = 1024 * 500 } = body;
+    const { fileUrl, fileName = "assignment_submission.pdf", fileSize = 1024 * 500, notes } = body;
 
     if (!fileUrl) {
-      throw new Error("File URL or project link is required for submission");
+      throw new Error("File URL, project repository, or document link is required for submission");
     }
 
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
-      select: { id: true, title: true },
+      select: { id: true, title: true, lessonId: true, courseId: true },
     });
 
     if (!assignment) {
@@ -41,6 +41,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           fileUrl,
           fileName,
           fileSize: Number(fileSize),
+          notes: notes || existingSubmission.notes,
           status: "SUBMITTED",
           submittedAt: new Date(),
         },
@@ -53,13 +54,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           fileUrl,
           fileName,
           fileSize: Number(fileSize),
+          notes,
           status: "SUBMITTED",
           submittedAt: new Date(),
         },
       });
     }
 
-    // Create Notification
+    // If assignment is linked to a lesson, immediately satisfy completion on submission so student isn't blocked!
+    if (assignment.lessonId) {
+      await prisma.lessonProgress.upsert({
+        where: {
+          userId_lessonId: {
+            userId: studentId,
+            lessonId: assignment.lessonId,
+          },
+        },
+        create: {
+          userId: studentId,
+          lessonId: assignment.lessonId,
+          isCompleted: true,
+          completionPercent: 100,
+          completedAt: new Date(),
+        },
+        update: {
+          isCompleted: true,
+          completionPercent: 100,
+          completedAt: new Date(),
+        },
+      });
+    }
+
+    // Create Notification for Student
     await prisma.notification.create({
       data: {
         userId: studentId,
@@ -70,7 +96,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
 
-    return NextResponse.json({ success: true, data: submission });
+    return NextResponse.json({
+      success: true,
+      data: submission,
+      lessonId: assignment.lessonId,
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message || "Failed to submit assignment" }, { status: 500 });
   }

@@ -29,6 +29,7 @@ export default function TrainerAssignmentEvaluateClient({ initialAssignment }: {
   const [evaluatingSubmission, setEvaluatingSubmission] = useState<SubmissionItem | null>(null);
   const [marks, setMarks] = useState<number>(0);
   const [feedbackText, setFeedbackText] = useState<string>("");
+  const [evalStatus, setEvalStatus] = useState<string>("EVALUATED");
   const [submitting, setSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -41,6 +42,7 @@ export default function TrainerAssignmentEvaluateClient({ initialAssignment }: {
     setEvaluatingSubmission(sub);
     setMarks(sub.feedback ? sub.feedback.marksAwarded : initialAssignment.totalMarks);
     setFeedbackText(sub.feedback ? sub.feedback.feedbackText : "Great work!");
+    setEvalStatus(sub.status || "EVALUATED");
   };
 
   const handleSaveEvaluation = async (e: React.FormEvent) => {
@@ -56,6 +58,7 @@ export default function TrainerAssignmentEvaluateClient({ initialAssignment }: {
           submissionId: evaluatingSubmission.id,
           marksAwarded: Number(marks),
           feedbackText,
+          status: evalStatus,
         }),
       });
 
@@ -185,11 +188,24 @@ export default function TrainerAssignmentEvaluateClient({ initialAssignment }: {
               </div>
 
               <div>
-                <label className="font-bold text-slate-700 block mb-1">Feedback & Comments *</label>
+                <label className="font-bold text-slate-700 block mb-1">Evaluation Decision / Status *</label>
+                <select
+                  value={evalStatus}
+                  onChange={(e) => setEvalStatus(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-rose-500 shadow-xs"
+                >
+                  <option value="EVALUATED">Approved & Evaluated</option>
+                  <option value="RESUBMISSION_REQUESTED">Needs Revision (Allow Student to Resubmit)</option>
+                  <option value="SUBMITTED">Under Review</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">Feedback Remarks *</label>
                 <textarea
                   required
                   rows={4}
-                  placeholder="Provide constructive feedback for the student..."
+                  placeholder="Provide constructive feedback and remarks for the student..."
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:border-rose-500 shadow-xs"

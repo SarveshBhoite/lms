@@ -36,6 +36,15 @@ export default async function AdminCourseDetailPage({
                 resources: {
                   orderBy: { createdAt: "desc" },
                 },
+                quiz: {
+                  include: {
+                    questions: {
+                      orderBy: { orderIndex: "asc" },
+                      include: { options: { orderBy: { orderIndex: "asc" } } },
+                    },
+                  },
+                },
+                assignment: true,
               },
             },
           },

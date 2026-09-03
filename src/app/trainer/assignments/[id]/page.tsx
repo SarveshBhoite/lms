@@ -52,7 +52,7 @@ export default async function TrainerAssignmentDetailPage({ params }: { params: 
       <div className="glass-panel p-8 rounded-3xl border border-slate-800 space-y-3">
         <div className="flex justify-between items-center">
           <span className="text-xs text-rose-400 font-mono">
-            Deadline: {new Date(assignment.deadline).toLocaleDateString()}
+            Deadline: {assignment.deadline ? new Date(assignment.deadline).toLocaleDateString() : "Flexible / None"}
           </span>
           <span className="text-xs text-slate-400 font-mono">{assignment.totalMarks} Total Marks</span>
         </div>

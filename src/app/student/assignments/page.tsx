@@ -63,7 +63,7 @@ export default async function StudentAssignmentsPage() {
                       {asgn.course.title}
                     </span>
                     <span className="text-xs text-[#E01E6A] font-mono font-bold">
-                      {new Date(asgn.deadline).toLocaleDateString()}
+                      {asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : "Flexible Deadline"}
                     </span>
                   </div>
 

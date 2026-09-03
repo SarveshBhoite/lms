@@ -37,6 +37,7 @@ import {
   Quote,
   Table as TableIcon,
   Terminal,
+  FileCheck,
 } from "lucide-react";
 
 export interface LessonResource {
@@ -45,6 +46,30 @@ export interface LessonResource {
   fileType: string;
   fileSize: number;
   fileUrl: string;
+}
+
+export interface AttachedQuizData {
+  title: string;
+  description: string;
+  passingMarks: number;
+  timeLimitMinutes: number;
+  questions: {
+    question: string;
+    type: "MCQ" | "MULTIPLE_ANSWER" | "TRUE_FALSE" | "FILL_IN_BLANK";
+    difficulty: "EASY" | "MEDIUM" | "HARD";
+    marks: number;
+    explanation: string;
+    correctAnswerText?: string;
+    options: { text: string; isCorrect: boolean }[];
+  }[];
+}
+
+export interface AttachedAssignmentData {
+  title: string;
+  description: string;
+  instructions: string;
+  deadline: string;
+  totalMarks: number;
 }
 
 interface HtmlLessonEditorProps {
@@ -62,6 +87,8 @@ interface HtmlLessonEditorProps {
     durationMinutes: number;
     isFreePreview: boolean;
     resources: LessonResource[];
+    quiz?: AttachedQuizData | null;
+    assignment?: AttachedAssignmentData | null;
   };
   backUrl: string; // e.g. /admin/courses/[id] or /trainer/courses/[id]
   apiBaseUrl: string; // e.g. /api/admin/courses/[id]/modules/[moduleId]/lessons
@@ -230,6 +257,51 @@ export default function HtmlLessonEditor({
     setResources((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Attached Lesson Quiz (Optional)
+  const [hasQuiz, setHasQuiz] = useState(Boolean(initialData?.quiz));
+  const [quizForm, setQuizForm] = useState<AttachedQuizData>(() => {
+    if (initialData?.quiz) {
+      return initialData.quiz;
+    }
+    return {
+      title: "Lesson Checkpoint Assessment",
+      description: "Quick quiz to test your understanding of this lesson.",
+      passingMarks: 60,
+      timeLimitMinutes: 15,
+      questions: [
+        {
+          question: "What is the primary objective of this lesson?",
+          type: "MCQ",
+          difficulty: "MEDIUM",
+          marks: 5,
+          explanation: "Review the key learning objectives at the beginning of the lesson.",
+          correctAnswerText: "",
+          options: [
+            { text: "Option A", isCorrect: true },
+            { text: "Option B", isCorrect: false },
+            { text: "Option C", isCorrect: false },
+            { text: "Option D", isCorrect: false },
+          ],
+        },
+      ],
+    };
+  });
+
+  // Attached Lesson Assignment (Optional)
+  const [hasAssignment, setHasAssignment] = useState(Boolean(initialData?.assignment));
+  const [assignmentForm, setAssignmentForm] = useState<AttachedAssignmentData>(() => {
+    if (initialData?.assignment) {
+      return initialData.assignment;
+    }
+    return {
+      title: "Hands-on Practice Task",
+      description: "Implement the exercise demonstrated in this lesson and submit your solution link.",
+      instructions: "Submit your GitHub repository, project link, or zipped code file.",
+      deadline: "",
+      totalMarks: 100,
+    };
+  });
+
   // Save / Update Lesson
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -240,7 +312,7 @@ export default function HtmlLessonEditor({
 
     setSaving(true);
     try {
-      const payload = {
+      const payload: any = {
         title,
         description,
         contentType,
@@ -249,6 +321,30 @@ export default function HtmlLessonEditor({
         durationMinutes: Number(durationMinutes),
         isFreePreview,
       };
+
+      if (hasQuiz && quizForm.title.trim()) {
+        payload.quiz = {
+          title: quizForm.title,
+          description: quizForm.description,
+          passingMarks: Number(quizForm.passingMarks),
+          timeLimitMinutes: Number(quizForm.timeLimitMinutes),
+          questions: quizForm.questions,
+        };
+      } else {
+        payload.quiz = null;
+      }
+
+      if (hasAssignment && assignmentForm.title.trim()) {
+        payload.assignment = {
+          title: assignmentForm.title,
+          description: assignmentForm.description,
+          instructions: assignmentForm.instructions,
+          deadline: assignmentForm.deadline || null,
+          totalMarks: Number(assignmentForm.totalMarks),
+        };
+      } else {
+        payload.assignment = null;
+      }
 
       const url = lessonId ? `${apiBaseUrl}/${lessonId}` : apiBaseUrl;
       const method = lessonId ? "PATCH" : "POST";
@@ -625,6 +721,326 @@ export default function HtmlLessonEditor({
           ) : (
             <div className="p-8 rounded-2xl border border-dashed border-slate-200 text-center text-slate-400 text-xs">
               No specific files attached to this lesson yet. Upload PDF documents, cheat sheets, or source code files above.
+            </div>
+          )}
+        </div>
+
+        {/* ---------------- SECTION: OPTIONAL ATTACHED QUIZ ---------------- */}
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#7C248C] flex items-center justify-center shrink-0">
+                <HelpCircle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  Attach Lesson Assessment / Quiz (Optional)
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Require students to take and pass this quiz (MCQ, True/False, Multiple Answers, Fill in the Blank) to complete this lesson and unlock the next one.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setHasQuiz(!hasQuiz)}
+              className={`px-4 py-2 rounded-xl font-bold text-xs transition border ${
+                hasQuiz
+                  ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+              }`}
+            >
+              {hasQuiz ? "✓ Quiz Attached" : "+ Enable Attached Quiz"}
+            </button>
+          </div>
+
+          {hasQuiz && (
+            <div className="space-y-6 pt-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="font-bold text-slate-700">Quiz Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={quizForm.title}
+                    onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
+                    placeholder="e.g. Chapter 1 Checkpoint Assessment"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Passing Criteria (%) *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={quizForm.passingMarks}
+                    onChange={(e) => setQuizForm({ ...quizForm, passingMarks: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                  />
+                </div>
+              </div>
+
+              {/* Questions List */}
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-slate-900 text-sm">
+                    Quiz Questions ({quizForm.questions.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuizForm({
+                        ...quizForm,
+                        questions: [
+                          ...quizForm.questions,
+                          {
+                            question: "",
+                            type: "MCQ",
+                            difficulty: "MEDIUM",
+                            marks: 5,
+                            explanation: "",
+                            correctAnswerText: "",
+                            options: [
+                              { text: "Option A", isCorrect: true },
+                              { text: "Option B", isCorrect: false },
+                              { text: "Option C", isCorrect: false },
+                              { text: "Option D", isCorrect: false },
+                            ],
+                          },
+                        ],
+                      });
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-purple-50 text-[#7C248C] border border-purple-200 hover:bg-purple-100 font-bold text-xs flex items-center gap-1.5"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Question
+                  </button>
+                </div>
+
+                {quizForm.questions.map((q, qIdx) => (
+                  <div key={qIdx} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-[#7C248C] font-mono text-xs">Question {qIdx + 1}</span>
+                      {quizForm.questions.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuizForm({
+                              ...quizForm,
+                              questions: quizForm.questions.filter((_, i) => i !== qIdx),
+                            });
+                          }}
+                          className="text-rose-600 hover:text-rose-700 text-xs font-bold flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Remove Question
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                      <div className="sm:col-span-3 space-y-1">
+                        <label className="font-bold text-slate-700">Question Text *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Which keyword declares an asynchronous function in JavaScript?"
+                          value={q.question}
+                          onChange={(e) => {
+                            const updated = [...quizForm.questions];
+                            updated[qIdx].question = e.target.value;
+                            setQuizForm({ ...quizForm, questions: updated });
+                          }}
+                          className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-900"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-slate-700">Question Type</label>
+                        <select
+                          value={q.type}
+                          onChange={(e) => {
+                            const updated = [...quizForm.questions];
+                            const newType = e.target.value as any;
+                            updated[qIdx].type = newType;
+                            if (newType === "TRUE_FALSE") {
+                              updated[qIdx].options = [
+                                { text: "True", isCorrect: true },
+                                { text: "False", isCorrect: false },
+                              ];
+                            } else if (newType === "FILL_IN_BLANK") {
+                              updated[qIdx].options = [];
+                            } else if (updated[qIdx].options.length === 0) {
+                              updated[qIdx].options = [
+                                { text: "Option 1", isCorrect: true },
+                                { text: "Option 2", isCorrect: false },
+                              ];
+                            }
+                            setQuizForm({ ...quizForm, questions: updated });
+                          }}
+                          className="w-full px-3.5 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold"
+                        >
+                          <option value="MCQ">Single Choice (MCQ)</option>
+                          <option value="MULTIPLE_ANSWER">Multiple Answers</option>
+                          <option value="TRUE_FALSE">True / False</option>
+                          <option value="FILL_IN_BLANK">Fill in the Blank</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Question Type Specific Option Builders */}
+                    {q.type === "FILL_IN_BLANK" ? (
+                      <div className="p-3.5 rounded-xl bg-white border border-purple-200 space-y-1">
+                        <label className="font-bold text-slate-700 block">
+                          Correct Answer Word(s) (Case-Insensitive Match) *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. async or primary key"
+                          value={q.correctAnswerText || ""}
+                          onChange={(e) => {
+                            const updated = [...quizForm.questions];
+                            updated[qIdx].correctAnswerText = e.target.value;
+                            setQuizForm({ ...quizForm, questions: updated });
+                          }}
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 font-mono text-slate-900"
+                        />
+                        <p className="text-[11px] text-slate-500">
+                          Students' inputs will be auto-evaluated ignoring case and surrounding punctuation.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <label className="font-bold text-slate-700 block">
+                          Answer Options & Correct Answer Selection *
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {q.options.map((opt, oIdx) => (
+                            <div
+                              key={oIdx}
+                              className={`p-2.5 rounded-xl border flex items-center gap-2 bg-white ${
+                                opt.isCorrect ? "border-emerald-400 bg-emerald-50/40" : "border-slate-200"
+                              }`}
+                            >
+                              {q.type === "MULTIPLE_ANSWER" ? (
+                                <input
+                                  type="checkbox"
+                                  checked={opt.isCorrect}
+                                  onChange={(e) => {
+                                    const updated = [...quizForm.questions];
+                                    updated[qIdx].options[oIdx].isCorrect = e.target.checked;
+                                    setQuizForm({ ...quizForm, questions: updated });
+                                  }}
+                                  className="w-4 h-4 text-emerald-600"
+                                  title="Mark as correct"
+                                />
+                              ) : (
+                                <input
+                                  type="radio"
+                                  name={`q-${qIdx}-correct`}
+                                  checked={opt.isCorrect}
+                                  onChange={() => {
+                                    const updated = [...quizForm.questions];
+                                    updated[qIdx].options.forEach((o, i) => (o.isCorrect = i === oIdx));
+                                    setQuizForm({ ...quizForm, questions: updated });
+                                  }}
+                                  className="w-4 h-4 text-emerald-600"
+                                  title="Mark as correct"
+                                />
+                              )}
+                              <input
+                                type="text"
+                                required
+                                value={opt.text}
+                                onChange={(e) => {
+                                  const updated = [...quizForm.questions];
+                                  updated[qIdx].options[oIdx].text = e.target.value;
+                                  setQuizForm({ ...quizForm, questions: updated });
+                                }}
+                                placeholder={`Option ${oIdx + 1}`}
+                                className="flex-1 px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-900 bg-white"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ---------------- SECTION: OPTIONAL ATTACHED ASSIGNMENT ---------------- */}
+        <div className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-pink-100 text-[#E01E6A] flex items-center justify-center shrink-0">
+                <FileCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  Attach Lesson Hands-on Task / Assignment (Optional)
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Provide project guidelines and require students to submit their solution file or GitHub URL to complete the lesson.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setHasAssignment(!hasAssignment)}
+              className={`px-4 py-2 rounded-xl font-bold text-xs transition border ${
+                hasAssignment
+                  ? "bg-[#E01E6A] text-white border-[#E01E6A] shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300"
+              }`}
+            >
+              {hasAssignment ? "✓ Assignment Attached" : "+ Enable Attached Assignment"}
+            </button>
+          </div>
+
+          {hasAssignment && (
+            <div className="space-y-4 pt-2 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="sm:col-span-2 space-y-1">
+                  <label className="font-bold text-slate-700">Assignment Title *</label>
+                  <input
+                    type="text"
+                    required
+                    value={assignmentForm.title}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
+                    placeholder="e.g. Build an API endpoint and submit repository link"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:border-[#E01E6A]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Total Marks</label>
+                  <input
+                    type="number"
+                    value={assignmentForm.totalMarks}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, totalMarks: Number(e.target.value) })}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:border-[#E01E6A]"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Assignment Instructions / Brief *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={assignmentForm.description}
+                  onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
+                  placeholder="Detail the deliverable, expected architecture, testing instructions, and submission criteria..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-900 focus:outline-none focus:border-[#E01E6A]"
+                />
+              </div>
             </div>
           )}
         </div>

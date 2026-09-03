@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { submissionId, marksAwarded, feedbackText } = await req.json();
+    const { submissionId, marksAwarded, feedbackText, status = "EVALUATED" } = await req.json();
 
     if (!submissionId || marksAwarded === undefined || !feedbackText) {
       return NextResponse.json(
@@ -43,18 +43,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Update submission status to EVALUATED
+    // Update submission status (EVALUATED, RESUBMISSION_REQUESTED, or SUBMITTED)
+    const validStatus = ["EVALUATED", "RESUBMISSION_REQUESTED", "SUBMITTED"].includes(status)
+      ? (status as any)
+      : "EVALUATED";
+
     await prisma.assignmentSubmission.update({
       where: { id: submissionId },
-      data: { status: "EVALUATED" },
+      data: { status: validStatus },
     });
 
     // Send notification to student
     await prisma.notification.create({
       data: {
         userId: submission.userId,
-        title: "Assignment Evaluated",
-        message: `Your submission for '${submission.assignment.title}' was evaluated. Marks: ${marksAwarded}/${submission.assignment.totalMarks}`,
+        title: validStatus === "RESUBMISSION_REQUESTED" ? "Assignment Revision Requested" : "Assignment Evaluated",
+        message: `Your submission for '${submission.assignment.title}' was reviewed. Status: ${validStatus}. Marks: ${marksAwarded}/${submission.assignment.totalMarks}. Remarks: "${feedbackText}"`,
         type: "ASSIGNMENT_EVALUATED",
         actionUrl: `/student/assignments/${submission.assignmentId}`,
       },

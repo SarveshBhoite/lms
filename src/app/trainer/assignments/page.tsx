@@ -57,7 +57,7 @@ export default async function TrainerAssignmentsPage() {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono text-[#E01E6A] font-bold">
-                      Deadline: {new Date(asgn.deadline).toLocaleDateString()}
+                      Deadline: {asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : "Flexible / None"}
                     </span>
                     <span className="text-xs text-slate-500 font-mono">{asgn.totalMarks} Marks</span>
                   </div>

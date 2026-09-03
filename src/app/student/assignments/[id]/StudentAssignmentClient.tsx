@@ -134,20 +134,53 @@ export default function StudentAssignmentClient({
         </p>
       </div>
 
-      {/* Feedback Banner if Evaluated */}
-      {latestSubmission?.feedback && (
-        <div className="bg-emerald-50/70 p-6 rounded-3xl border border-emerald-200 space-y-3">
+      {/* Feedback Banner if Evaluated or Revision Requested */}
+      {latestSubmission && (
+        <div className={`p-6 rounded-3xl border space-y-3 ${
+          latestSubmission.status === "RESUBMISSION_REQUESTED"
+            ? "bg-amber-50/90 border-amber-300 text-amber-900"
+            : latestSubmission.feedback
+            ? "bg-emerald-50/80 border-emerald-300 text-emerald-900"
+            : "bg-purple-50/70 border-purple-200 text-purple-900"
+        }`}>
           <div className="flex justify-between items-center">
-            <h3 className="font-bold text-emerald-900 text-sm flex items-center gap-2">
-              <Award className="w-4 h-4 text-emerald-700" /> Trainer Evaluation & Grade
+            <h3 className="font-bold text-sm flex items-center gap-2">
+              <Award className="w-4 h-4 text-[#7C248C]" /> 
+              {latestSubmission.status === "RESUBMISSION_REQUESTED"
+                ? "Trainer Review: Revision Requested"
+                : latestSubmission.feedback
+                ? "Trainer Evaluation & Grade"
+                : "Submission Under Review"}
             </h3>
-            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-emerald-600 text-white">
-              {latestSubmission.feedback.marksAwarded} / {assignment.totalMarks} Marks
+            <span className={`text-xs font-mono font-bold px-3 py-1 rounded-full ${
+              latestSubmission.status === "RESUBMISSION_REQUESTED"
+                ? "bg-amber-500 text-white"
+                : latestSubmission.feedback
+                ? "bg-emerald-600 text-white"
+                : "bg-purple-600 text-white"
+            }`}>
+              {latestSubmission.feedback
+                ? `${latestSubmission.feedback.marksAwarded} / ${assignment.totalMarks} Marks`
+                : latestSubmission.status}
             </span>
           </div>
-          <p className="text-xs text-emerald-800 font-medium">
-            Evaluated by <strong>{latestSubmission.feedback.trainer.name}</strong>: "{latestSubmission.feedback.feedbackText}"
-          </p>
+
+          {latestSubmission.feedback && (
+            <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/60 text-xs space-y-1">
+              <div className="font-semibold text-slate-700">
+                Evaluator: <span className="text-slate-900 font-bold">{latestSubmission.feedback.trainer?.name || "Trainer"}</span>
+              </div>
+              <div className="text-slate-800">
+                Remarks: <span className="italic font-medium text-slate-900">"{latestSubmission.feedback.feedbackText}"</span>
+              </div>
+            </div>
+          )}
+
+          {latestSubmission.status === "RESUBMISSION_REQUESTED" && (
+            <p className="text-xs font-semibold text-amber-800">
+              ⚠️ The trainer reviewed your solution and requested changes. Please review their remarks above and upload your revised work below.
+            </p>
+          )}
         </div>
       )}
 

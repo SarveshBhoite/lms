@@ -25,7 +25,18 @@ export default async function TrainerCourseDetailPage({ params }: { params: Prom
       modules: {
         include: {
           lessons: {
-            include: { resources: true },
+            include: {
+              resources: true,
+              quiz: {
+                include: {
+                  questions: {
+                    orderBy: { orderIndex: "asc" },
+                    include: { options: { orderBy: { orderIndex: "asc" } } },
+                  },
+                },
+              },
+              assignment: true,
+            },
             orderBy: { orderIndex: "asc" },
           },
         },

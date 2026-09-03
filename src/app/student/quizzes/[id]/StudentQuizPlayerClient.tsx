@@ -24,6 +24,10 @@ interface OptionItem {
 interface QuestionItem {
   id: string;
   question: string;
+  type?: "MCQ" | "MULTIPLE_ANSWER" | "TRUE_FALSE" | "FILL_IN_BLANK";
+  difficulty?: string;
+  marks?: number;
+  explanation?: string | null;
   orderIndex: number;
   options: OptionItem[];
 }
@@ -58,7 +62,7 @@ export default function StudentQuizPlayerClient({
   const [quiz, setQuiz] = useState<QuizDetailData>(initialQuiz);
   const [isQuizStarted, setIsQuizStarted] = useState(false);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({}); // questionId -> optionId
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, any>>({}); // questionId -> optionId, array of IDs, or text string
 
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(initialQuiz.timeLimitMinutes * 60);
   const [submitting, setSubmitting] = useState(false);
@@ -94,6 +98,24 @@ export default function StudentQuizPlayerClient({
     }));
   };
 
+  const handleToggleMultipleAnswer = (questionId: string, optionId: string) => {
+    setSelectedAnswers((prev) => {
+      const currentList: string[] = Array.isArray(prev[questionId]) ? prev[questionId] : [];
+      if (currentList.includes(optionId)) {
+        return { ...prev, [questionId]: currentList.filter((id) => id !== optionId) };
+      } else {
+        return { ...prev, [questionId]: [...currentList, optionId] };
+      }
+    });
+  };
+
+  const handleTextAnswer = (questionId: string, text: string) => {
+    setSelectedAnswers((prev) => ({
+      ...prev,
+      [questionId]: text,
+    }));
+  };
+
   const handleSubmitQuiz = async () => {
     setSubmitting(true);
     try {
@@ -107,7 +129,7 @@ export default function StudentQuizPlayerClient({
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to submit quiz");
 
       setAttemptResult(data.data);
-      showToast("success", `Quiz submitted! Score: ${data.data.score}%`);
+      showToast("success", data.data.isPassed ? "Congratulations! You passed the quiz!" : "Quiz completed. Keep practicing!");
     } catch (err: any) {
       showToast("error", err.message || "Failed to submit quiz");
     } finally {
@@ -115,12 +137,13 @@ export default function StudentQuizPlayerClient({
     }
   };
 
-  const currentQuestion = quiz.questions[currentQuestionIdx];
-  const formatTime = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${mins}:${s < 10 ? "0" : ""}${s}`;
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
+
+  const currentQuestion = quiz.questions[currentQuestionIdx];
 
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-4xl w-full mx-auto">
@@ -237,27 +260,93 @@ export default function StudentQuizPlayerClient({
 
           {currentQuestion && (
             <div className="space-y-6">
-              <h2 className="text-base font-bold text-slate-900">{currentQuestion.question}</h2>
-
-              <div className="space-y-3">
-                {currentQuestion.options.map((opt) => {
-                  const isSelected = selectedAnswers[currentQuestion.id] === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
-                      className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between text-xs font-medium transition ${
-                        isSelected
-                          ? "bg-purple-50 border-purple-400 text-slate-900 font-bold"
-                          : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                      }`}
-                    >
-                      <span>{opt.text}</span>
-                      <input type="radio" checked={isSelected} onChange={() => {}} className="w-4 h-4 text-purple-600" />
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-bold text-slate-900">{currentQuestion.question}</h2>
+                {currentQuestion.type && (
+                  <span className="text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
+                    {currentQuestion.type === "MULTIPLE_ANSWER"
+                      ? "Multiple Answers (Select all that apply)"
+                      : currentQuestion.type === "TRUE_FALSE"
+                      ? "True / False"
+                      : currentQuestion.type === "FILL_IN_BLANK"
+                      ? "Fill in the Blank"
+                      : "Single Choice (MCQ)"}
+                  </span>
+                )}
               </div>
+
+              {/* 1. FILL IN THE BLANK */}
+              {currentQuestion.type === "FILL_IN_BLANK" ? (
+                <div className="space-y-3">
+                  <label className="text-xs font-semibold text-slate-600 block">
+                    Type your answer below (case-insensitive):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Type your answer here..."
+                    value={selectedAnswers[currentQuestion.id] || ""}
+                    onChange={(e) => handleTextAnswer(currentQuestion.id, e.target.value)}
+                    className="w-full px-4 py-3.5 rounded-2xl bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-[#7C248C] focus:ring-1 focus:ring-[#7C248C] shadow-xs"
+                  />
+                </div>
+              ) : currentQuestion.type === "MULTIPLE_ANSWER" ? (
+                /* 2. MULTIPLE ANSWER (Checkboxes) */
+                <div className="space-y-3">
+                  {currentQuestion.options.map((opt) => {
+                    const currentSelected: string[] = Array.isArray(selectedAnswers[currentQuestion.id])
+                      ? selectedAnswers[currentQuestion.id]
+                      : [];
+                    const isChecked = currentSelected.includes(opt.id);
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleToggleMultipleAnswer(currentQuestion.id, opt.id)}
+                        className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between text-xs font-medium transition cursor-pointer ${
+                          isChecked
+                            ? "bg-purple-50/80 border-[#7C248C] text-slate-900 font-bold shadow-xs"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{opt.text}</span>
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}}
+                          className="w-4 h-4 rounded text-[#7C248C] focus:ring-[#7C248C] pointer-events-none"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* 3. MCQ & TRUE/FALSE (Single Selection) */
+                <div className="space-y-3">
+                  {currentQuestion.options.map((opt) => {
+                    const isSelected = selectedAnswers[currentQuestion.id] === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleSelectOption(currentQuestion.id, opt.id)}
+                        className={`w-full p-4 rounded-2xl border text-left flex items-center justify-between text-xs font-medium transition cursor-pointer ${
+                          isSelected
+                            ? "bg-purple-50/80 border-[#7C248C] text-slate-900 font-bold shadow-xs"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                        }`}
+                      >
+                        <span>{opt.text}</span>
+                        <input
+                          type="radio"
+                          checked={isSelected}
+                          onChange={() => {}}
+                          className="w-4 h-4 text-[#7C248C] focus:ring-[#7C248C] pointer-events-none"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

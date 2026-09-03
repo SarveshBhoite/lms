@@ -16,11 +16,54 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       where: { id: lessonId },
       include: {
         module: { select: { courseId: true } },
+        quiz: {
+          select: {
+            id: true,
+            title: true,
+            passingMarks: true,
+            quizAttempts: {
+              where: { userId: studentId, isPassed: true },
+              take: 1,
+            },
+          },
+        },
+        assignment: {
+          select: {
+            id: true,
+            title: true,
+            submissions: {
+              where: { userId: studentId },
+              take: 1,
+            },
+          },
+        },
       },
     });
 
     if (!lesson) {
       return NextResponse.json({ success: false, error: "Lesson not found" }, { status: 404 });
+    }
+
+    // Check quiz criteria: must have passed attempt if quiz attached
+    if (lesson.quiz && lesson.quiz.quizAttempts.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Please pass the required quiz "${lesson.quiz.title}" (Passing score: ${lesson.quiz.passingMarks}%) before completing this lesson.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check assignment criteria: must have submitted project if assignment attached
+    if (lesson.assignment && lesson.assignment.submissions.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Please submit the required assignment "${lesson.assignment.title}" before completing this lesson.`,
+        },
+        { status: 400 }
+      );
     }
 
     const courseId = lesson.module.courseId;
@@ -32,13 +75,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
       update: {
         isCompleted: true,
+        completionPercent: 100,
         lastWatchedAt: new Date(),
+        completedAt: new Date(),
       },
       create: {
         userId: studentId,
         lessonId,
         isCompleted: true,
+        completionPercent: 100,
         lastWatchedAt: new Date(),
+        completedAt: new Date(),
       },
     });
 

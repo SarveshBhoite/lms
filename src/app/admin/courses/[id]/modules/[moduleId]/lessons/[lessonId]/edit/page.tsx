@@ -26,7 +26,18 @@ export default async function AdminLessonEditPage({
     }),
     prisma.lesson.findUnique({
       where: { id: lessonId, moduleId },
-      include: { resources: true },
+      include: {
+        resources: true,
+        quiz: {
+          include: {
+            questions: {
+              orderBy: { orderIndex: "asc" },
+              include: { options: { orderBy: { orderIndex: "asc" } } },
+            },
+          },
+        },
+        assignment: true,
+      },
     }),
   ]);
 
@@ -49,6 +60,35 @@ export default async function AdminLessonEditPage({
       fileSize: r.fileSize,
       fileUrl: r.fileUrl,
     })),
+    quiz: lesson.quiz
+      ? {
+          title: lesson.quiz.title,
+          description: lesson.quiz.description || "",
+          passingMarks: lesson.quiz.passingMarks,
+          timeLimitMinutes: lesson.quiz.timeLimitMinutes,
+          questions: lesson.quiz.questions.map((q) => ({
+            question: q.question,
+            type: q.type,
+            difficulty: q.difficulty,
+            marks: q.marks,
+            explanation: q.explanation || "",
+            correctAnswerText: q.correctAnswerText || "",
+            options: q.options.map((opt) => ({
+              text: opt.text,
+              isCorrect: opt.isCorrect,
+            })),
+          })),
+        }
+      : null,
+    assignment: lesson.assignment
+      ? {
+          title: lesson.assignment.title,
+          description: lesson.assignment.description,
+          instructions: lesson.assignment.instructions || "",
+          deadline: lesson.assignment.deadline ? lesson.assignment.deadline.toISOString().split("T")[0] : "",
+          totalMarks: lesson.assignment.totalMarks,
+        }
+      : null,
   };
 
   return (

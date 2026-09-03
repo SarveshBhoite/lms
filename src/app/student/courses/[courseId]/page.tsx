@@ -34,16 +34,55 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
             orderBy: { orderIndex: "asc" },
             include: {
               resources: true,
+              quiz: {
+                select: {
+                  id: true,
+                  title: true,
+                  passingMarks: true,
+                  timeLimitMinutes: true,
+                  questions: {
+                    select: {
+                      id: true,
+                      question: true,
+                      type: true,
+                      marks: true,
+                      options: { select: { id: true, text: true, orderIndex: true } },
+                    },
+                  },
+                  quizAttempts: {
+                    where: { userId: studentId },
+                    orderBy: { startedAt: "desc" },
+                    take: 1,
+                  },
+                },
+              },
+              assignment: {
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  deadline: true,
+                  totalMarks: true,
+                  submissions: {
+                    where: { userId: studentId },
+                    orderBy: { submittedAt: "desc" },
+                    take: 1,
+                    include: {
+                      feedback: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
       },
       quizzes: {
         where: { status: "PUBLISHED" },
-        select: { id: true, title: true, description: true, passingMarks: true, timeLimitMinutes: true },
+        select: { id: true, title: true, description: true, passingMarks: true, timeLimitMinutes: true, lessonId: true },
       },
       assignments: {
-        select: { id: true, title: true, description: true, deadline: true, totalMarks: true },
+        select: { id: true, title: true, description: true, deadline: true, totalMarks: true, lessonId: true },
       },
     },
   });
