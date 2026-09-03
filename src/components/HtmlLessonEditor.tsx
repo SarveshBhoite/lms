@@ -86,6 +86,7 @@ interface HtmlLessonEditorProps {
     textContent: string; // HTML content
     durationMinutes: number;
     isFreePreview: boolean;
+    isFinalLesson?: boolean;
     resources: LessonResource[];
     quiz?: AttachedQuizData | null;
     assignment?: AttachedAssignmentData | null;
@@ -139,6 +140,7 @@ export default function HtmlLessonEditor({
   const [description, setDescription] = useState(initialData?.description || "");
   const [durationMinutes, setDurationMinutes] = useState(initialData?.durationMinutes || 15);
   const [isFreePreview, setIsFreePreview] = useState(initialData?.isFreePreview || false);
+  const [isFinalLesson, setIsFinalLesson] = useState(initialData?.isFinalLesson || false);
   const [contentType, setContentType] = useState(initialData?.contentType || "TEXT");
   const [contentUrl, setContentUrl] = useState(initialData?.contentUrl || "");
   const [htmlContent, setHtmlContent] = useState(initialData?.textContent || DEFAULT_HTML_TEMPLATE);
@@ -320,6 +322,7 @@ export default function HtmlLessonEditor({
         textContent: htmlContent,
         durationMinutes: Number(durationMinutes),
         isFreePreview,
+        isFinalLesson,
       };
 
       if (hasQuiz && quizForm.title.trim()) {
@@ -504,6 +507,34 @@ export default function HtmlLessonEditor({
               onChange={(e) => setDurationMinutes(Number(e.target.value))}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
             />
+          </div>
+
+          {/* Final Concluding Lesson Toggle */}
+          <div className="sm:col-span-3 p-4 rounded-2xl bg-purple-50/70 border border-purple-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-900 text-xs">🎓 Mark as Final Concluding Lesson of Course</span>
+                {isFinalLesson && (
+                  <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-[#7C248C] text-white">
+                    COURSE CONCLUSION
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-600 mt-0.5">
+                When enabled, students completing this lesson will be awarded full Course Completion & Certificate eligibility. If disabled, students will see "More lessons coming soon" until the final lesson is uploaded.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFinalLesson(!isFinalLesson)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition shrink-0 ${
+                isFinalLesson
+                  ? "bg-[#7C248C] text-white shadow-xs"
+                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {isFinalLesson ? "✓ Final Lesson Enabled" : "Set as Final Lesson"}
+            </button>
           </div>
         </div>
 

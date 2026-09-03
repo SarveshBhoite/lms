@@ -106,7 +106,27 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     const progressPercent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
-    const isCompleted = completedLessons >= totalLessons && totalLessons > 0;
+    
+    // Course is marked completed ONLY if all lessons are completed AND the course has an isFinalLesson designated and completed
+    const finalLessonInCourse = await prisma.lesson.findFirst({
+      where: {
+        module: { courseId },
+        isFinalLesson: true,
+      },
+    });
+
+    let isCourseFullyCompleted = false;
+    if (finalLessonInCourse) {
+      const finalLessonProgress = await prisma.lessonProgress.findUnique({
+        where: {
+          userId_lessonId: { userId: studentId, lessonId: finalLessonInCourse.id },
+        },
+      });
+      isCourseFullyCompleted = Boolean(finalLessonProgress?.isCompleted && completedLessons >= totalLessons);
+    } else {
+      // If no final lesson designated yet, course is in progress (more lessons coming soon)
+      isCourseFullyCompleted = false;
+    }
 
     // 4. Upsert CourseProgress
     await prisma.courseProgress.upsert({
@@ -117,8 +137,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         completedLessonsCount: completedLessons,
         totalLessonsCount: totalLessons,
         progressPercent,
-        isCompleted,
-        completedAt: isCompleted ? new Date() : null,
+        isCompleted: isCourseFullyCompleted,
+        completedAt: isCourseFullyCompleted ? new Date() : null,
       },
       create: {
         userId: studentId,
@@ -126,8 +146,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         completedLessonsCount: completedLessons,
         totalLessonsCount: totalLessons,
         progressPercent,
-        isCompleted,
-        completedAt: isCompleted ? new Date() : null,
+        isCompleted: isCourseFullyCompleted,
+        completedAt: isCourseFullyCompleted ? new Date() : null,
       },
     });
 
@@ -138,7 +158,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         completedLessons,
         totalLessons,
         progressPercent: Number(progressPercent.toFixed(1)),
-        isCompleted,
+        isCompleted: isCourseFullyCompleted,
       },
     });
   } catch (error: any) {

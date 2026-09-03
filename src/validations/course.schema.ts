@@ -47,6 +47,7 @@ export const LessonCreateSchema = z.object({
   durationMinutes: z.number().int().min(0).default(15),
   orderIndex: z.number().int().default(0),
   isFreePreview: z.boolean().default(false),
+  isFinalLesson: z.boolean().default(false),
 });
 
 export const LessonUpdateSchema = LessonCreateSchema.partial();

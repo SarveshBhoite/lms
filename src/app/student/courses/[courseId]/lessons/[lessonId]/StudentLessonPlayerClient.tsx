@@ -67,6 +67,7 @@ interface CurrentLessonData {
   contentUrl?: string | null;
   textContent?: string | null;
   durationMinutes: number;
+  isFinalLesson?: boolean;
   resources: { id: string; title: string; fileType: string; fileUrl: string }[];
   quiz?: LessonQuiz | null;
   assignment?: LessonAssignment | null;
@@ -663,11 +664,12 @@ export default function StudentLessonPlayerClient({
         )}
 
         {/* Bottom Pagination & Navigation */}
-        <div className="pt-4 border-t border-slate-200 flex items-center justify-between gap-4">
+        <div className="pt-6 border-t border-slate-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+          {/* Previous Lesson Link */}
           {prevLesson ? (
             <Link
               href={`/student/courses/${course.id}/lessons/${prevLesson.id}`}
-              className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 text-slate-700 font-bold text-xs flex items-center gap-2 shadow-xs transition hover:scale-[1.02]"
+              className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 text-slate-700 font-bold text-xs flex items-center justify-center sm:justify-start gap-2 shadow-xs transition hover:scale-[1.02]"
             >
               <ChevronLeft className="w-4 h-4" /> Previous: {prevLesson.title}
             </Link>
@@ -675,47 +677,75 @@ export default function StudentLessonPlayerClient({
             <div />
           )}
 
-          {nextLesson ? (
-            <Link
-              href={`/student/courses/${course.id}/lessons/${nextLesson.id}`}
-              className={`px-5 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-xs transition ${
-                isCompleted
-                  ? "jvm-gradient-bg text-white hover:scale-[1.02]"
-                  : "bg-slate-100 text-slate-400 border border-slate-200 pointer-events-none"
-              }`}
-            >
-              Next: {nextLesson.title} <ChevronRight className="w-4 h-4" />
-            </Link>
-          ) : isCompleted ? (
-            <Link
-              href={`/student/courses/${course.id}`}
-              className="px-5 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 shadow-xs transition"
-            >
-              🎉 Course Completed! Return to Index
-            </Link>
-          ) : (
-            <div className="text-right">
-              <span className="text-[11px] font-mono text-slate-400 block mb-1">Final Lesson in Course</span>
+          {/* Center / Right Action Cluster */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            {/* Mark Complete Button (Visible when lesson is NOT yet completed) */}
+            {!isCompleted && (
               <button
                 type="button"
                 onClick={handleMarkComplete}
                 disabled={Boolean(markingComplete || !canComplete)}
-                className={`px-5 py-2.5 rounded-2xl font-bold text-xs flex items-center gap-2 shadow-xs transition ${
+                className={`px-6 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition ${
                   canComplete
-                    ? "jvm-gradient-bg jvm-gradient-hover text-white hover:scale-[1.02] cursor-pointer"
+                    ? "jvm-gradient-bg jvm-gradient-hover text-white shadow-purple-900/20 hover:scale-[1.02] cursor-pointer"
                     : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
                 }`}
               >
                 {markingComplete ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
+                ) : !isQuizSatisfied ? (
+                  <>
+                    <HelpCircle className="w-4 h-4" /> Pass Quiz Above to Mark Complete
+                  </>
+                ) : !isAssignmentSatisfied ? (
+                  <>
+                    <FileCheck className="w-4 h-4" /> Submit Task Above to Mark Complete
+                  </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-4 h-4" /> Complete Final Lesson
+                    <CheckCircle2 className="w-4 h-4" /> Mark Lesson Complete
                   </>
                 )}
               </button>
-            </div>
-          )}
+            )}
+
+            {/* Next Lesson or Concluding Actions */}
+            {nextLesson ? (
+              <Link
+                href={`/student/courses/${course.id}/lessons/${nextLesson.id}`}
+                className={`px-5 py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition ${
+                  isCompleted
+                    ? "jvm-gradient-bg text-white shadow-md shadow-purple-900/20 hover:scale-[1.02]"
+                    : "bg-slate-100 text-slate-400 border border-slate-200 pointer-events-none opacity-60"
+                }`}
+              >
+                Next: {nextLesson.title} <ChevronRight className="w-4 h-4" />
+              </Link>
+            ) : currentLesson.isFinalLesson ? (
+              isCompleted && (
+                <Link
+                  href={`/student/courses/${course.id}`}
+                  className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-700/20 transition hover:scale-[1.02]"
+                >
+                  🎉 Course Completed! Return to Index
+                </Link>
+              )
+            ) : (
+              isCompleted && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-slate-500 font-bold hidden md:inline">
+                    ✨ Up to Date • More Lessons Coming Soon
+                  </span>
+                  <Link
+                    href={`/student/courses/${course.id}`}
+                    className="px-4 py-2.5 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition"
+                  >
+                    Return to Syllabus
+                  </Link>
+                </div>
+              )
+            )}
+          </div>
         </div>
       </main>
     </div>

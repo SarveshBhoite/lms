@@ -26,6 +26,7 @@ export async function PATCH(
           ...(validated.durationMinutes !== undefined && { durationMinutes: validated.durationMinutes }),
           ...(validated.orderIndex !== undefined && { orderIndex: validated.orderIndex }),
           ...(validated.isFreePreview !== undefined && { isFreePreview: validated.isFreePreview }),
+          ...(validated.isFinalLesson !== undefined && { isFinalLesson: validated.isFinalLesson }),
         },
         include: {
           module: { select: { courseId: true } },

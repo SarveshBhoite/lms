@@ -61,6 +61,7 @@ interface LessonItem {
   textContent?: string | null;
   durationMinutes: number;
   order: number;
+  isFinalLesson?: boolean;
   quiz?: LessonQuiz | null;
   assignment?: LessonAssignment | null;
 }
@@ -251,14 +252,32 @@ export default function StudentCourseClient({
 
             {/* Quick Resume CTA */}
             {allLessons.length > 0 && (
-              <Link
-                href={`/student/courses/${course.id}/lessons/${
-                  allLessons.find((l) => !completedIds.includes(l.id) && isLessonUnlocked(l.id))?.id || allLessons[0].id
-                }`}
-                className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition"
-              >
-                <Play className="w-4 h-4 fill-white" /> Continue Learning
-              </Link>
+              (() => {
+                const nextIncomplete = allLessons.find((l) => !completedIds.includes(l.id) && isLessonUnlocked(l.id));
+                const hasFinalLesson = allLessons.some((l) => l.isFinalLesson);
+                const allDone = allLessons.length > 0 && completedIds.length >= allLessons.length;
+
+                if (allDone) {
+                  return (
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
+                      <span>{hasFinalLesson ? "🎉 Course Fully Completed!" : "✨ Up to Date • More Lessons Coming Soon"}</span>
+                    </div>
+                  );
+                }
+
+                if (nextIncomplete) {
+                  return (
+                    <Link
+                      href={`/student/courses/${course.id}/lessons/${nextIncomplete.id}`}
+                      className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition"
+                    >
+                      <Play className="w-4 h-4 fill-white" /> Continue Learning
+                    </Link>
+                  );
+                }
+
+                return null;
+              })()
             )}
           </div>
 
@@ -383,6 +402,12 @@ export default function StudentCourseClient({
                                 {l.assignment && (
                                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-pink-100 text-[#E01E6A] font-bold flex items-center gap-1">
                                     <FileCheck className="w-3 h-3" /> Hands-on Task
+                                  </span>
+                                )}
+
+                                {l.isFinalLesson && (
+                                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200 font-extrabold flex items-center gap-1">
+                                    🎓 Final Course Lesson
                                   </span>
                                 )}
                               </div>

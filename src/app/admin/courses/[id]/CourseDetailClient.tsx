@@ -870,11 +870,6 @@ export default function CourseDetailClient({
                                   >
                                     {l.title}
                                   </Link>
-                                  {l.isFreePreview && (
-                                    <span className="text-[9px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 uppercase">
-                                      Free Preview
-                                    </span>
-                                  )}
                                   <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md uppercase">
                                     {l.contentType}
                                   </span>

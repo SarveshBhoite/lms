@@ -53,6 +53,7 @@ export default async function AdminLessonEditPage({
     textContent: lesson.textContent || "",
     durationMinutes: lesson.durationMinutes,
     isFreePreview: lesson.isFreePreview,
+    isFinalLesson: lesson.isFinalLesson,
     resources: lesson.resources.map((r) => ({
       id: r.id,
       title: r.title,

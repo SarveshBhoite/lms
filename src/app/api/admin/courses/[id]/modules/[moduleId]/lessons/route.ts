@@ -47,6 +47,7 @@ export async function POST(
           durationMinutes: validated.durationMinutes,
           orderIndex,
           isFreePreview: validated.isFreePreview,
+          isFinalLesson: Boolean(validated.isFinalLesson),
         },
       });
 
