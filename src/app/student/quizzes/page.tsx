@@ -14,15 +14,21 @@ export default async function StudentQuizzesPage() {
 
   const enrollments = await prisma.enrollment.findMany({
     where: { userId: studentId, status: "ACTIVE" },
-    select: { courseId: true },
+    select: { courseId: true, batchId: true },
   });
 
   const enrolledCourseIds = enrollments.map((e) => e.courseId);
+  const enrolledBatchIds = enrollments.map((e) => e.batchId).filter(Boolean) as string[];
 
   const quizzes = await prisma.quiz.findMany({
     where: {
       courseId: { in: enrolledCourseIds },
+      lessonId: null, // ONLY separate/standalone quizzes, not lesson quizzes
       status: "PUBLISHED",
+      OR: [
+        { batchIds: { isEmpty: true } },
+        { batchIds: { hasSome: enrolledBatchIds } },
+      ],
     },
     include: {
       course: { select: { id: true, title: true } },

@@ -14,14 +14,17 @@ export default async function TrainerQuizzesPage() {
   const isAdmin = session.role === "ADMIN";
 
   const quizzes = await prisma.quiz.findMany({
-    where: isAdmin
-      ? {}
-      : {
-          OR: [
-            { course: { trainerId } },
-            { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
-          ],
-        },
+    where: {
+      lessonId: null, // ONLY standalone course/batch quizzes (lesson quizzes are embedded in lessons)
+      ...(isAdmin
+        ? {}
+        : {
+            OR: [
+              { course: { trainerId } },
+              { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
+            ],
+          }),
+    },
     include: {
       course: { select: { title: true } },
       questions: { select: { id: true } },

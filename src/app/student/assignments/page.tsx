@@ -14,13 +14,21 @@ export default async function StudentAssignmentsPage() {
 
   const enrollments = await prisma.enrollment.findMany({
     where: { userId: studentId, status: "ACTIVE" },
-    select: { courseId: true },
+    select: { courseId: true, batchId: true },
   });
 
   const enrolledCourseIds = enrollments.map((e) => e.courseId);
+  const enrolledBatchIds = enrollments.map((e) => e.batchId).filter(Boolean) as string[];
 
   const assignments = await prisma.assignment.findMany({
-    where: { courseId: { in: enrolledCourseIds } },
+    where: {
+      courseId: { in: enrolledCourseIds },
+      lessonId: null, // ONLY standalone assignments, not lesson tasks
+      OR: [
+        { batchIds: { isEmpty: true } },
+        { batchIds: { hasSome: enrolledBatchIds } },
+      ],
+    },
     include: {
       course: { select: { id: true, title: true } },
       submissions: {

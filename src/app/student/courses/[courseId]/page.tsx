@@ -78,10 +78,32 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
         },
       },
       quizzes: {
-        where: { status: "PUBLISHED" },
+        where: {
+          status: "PUBLISHED",
+          lessonId: null, // ONLY standalone quizzes, not lesson quizzes
+          ...(enrollment?.batchId
+            ? {
+                OR: [
+                  { batchIds: { isEmpty: true } },
+                  { batchIds: { has: enrollment.batchId } },
+                ],
+              }
+            : {}),
+        },
         select: { id: true, title: true, description: true, passingMarks: true, timeLimitMinutes: true, lessonId: true },
       },
       assignments: {
+        where: {
+          lessonId: null, // ONLY standalone assignments, not lesson tasks
+          ...(enrollment?.batchId
+            ? {
+                OR: [
+                  { batchIds: { isEmpty: true } },
+                  { batchIds: { has: enrollment.batchId } },
+                ],
+              }
+            : {}),
+        },
         select: { id: true, title: true, description: true, deadline: true, totalMarks: true, lessonId: true },
       },
     },
