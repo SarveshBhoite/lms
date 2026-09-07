@@ -13,7 +13,7 @@ export default async function TrainerAttendancePage() {
   const trainerId = session.userId;
   const isAdmin = session.role === "ADMIN";
 
-  const batches = await prisma.batch.findMany({
+  const rawBatches = await prisma.batch.findMany({
     where: isAdmin
       ? {}
       : {
@@ -25,14 +25,31 @@ export default async function TrainerAttendancePage() {
     include: {
       course: { select: { title: true } },
       students: true,
-      liveClasses: {
-        include: {
-          attendances: true,
-        },
-      },
     },
     orderBy: { startDate: "desc" },
   });
+
+  // Fetch live classes with attendances for each batch
+  const batches = await Promise.all(
+    rawBatches.map(async (b) => {
+      const liveClasses = await prisma.liveClass.findMany({
+        where: {
+          OR: [
+            { batchId: b.id },
+            { batchIds: { has: b.id } },
+          ],
+        },
+        include: {
+          attendances: true,
+        },
+      });
+
+      return {
+        ...b,
+        liveClasses,
+      };
+    })
+  );
 
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
@@ -49,12 +66,19 @@ export default async function TrainerAttendancePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {batches.map((b) => {
             const totalClasses = b.liveClasses.length;
-            const totalPresent = b.liveClasses.reduce(
-              (acc, lc) => acc + lc.attendances.filter((a) => a.status === "PRESENT").length,
+            const enrolledCount = b.students.length || 0;
+            // PRESENT, LATE, and EXCUSED count as attended
+            const totalAttended = b.liveClasses.reduce(
+              (acc, lc) =>
+                acc +
+                lc.attendances.filter(
+                  (a) => a.status === "PRESENT" || a.status === "LATE" || a.status === "EXCUSED"
+                ).length,
               0
             );
-            const totalPossible = totalClasses * (b.students.length || 1);
-            const avgAttendancePct = totalPossible > 0 ? (totalPresent / totalPossible) * 100 : 0;
+            const totalPossible = totalClasses * (enrolledCount || 1);
+            const avgAttendancePct = totalClasses > 0 && enrolledCount > 0 ? (totalAttended / totalPossible) * 100 : 0;
+            const avgPresentPerSession = totalClasses > 0 ? (totalAttended / totalClasses).toFixed(1) : "0";
 
             return (
               <div key={b.id} className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5 flex flex-col justify-between">
@@ -63,19 +87,21 @@ export default async function TrainerAttendancePage() {
                     <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
                       {b.course.title}
                     </span>
-                    <span className="text-xs text-slate-500 font-mono">{b.students.length} Learners</span>
+                    <span className="text-xs text-slate-500 font-mono">{enrolledCount} Learners</span>
                   </div>
 
                   <h3 className="font-extrabold text-slate-900 text-lg">{b.name}</h3>
 
                   <div className="grid grid-cols-2 gap-2 text-xs font-mono border-t border-slate-100 pt-3">
                     <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Total Classes</span>
-                      <strong className="text-slate-900">{totalClasses} Sessions</strong>
+                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Total Sessions</span>
+                      <strong className="text-slate-900">{totalClasses} Classes</strong>
                     </div>
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100">
-                      <span className="text-[10px] text-slate-400 block font-bold uppercase">Average Rate</span>
-                      <strong className="text-emerald-700">{avgAttendancePct.toFixed(1)}%</strong>
+                    <div className="p-2.5 rounded-xl bg-emerald-50/70 border border-emerald-100">
+                      <span className="text-[10px] text-emerald-800 block font-bold uppercase">Avg Attendance</span>
+                      <strong className="text-emerald-900">
+                        {avgAttendancePct.toFixed(0)}%
+                      </strong>
                     </div>
                   </div>
                 </div>
