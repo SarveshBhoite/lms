@@ -135,7 +135,7 @@ export default async function AdminBatchDetailPage({
       attendances: lc.attendances.map((att) => ({
         ...att,
         recordedAt: att.recordedAt.toISOString(),
-        joinedTime: att.joinedTime ? att.joinedTime.toISOString() : null,
+        joinClickTime: att.joinClickTime ? att.joinClickTime.toISOString() : null,
         leftTime: att.leftTime ? att.leftTime.toISOString() : null,
       })),
     })),

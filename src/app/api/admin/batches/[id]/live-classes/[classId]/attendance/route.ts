@@ -83,12 +83,12 @@ export async function POST(
             liveClassId: classId,
             userId: record.userId,
             status: record.status,
-            joinedTime: record.joinedTime ? new Date(record.joinedTime) : null,
+            joinClickTime: record.joinClickTime ? new Date(record.joinClickTime) : record.joinedTime ? new Date(record.joinedTime) : null,
             leftTime: record.leftTime ? new Date(record.leftTime) : null,
           },
           update: {
             status: record.status,
-            joinedTime: record.joinedTime ? new Date(record.joinedTime) : null,
+            joinClickTime: record.joinClickTime ? new Date(record.joinClickTime) : record.joinedTime ? new Date(record.joinedTime) : null,
             leftTime: record.leftTime ? new Date(record.leftTime) : null,
           },
         });

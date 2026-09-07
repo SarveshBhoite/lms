@@ -106,6 +106,24 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
         },
         select: { id: true, title: true, description: true, deadline: true, totalMarks: true, lessonId: true },
       },
+      liveClasses: {
+        where: {
+          status: { in: ["SCHEDULED", "LIVE", "COMPLETED"] },
+          ...(enrollment?.batchId
+            ? {
+                batchId: enrollment.batchId,
+              }
+            : {}),
+        },
+        include: {
+          trainer: { select: { id: true, name: true, email: true } },
+          attendances: {
+            where: { userId: studentId },
+            select: { id: true, status: true, isApproved: true, joinClickTime: true, excuseReason: true },
+          },
+        },
+        orderBy: { startTime: "asc" },
+      },
     },
   });
 

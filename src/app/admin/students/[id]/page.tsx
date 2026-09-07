@@ -164,7 +164,7 @@ export default async function StudentProfilePage({
     attendances: student.attendances.map((at) => ({
       ...at,
       recordedAt: at.recordedAt.toISOString(),
-      joinedTime: at.joinedTime ? at.joinedTime.toISOString() : null,
+      joinClickTime: at.joinClickTime ? at.joinClickTime.toISOString() : null,
       leftTime: at.leftTime ? at.leftTime.toISOString() : null,
       liveClass: {
         ...at.liveClass,

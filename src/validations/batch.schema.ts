@@ -49,6 +49,7 @@ export const AttendanceMarkSchema = z.object({
 export const AttendanceMarkRecordSchema = z.object({
   userId: z.string().min(1, "Student ID is required"),
   status: z.nativeEnum(AttendanceStatus).default(AttendanceStatus.PRESENT),
+  joinClickTime: z.string().or(z.date()).optional().nullable(),
   joinedTime: z.string().or(z.date()).optional().nullable(),
   leftTime: z.string().or(z.date()).optional().nullable(),
 });

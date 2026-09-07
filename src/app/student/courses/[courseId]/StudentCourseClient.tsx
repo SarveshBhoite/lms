@@ -94,6 +94,20 @@ interface CourseDetailData {
   learningResources: ResourceItem[];
   quizzes: { id: string; title: string; passingMarks: number; timeLimitMinutes: number; lessonId?: string | null }[];
   assignments: { id: string; title: string; deadline?: string | null; totalMarks: number; lessonId?: string | null }[];
+  liveClasses?: {
+    id: string;
+    title: string;
+    description?: string | null;
+    scheduledDate: string;
+    startTime: string;
+    endTime: string;
+    lateCutoffMinutes: number;
+    meetUrl?: string | null;
+    recordingUrl?: string | null;
+    status: "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED";
+    trainer: { name: string; email: string };
+    attendances: { id: string; status: "PRESENT" | "LATE" | "EXCUSED" | "ABSENT"; isApproved: boolean }[];
+  }[];
   completedLessonIds: string[];
   progressPercent: number;
   lastAccessedLessonId?: string | null;
@@ -124,7 +138,7 @@ export default function StudentCourseClient({
   };
 
   // Find initial accessible lesson
-  const [activeTab, setActiveTab] = useState<"player" | "overview" | "resources" | "quizzes" | "assignments">("player");
+  const [activeTab, setActiveTab] = useState<"player" | "overview" | "resources" | "quizzes" | "assignments" | "liveClasses">("player");
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showToast = (type: "success" | "error", text: string) => {
@@ -192,6 +206,17 @@ export default function StudentCourseClient({
           }`}
         >
           <BookOpen className="w-4 h-4" /> Course Index & Syllabus
+        </button>
+
+        <button
+          onClick={() => setActiveTab("liveClasses")}
+          className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+            activeTab === "liveClasses"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/60 font-black"
+              : "border-transparent text-slate-500 hover:text-slate-900"
+          }`}
+        >
+          <Video className="w-4 h-4" /> Live Classes ({(course.liveClasses || []).length})
         </button>
 
         <button
@@ -513,7 +538,115 @@ export default function StudentCourseClient({
         </div>
       )}
 
-      {/* ---------------- TAB 4: ASSIGNMENTS ---------------- */}
+      {/* ---------------- TAB 2: LIVE CLASSES ---------------- */}
+      {activeTab === "liveClasses" && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Course Live Interactive Classes</h2>
+              <p className="text-xs text-slate-500">
+                Join live Google Meet sessions scheduled for this course and access class recordings.
+              </p>
+            </div>
+          </div>
+
+          {(course.liveClasses || []).length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {course.liveClasses?.map((lc) => {
+                const userAtt = lc.attendances?.[0];
+                const startTimeMs = new Date(lc.startTime).getTime();
+                const endTimeMs = new Date(lc.endTime).getTime();
+                const isLive = lc.status === "LIVE" || (Date.now() >= startTimeMs - 10 * 60 * 1000 && Date.now() <= endTimeMs);
+                const isCompleted = lc.status === "COMPLETED" || Date.now() > endTimeMs;
+
+                return (
+                  <div key={lc.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                            isLive
+                              ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
+                              : isCompleted
+                              ? "bg-slate-100 text-slate-700 border-slate-300"
+                              : "bg-purple-50 text-[#7C248C] border-purple-200"
+                          }`}
+                        >
+                          {isLive ? "LIVE NOW" : isCompleted ? "COMPLETED" : "UPCOMING"}
+                        </span>
+                        <span className="text-xs text-slate-500 font-mono">
+                          {new Date(lc.scheduledDate).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div>
+                        <h3 className="font-bold text-slate-900 text-base">{lc.title}</h3>
+                        {lc.description && <p className="text-xs text-slate-500 mt-0.5">{lc.description}</p>}
+                      </div>
+
+                      <div className="p-3 rounded-xl bg-white border border-slate-100 text-xs font-mono space-y-1 text-slate-600">
+                        <div className="flex justify-between">
+                          <span>Time:</span>
+                          <strong className="text-slate-900">
+                            {new Date(lc.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
+                            {new Date(lc.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </strong>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Instructor:</span>
+                          <strong className="text-[#7C248C]">{lc.trainer?.name}</strong>
+                        </div>
+                      </div>
+
+                      {userAtt && (
+                        <div className="flex items-center justify-between text-xs p-2 rounded-xl bg-purple-50/50 border border-purple-100 font-mono">
+                          <span className="text-slate-500">My Attendance:</span>
+                          <span className="font-bold text-purple-700">
+                            {userAtt.status} ({userAtt.isApproved ? "✓ Verified" : "⏳ Pending"})
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      {isLive ? (
+                        <Link
+                          href="/student/live-classes"
+                          className="w-full py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
+                        >
+                          <Video className="w-3.5 h-3.5" /> Launch Class Portal & Check In
+                        </Link>
+                      ) : isCompleted && lc.recordingUrl ? (
+                        <a
+                          href={lc.recordingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="w-full py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                        >
+                          <Video className="w-3.5 h-3.5" /> Watch Recording <ExternalLink className="w-3 h-3" />
+                        </a>
+                      ) : (
+                        <Link
+                          href="/student/live-classes"
+                          className="w-full py-2.5 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                        >
+                          <Clock className="w-3.5 h-3.5" /> View Class Details
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-xs text-slate-500">
+              No live classes scheduled for this course yet.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ---------------- TAB 3: RESOURCES ---------------- */}
       {activeTab === "assignments" && (
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
           <h2 className="text-lg font-bold text-slate-900">Course Assignments & Tasks</h2>

@@ -145,6 +145,7 @@ model User {
   activityLogs          ActivityLog[]
   studentNotes          TrainerNote[]            @relation("StudentNotes")
   authorNotes           TrainerNote[]            @relation("AuthorNotes")
+  googleAccount         TrainerGoogleAccount?
 
   @@index([email])
   @@index([role])
@@ -193,6 +194,7 @@ model Course {
   assignments    Assignment[]
   batches        Batch[]
   certificates   Certificate[]
+  liveClasses    LiveClass[]
 
   @@index([trainerId])
   @@index([status])
@@ -532,24 +534,29 @@ model BatchTrainer {
 }
 
 model LiveClass {
-  id           String          @id @default(cuid())
-  batchId      String
-  trainerId    String
-  title        String
-  description  String?
-  scheduledDate DateTime
-  startTime    DateTime
-  endTime      DateTime
-  meetUrl      String
-  recordingUrl String?
-  status       LiveClassStatus @default(SCHEDULED)
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id                String          @id @default(cuid())
+  courseId          String?
+  batchId           String          // Primary batch or default
+  batchIds          String[]        @default([]) // Multi-batch access
+  trainerId         String
+  title             String
+  description       String?
+  scheduledDate     DateTime
+  startTime         DateTime
+  endTime           DateTime
+  lateCutoffMinutes Int             @default(10) // e.g. 10 mins after startTime marks student as LATE
+  meetUrl           String
+  recordingUrl      String?
+  status            LiveClassStatus @default(SCHEDULED)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 
-  batch        Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  trainer      User            @relation("TrainerLiveClasses", fields: [trainerId], references: [id], onDelete: Restrict)
-  attendances  Attendance[]
+  course            Course?         @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  batch             Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  trainer           User            @relation("TrainerLiveClasses", fields: [trainerId], references: [id], onDelete: Restrict)
+  attendances       Attendance[]
 
+  @@index([courseId])
   @@index([batchId])
   @@index([trainerId])
   @@index([scheduledDate])
@@ -557,21 +564,41 @@ model LiveClass {
 }
 
 model Attendance {
-  id          String           @id @default(cuid())
-  liveClassId String
-  userId      String
-  status      AttendanceStatus @default(PRESENT)
-  joinedTime  DateTime?
-  leftTime    DateTime?
-  recordedAt  DateTime         @default(now())
+  id                 String           @id @default(cuid())
+  liveClassId        String
+  userId             String
+  status             AttendanceStatus @default(PRESENT)
+  isApproved         Boolean          @default(false)
+  joinClickTime      DateTime?
+  leftTime           DateTime?
+  excuseReason       String?
+  excuseDocumentUrl  String?
+  recordedAt         DateTime         @default(now())
+  approvedAt         DateTime?
+  approvedBy         String?
 
-  liveClass   LiveClass        @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  liveClass          LiveClass        @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([liveClassId, userId])
   @@index([liveClassId])
   @@index([userId])
   @@index([status])
+  @@index([isApproved])
+}
+
+model TrainerGoogleAccount {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  email        String
+  accessToken  String
+  refreshToken String?
+  scope        String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ----------------------------------------------------
