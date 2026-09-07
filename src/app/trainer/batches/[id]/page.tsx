@@ -89,17 +89,8 @@ export default async function TrainerBatchDetailPage({ params }: { params: Promi
           },
         },
       },
-      liveClasses: {
-        include: {
-          trainer: { select: { id: true, name: true, email: true } },
-          attendances: {
-            include: { user: { select: { id: true, name: true, email: true } } },
-          },
-        },
-        orderBy: { scheduledDate: "desc" },
-      },
       _count: {
-        select: { students: true, trainers: true, liveClasses: true },
+        select: { students: true, trainers: true },
       },
     },
   });
@@ -107,6 +98,32 @@ export default async function TrainerBatchDetailPage({ params }: { params: Promi
   if (!batch) {
     notFound();
   }
+
+  // Fetch all live classes associated with this batch (either batchId or in batchIds array)
+  const liveClasses = await prisma.liveClass.findMany({
+    where: {
+      OR: [
+        { batchId: id },
+        { batchIds: { has: id } },
+      ],
+    },
+    include: {
+      trainer: { select: { id: true, name: true, email: true } },
+      attendances: {
+        include: { user: { select: { id: true, name: true, email: true } } },
+      },
+    },
+    orderBy: { scheduledDate: "desc" },
+  });
+
+  const batchWithLiveClasses = {
+    ...batch,
+    liveClasses,
+    _count: {
+      ...batch._count,
+      liveClasses: liveClasses.length,
+    },
+  };
 
   // Fetch eligible students for adding to batch (if trainer wants to add more students)
   const eligibleEnrollments = await prisma.enrollment.findMany({
@@ -145,7 +162,7 @@ export default async function TrainerBatchDetailPage({ params }: { params: Promi
 
   return (
     <TrainerBatchDetailClient
-      initialBatch={batch as any}
+      initialBatch={batchWithLiveClasses as any}
       availableStudents={availableStudents as any}
       currentUserId={session.userId}
     />

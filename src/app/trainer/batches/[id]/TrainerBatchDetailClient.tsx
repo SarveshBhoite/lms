@@ -25,6 +25,7 @@ import {
   HelpCircle,
   Award,
   Lock,
+  ChevronDown,
 } from "lucide-react";
 
 interface StudentUser {
@@ -39,6 +40,9 @@ interface AttendanceRecord {
   liveClassId: string;
   userId: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
+  joinClickTime?: string | null;
+  excuseReason?: string | null;
+  isApproved?: boolean;
   user: { id: string; name: string; email: string };
 }
 
@@ -165,11 +169,10 @@ export default function TrainerBatchDetailClient({
     status: "SCHEDULED" as "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED",
   });
 
-  // Attendance Marking State
-  const [selectedClassForAttendance, setSelectedClassForAttendance] = useState<LiveClassItem | null>(
-    initialBatch.liveClasses[0] || null
+  // Attendance Session Inspection State (expanded dropdown per session)
+  const [expandedAttendanceClassId, setExpandedAttendanceClassId] = useState<string | null>(
+    initialBatch.liveClasses[0]?.id || null
   );
-  const [attendanceState, setAttendanceState] = useState<Record<string, "PRESENT" | "ABSENT" | "LATE" | "EXCUSED">>({});
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });
@@ -182,8 +185,8 @@ export default function TrainerBatchDetailClient({
       const data = await res.json();
       if (data.success) {
         setBatch(data.data);
-        if (!selectedClassForAttendance && data.data.liveClasses.length > 0) {
-          setSelectedClassForAttendance(data.data.liveClasses[0]);
+        if (!expandedAttendanceClassId && data.data.liveClasses.length > 0) {
+          setExpandedAttendanceClassId(data.data.liveClasses[0].id);
         }
       }
     } catch (err) {
@@ -299,31 +302,6 @@ export default function TrainerBatchDetailClient({
     }
   };
 
-  const handleSaveAttendance = async (classId: string) => {
-    setActionLoading(true);
-    try {
-      const records = Object.entries(attendanceState).map(([userId, status]) => ({
-        userId,
-        status,
-      }));
-
-      const res = await fetch("/api/trainer/attendance", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ liveClassId: classId, records }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to save attendance");
-
-      showToast("success", "Attendance records saved successfully!");
-      refreshBatch();
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to save attendance");
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   const openEditLiveClassModal = (lc: LiveClassItem) => {
     setEditingLiveClass(lc);
@@ -562,14 +540,20 @@ export default function TrainerBatchDetailClient({
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 space-y-2">
-                    <a
-                      href={lc.meetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
-                    >
-                      <Video className="w-4 h-4" /> Join Class (Google Meet) <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    {lc.status !== "COMPLETED" ? (
+                      <a
+                        href={lc.meetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition"
+                      >
+                        <Video className="w-4 h-4" /> Join Class (Google Meet) <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    ) : (
+                      <div className="w-full py-2 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center gap-1.5 font-mono">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" /> Class Session Completed
+                      </div>
+                    )}
 
                     {lc.recordingUrl && (
                       <a
@@ -585,15 +569,22 @@ export default function TrainerBatchDetailClient({
                     <div className="flex items-center justify-between pt-1">
                       <button
                         onClick={() => {
-                          setSelectedClassForAttendance(lc);
+                          setExpandedAttendanceClassId(lc.id);
                           setActiveTab("attendance");
                         }}
                         className="text-xs font-bold text-amber-600 hover:text-amber-700 flex items-center gap-1"
                       >
-                        <CheckSquare className="w-3.5 h-3.5" /> Attendance ({lc.attendances.length} marked)
+                        <CheckSquare className="w-3.5 h-3.5" /> Attendance ({lc.attendances.filter((a) => a.isApproved).length}/{lc.attendances.length} verified)
                       </button>
 
                       <div className="flex items-center gap-1">
+                        <Link
+                          href={`/trainer/live-classes/${lc.id}`}
+                          className="p-1.5 rounded-lg bg-cyan-50 hover:bg-cyan-100 text-cyan-700"
+                          title="Open Live Class Room & Attendance"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
                         <button
                           onClick={() => openEditLiveClassModal(lc)}
                           className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700"
@@ -631,126 +622,195 @@ export default function TrainerBatchDetailClient({
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Attendance Roster & Marking</h2>
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <CheckSquare className="w-5 h-5 text-emerald-600" /> Batch Attendance Overview
+              </h2>
               <p className="text-xs text-slate-500">
-                Mark attendance per live class. Changes are saved directly to student academic records.
+                Click any scheduled session below to expand its attendance roster & student check-in details.
               </p>
             </div>
-
-            {batch.liveClasses.length > 0 && (
-              <select
-                value={selectedClassForAttendance?.id || ""}
-                onChange={(e) => {
-                  const target = batch.liveClasses.find((lc) => lc.id === e.target.value);
-                  setSelectedClassForAttendance(target || null);
-                  if (target) {
-                    const stateObj: Record<string, any> = {};
-                    target.attendances.forEach((att) => {
-                      stateObj[att.userId] = att.status;
-                    });
-                    setAttendanceState(stateObj);
-                  }
-                }}
-                className="px-4 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none shadow-xs"
-              >
-                {batch.liveClasses.map((lc) => (
-                  <option key={lc.id} value={lc.id}>
-                    {lc.title} ({new Date(lc.scheduledDate).toLocaleDateString()})
-                  </option>
-                ))}
-              </select>
-            )}
           </div>
 
-          {selectedClassForAttendance ? (
-            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden space-y-4 shadow-xs">
-              <div className="p-4 sm:p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm">
-                    {selectedClassForAttendance.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 font-mono">
-                    Scheduled: {new Date(selectedClassForAttendance.scheduledDate).toLocaleDateString()} • Instructor: {selectedClassForAttendance.trainer.name}
-                  </p>
-                </div>
+          {/* Sessions List with Expandable Dropdown Roster */}
+          {batch.liveClasses.length > 0 ? (
+            <div className="space-y-4">
+              {batch.liveClasses.map((lc) => {
+                const isExpanded = expandedAttendanceClassId === lc.id;
+                const verifiedCount = lc.attendances.filter((a) => a.isApproved).length;
+                const totalStudents = batch.students.length || lc.attendances.length;
 
-                <button
-                  onClick={() => handleSaveAttendance(selectedClassForAttendance.id)}
-                  disabled={actionLoading}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 disabled:opacity-50 transition"
-                >
-                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckSquare className="w-3.5 h-3.5" />}
-                  Save Attendance Records
-                </button>
-              </div>
+                return (
+                  <div
+                    key={lc.id}
+                    className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs transition"
+                  >
+                    {/* Horizontal Session Header Bar */}
+                    <div
+                      onClick={() => setExpandedAttendanceClassId(isExpanded ? null : lc.id)}
+                      className={`p-5 flex items-center justify-between gap-4 cursor-pointer select-none transition ${
+                        isExpanded ? "bg-slate-50 border-b border-slate-200" : "hover:bg-slate-50/70"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0">
+                        <div className={`p-2.5 rounded-2xl flex items-center justify-center shrink-0 ${
+                          lc.status === "COMPLETED"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : lc.status === "LIVE"
+                            ? "bg-rose-50 text-rose-700 border border-rose-200 animate-pulse"
+                            : "bg-purple-50 text-[#7C248C] border border-purple-200"
+                        }`}>
+                          <Video className="w-4 h-4" />
+                        </div>
 
-              {batch.students.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold">
-                      <tr>
-                        <th className="p-4">Student Name</th>
-                        <th className="p-4">Email</th>
-                        <th className="p-4">Attendance Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-slate-700">
-                      {batch.students.map((bs) => {
-                        const existingAtt = selectedClassForAttendance.attendances.find(
-                          (att) => att.userId === bs.userId
-                        );
-                        const currentStatus =
-                          attendanceState[bs.userId] || existingAtt?.status || "PRESENT";
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-bold text-slate-900 text-sm truncate">{lc.title}</h3>
+                            <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full font-mono ${
+                              lc.status === "COMPLETED"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : lc.status === "LIVE"
+                                ? "bg-rose-100 text-rose-800"
+                                : "bg-purple-100 text-purple-800"
+                            }`}>
+                              {lc.status}
+                            </span>
+                          </div>
 
-                        return (
-                          <tr key={bs.id} className="hover:bg-slate-50 transition">
-                            <td className="p-4 font-bold text-slate-900">{bs.user.name}</td>
-                            <td className="p-4 font-mono text-slate-500">{bs.user.email}</td>
-                            <td className="p-4">
-                              <div className="flex items-center gap-2">
-                                {(["PRESENT", "ABSENT", "LATE", "EXCUSED"] as const).map((st) => (
-                                  <button
-                                    key={st}
-                                    type="button"
-                                    onClick={() =>
-                                      setAttendanceState((prev) => ({
-                                        ...prev,
-                                        [bs.userId]: st,
-                                      }))
-                                    }
-                                    className={`px-3 py-1.5 rounded-xl font-bold text-[10px] transition ${
-                                      currentStatus === st
-                                        ? st === "PRESENT"
-                                          ? "bg-emerald-600 text-white"
-                                          : st === "ABSENT"
-                                          ? "bg-rose-600 text-white"
-                                          : st === "LATE"
-                                          ? "bg-amber-600 text-white"
-                                          : "bg-indigo-600 text-white"
-                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                    }`}
-                                  >
-                                    {st}
-                                  </button>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="p-8 text-center text-xs text-slate-500">
-                  No students in this batch roster yet.
-                </div>
-              )}
+                          <div className="flex items-center gap-3 text-xs text-slate-500 font-mono mt-0.5 flex-wrap">
+                            <span>{new Date(lc.scheduledDate).toLocaleDateString()}</span>
+                            <span>•</span>
+                            <span>
+                              {new Date(lc.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <span>•</span>
+                            <span className="text-slate-700 font-bold">{lc.trainer.name}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right Side Controls & Status */}
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="hidden sm:flex items-center gap-2 font-mono text-xs">
+                          <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 font-bold">
+                            {verifiedCount}/{totalStudents} Verified
+                          </span>
+                        </div>
+
+                        <Link
+                          href={`/trainer/live-classes/${lc.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C248C] font-bold text-xs flex items-center gap-1.5 transition"
+                          title="Open Live Class Room"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" /> Manage Class
+                        </Link>
+
+                        <div className={`p-1.5 rounded-xl bg-slate-100 text-slate-600 transition-transform ${isExpanded ? "rotate-180" : ""}`}>
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Expanded Detailed Roster Dropdown */}
+                    {isExpanded && (
+                      <div className="p-4 sm:p-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                        {batch.students.length > 0 ? (
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-left text-xs">
+                              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold font-mono">
+                                <tr>
+                                  <th className="p-3.5">Student</th>
+                                  <th className="p-3.5">Join Click Time</th>
+                                  <th className="p-3.5">Computed Status</th>
+                                  <th className="p-3.5">Verification</th>
+                                  <th className="p-3.5">Excuse / Remarks</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100 text-slate-700">
+                                {batch.students.map((bs) => {
+                                  const existingAtt = lc.attendances.find((att) => att.userId === bs.userId);
+                                  const currentStatus = existingAtt?.status || "ABSENT";
+                                  const isApproved = existingAtt?.isApproved || false;
+
+                                  return (
+                                    <tr key={bs.id} className="hover:bg-slate-50 transition">
+                                      <td className="p-3.5">
+                                        <div className="font-bold text-slate-900">{bs.user.name}</div>
+                                        <div className="text-[11px] font-mono text-slate-400">{bs.user.email}</div>
+                                      </td>
+
+                                      <td className="p-3.5 font-mono text-xs">
+                                        {existingAtt?.joinClickTime ? (
+                                          <span className="text-slate-800 font-bold">
+                                            {new Date(existingAtt.joinClickTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-400 italic">Not joined yet</span>
+                                        )}
+                                      </td>
+
+                                      <td className="p-3.5">
+                                        <span
+                                          className={`px-2.5 py-1 rounded-lg font-bold text-[10px] inline-block ${
+                                            currentStatus === "PRESENT"
+                                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                              : currentStatus === "LATE"
+                                              ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                              : currentStatus === "EXCUSED"
+                                              ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                              : "bg-slate-100 text-slate-500 border border-slate-200"
+                                          }`}
+                                        >
+                                          {currentStatus}
+                                        </span>
+                                      </td>
+
+                                      <td className="p-3.5">
+                                        {isApproved ? (
+                                          <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                            ✓ Verified
+                                          </span>
+                                        ) : (
+                                          <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-amber-50 text-amber-700 border border-amber-200">
+                                            ⏳ Pending Approval
+                                          </span>
+                                        )}
+                                      </td>
+
+                                      <td className="p-3.5">
+                                        {existingAtt?.excuseReason ? (
+                                          <div className="p-2 rounded-xl bg-blue-50 border border-blue-100 text-[11px] text-blue-900 space-y-0.5 max-w-xs">
+                                            <span className="font-bold block text-[10px] text-blue-700 uppercase">Reason:</span>
+                                            <p className="line-clamp-2">{existingAtt.excuseReason}</p>
+                                          </div>
+                                        ) : (
+                                          <span className="text-slate-400 font-mono text-[10px]">-</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        ) : (
+                          <div className="p-6 text-center text-xs text-slate-500">
+                            No students enrolled in this batch roster.
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="p-12 text-center bg-white rounded-3xl border border-slate-200 space-y-3">
               <CheckSquare className="w-10 h-10 text-slate-400 mx-auto" />
-              <h3 className="text-base font-bold text-slate-900">No live class available to mark attendance</h3>
+              <h3 className="text-base font-bold text-slate-900">No live classes scheduled for this batch</h3>
+              <p className="text-xs text-slate-500">
+                Live attendance rosters will appear here once sessions are scheduled.
+              </p>
             </div>
           )}
         </div>

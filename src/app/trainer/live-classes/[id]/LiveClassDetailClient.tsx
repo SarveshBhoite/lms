@@ -366,9 +366,12 @@ export default function LiveClassDetailClient({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-700 font-mono">
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                <div className="text-slate-500">SCHEDULED SESSION TIME</div>
+                <div className="text-slate-500">SCHEDULED START TIME</div>
                 <div className="text-sm font-bold text-slate-900">
-                  {new Date(liveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {new Date(liveClass.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(liveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({new Date(liveClass.scheduledDate).toLocaleDateString()})
+                </div>
+                <div className="text-[11px] text-slate-400 font-sans">
+                  * Session remains live until you click "Mark COMPLETED".
                 </div>
                 <div className="text-slate-500 pt-2">DESCRIPTION</div>
                 <p className="text-slate-700 text-xs leading-relaxed">{liveClass.description || "No session description provided."}</p>

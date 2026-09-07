@@ -55,17 +55,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             },
           },
         },
-        liveClasses: {
-          include: {
-            trainer: { select: { id: true, name: true, email: true } },
-            attendances: {
-              include: { user: { select: { id: true, name: true, email: true } } },
-            },
-          },
-          orderBy: { scheduledDate: "desc" },
-        },
         _count: {
-          select: { students: true, trainers: true, liveClasses: true },
+          select: { students: true, trainers: true },
         },
       },
     });
@@ -74,7 +65,32 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, error: "Batch not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: batch });
+    const liveClasses = await prisma.liveClass.findMany({
+      where: {
+        OR: [
+          { batchId: id },
+          { batchIds: { has: id } },
+        ],
+      },
+      include: {
+        trainer: { select: { id: true, name: true, email: true } },
+        attendances: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
+      orderBy: { scheduledDate: "desc" },
+    });
+
+    const batchData = {
+      ...batch,
+      liveClasses,
+      _count: {
+        ...batch._count,
+        liveClasses: liveClasses.length,
+      },
+    };
+
+    return NextResponse.json({ success: true, data: batchData });
   } catch (error) {
     return handleApiError(error);
   }

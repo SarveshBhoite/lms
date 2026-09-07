@@ -113,6 +113,38 @@ export async function POST(
 
     // Action 1: "APPROVE_ALL" or "APPROVE_SELECTED"
     if (action === "APPROVE_ALL") {
+      // 1. Fetch all enrolled students across all assigned batches
+      const allBatchIds = liveClass.batchIds.length > 0 ? liveClass.batchIds : [liveClass.batchId];
+      const batchStudents = await prisma.batchStudent.findMany({
+        where: { batchId: { in: allBatchIds } },
+        select: { userId: true },
+      });
+      const uniqueStudentIds = Array.from(new Set(batchStudents.map((bs) => bs.userId)));
+
+      // 2. Existing attendance records for this class
+      const existingRecords = await prisma.attendance.findMany({
+        where: { liveClassId },
+        select: { userId: true, id: true },
+      });
+      const recordedUserIds = new Set(existingRecords.map((r) => r.userId));
+
+      // 3. For any student who didn't click join / has no record, insert as ABSENT (isApproved: true)
+      const missingUserIds = uniqueStudentIds.filter((uid) => !recordedUserIds.has(uid));
+      if (missingUserIds.length > 0) {
+        await prisma.attendance.createMany({
+          data: missingUserIds.map((userId) => ({
+            liveClassId,
+            userId,
+            status: "ABSENT",
+            isApproved: true,
+            recordedAt: new Date(),
+            approvedAt: new Date(),
+            approvedBy: session.userId,
+          })),
+        });
+      }
+
+      // 4. Update all attendance records for this class to isApproved: true
       await prisma.attendance.updateMany({
         where: { liveClassId },
         data: {
@@ -122,7 +154,7 @@ export async function POST(
         },
       });
 
-      return NextResponse.json({ success: true, message: "All attendance records approved" });
+      return NextResponse.json({ success: true, message: "All attendance records (including absent students) approved & verified" });
     }
 
     if (action === "APPROVE_SELECTED" && Array.isArray(attendanceIds) && attendanceIds.length > 0) {

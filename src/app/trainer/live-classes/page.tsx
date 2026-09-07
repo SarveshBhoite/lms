@@ -114,7 +114,9 @@ export default function TrainerLiveClassesPage() {
     title: "",
     description: "",
     scheduledDate: new Date().toISOString().split("T")[0],
-    startTime: "10:00",
+    startHour: "05",
+    startMinute: "30",
+    startPeriod: "PM" as "AM" | "PM",
     lateCutoffMinutes: 10,
     meetUrl: "",
     recordingUrl: "",
@@ -211,7 +213,7 @@ export default function TrainerLiveClassesPage() {
 
   const handleScheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.selectedBatchIds.length === 0 || !form.title.trim() || !form.scheduledDate || !form.startTime) {
+    if (form.selectedBatchIds.length === 0 || !form.title.trim() || !form.scheduledDate) {
       showToast("error", "Please fill in all required fields and select at least one batch");
       return;
     }
@@ -228,7 +230,12 @@ export default function TrainerLiveClassesPage() {
 
     setSubmitting(true);
     try {
-      const startDateTime = new Date(`${form.scheduledDate}T${form.startTime}:00`);
+      let hour24 = parseInt(form.startHour, 10);
+      if (form.startPeriod === "PM" && hour24 < 12) hour24 += 12;
+      if (form.startPeriod === "AM" && hour24 === 12) hour24 = 0;
+      const formatted24Time = `${String(hour24).padStart(2, "0")}:${form.startMinute}:00`;
+
+      const startDateTime = new Date(`${form.scheduledDate}T${formatted24Time}`);
 
       const res = await fetch("/api/trainer/live-classes", {
         method: "POST",
@@ -263,7 +270,9 @@ export default function TrainerLiveClassesPage() {
         title: "",
         description: "",
         scheduledDate: new Date().toISOString().split("T")[0],
-        startTime: "10:00",
+        startHour: "05",
+        startMinute: "30",
+        startPeriod: "PM",
         lateCutoffMinutes: 10,
         meetUrl: "",
         recordingUrl: "",
@@ -846,13 +855,55 @@ export default function TrainerLiveClassesPage() {
                   </div>
                   <div>
                     <label className="font-bold text-slate-700 block mb-1">START TIME *</label>
-                    <input
-                      type="time"
-                      required
-                      value={form.startTime}
-                      onChange={(e) => setForm({ ...form, startTime: e.target.value })}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none"
-                    />
+                    <div className="flex items-center gap-1.5">
+                      <select
+                        value={form.startHour}
+                        onChange={(e) => setForm({ ...form, startHour: e.target.value })}
+                        className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none"
+                      >
+                        {["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"].map((h) => (
+                          <option key={h} value={h}>
+                            {h}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="font-bold text-slate-400">:</span>
+                      <select
+                        value={form.startMinute}
+                        onChange={(e) => setForm({ ...form, startMinute: e.target.value })}
+                        className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-bold focus:outline-none"
+                      >
+                        {["00", "05", "10", "15", "20", "25", "30", "35", "40", "45", "50", "55"].map((m) => (
+                          <option key={m} value={m}>
+                            {m}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="flex rounded-xl bg-slate-100 p-0.5 border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, startPeriod: "AM" })}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                            form.startPeriod === "AM"
+                              ? "bg-purple-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          AM
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setForm({ ...form, startPeriod: "PM" })}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
+                            form.startPeriod === "PM"
+                              ? "bg-purple-600 text-white shadow-xs"
+                              : "text-slate-600 hover:text-slate-900"
+                          }`}
+                        >
+                          PM
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -923,7 +974,7 @@ export default function TrainerLiveClassesPage() {
                     className="w-full mt-2 accent-[#7C248C]"
                   />
                   <p className="text-[10px] text-amber-700 mt-1">
-                    Students clicking "Join" after {form.lateCutoffMinutes} minutes from {form.startTime || "start time"} are marked LATE.
+                    Students clicking "Join" after {form.lateCutoffMinutes} minutes from scheduled start ({form.startHour}:{form.startMinute} {form.startPeriod}) are marked LATE.
                   </p>
                 </div>
 
