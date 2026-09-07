@@ -2,6 +2,75 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireActiveTrainer, verifyTrainerBatchAccess, handleApiError } from "@/lib/rbac";
 
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await requireActiveTrainer();
+    const isAdmin = session.role === "ADMIN";
+    const { id } = await params;
+
+    const liveClass = await prisma.liveClass.findUnique({
+      where: { id },
+      include: {
+        course: { select: { id: true, title: true } },
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            courseId: true,
+            course: { select: { id: true, title: true } },
+          },
+        },
+        trainer: { select: { id: true, name: true, email: true } },
+        attendances: {
+          include: { user: { select: { id: true, name: true, email: true } } },
+        },
+      },
+    });
+
+    if (!liveClass) {
+      return NextResponse.json({ success: false, error: "Live class not found" }, { status: 404 });
+    }
+
+    const hasAccess = await verifyTrainerBatchAccess(session.userId, liveClass.batchId, isAdmin);
+    if (!hasAccess && liveClass.trainerId !== session.userId) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
+    }
+
+    // Multi-batch student roster
+    const allBatchIds = liveClass.batchIds.length > 0 ? liveClass.batchIds : [liveClass.batchId];
+    const allBatchStudents = await prisma.batchStudent.findMany({
+      where: { batchId: { in: allBatchIds } },
+      include: {
+        batch: { select: { id: true, name: true } },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: { select: { phone: true, avatarUrl: true } },
+          },
+        },
+      },
+      orderBy: { joinedAt: "asc" },
+    });
+
+    const enrichedClass = {
+      ...liveClass,
+      batch: {
+        ...liveClass.batch,
+        students: allBatchStudents,
+      },
+    };
+
+    return NextResponse.json({ success: true, data: enrichedClass });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

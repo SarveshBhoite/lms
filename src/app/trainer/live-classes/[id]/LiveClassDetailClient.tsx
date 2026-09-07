@@ -377,25 +377,28 @@ export default function LiveClassDetailClient({
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
                 <div className="text-slate-500">STATUS CONTROLS</div>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <button
-                    onClick={() => handleStatusChange("LIVE")}
-                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition"
-                  >
-                    Set LIVE NOW
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange("COMPLETED")}
-                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition"
-                  >
-                    Mark COMPLETED
-                  </button>
-                  <button
-                    onClick={() => handleStatusChange("CANCELLED")}
-                    className="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs transition"
-                  >
-                    Cancel Session
-                  </button>
+                  {liveClass.status !== "COMPLETED" && (
+                    <button
+                      onClick={() => handleStatusChange("COMPLETED")}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Mark COMPLETED
+                    </button>
+                  )}
+                  {liveClass.status !== "CANCELLED" && (
+                    <button
+                      onClick={() => handleStatusChange("CANCELLED")}
+                      className="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs transition"
+                    >
+                      Cancel Session
+                    </button>
+                  )}
                 </div>
+                {liveClass.status !== "COMPLETED" && (
+                  <p className="text-[11px] text-slate-500 italic mt-1">
+                    * The session link is automatically active for students during scheduled hours. Click "Mark COMPLETED" when you finish the class to unlock attendance verification.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -436,48 +439,55 @@ export default function LiveClassDetailClient({
                 <CheckSquare className="w-5 h-5 text-emerald-600" /> Attendance Roster & Check-In Verification
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Students who click "Join Google Meet" are timestamped automatically. Review their arrival time, inspect excuses, and approve records.
+                Students who click "Join Google Meet" are timestamped automatically.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  setActionLoading(true);
-                  try {
-                    const res = await fetch(`/api/trainer/live-classes/${liveClass.id}/attendance`, {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ action: "APPROVE_ALL" }),
-                    });
-                    const data = await res.json();
-                    if (!res.ok || !data.success) throw new Error(data.error || "Failed to approve all");
-                    showToast("success", "All student check-in records have been verified & approved!");
-                    refreshClass();
-                    router.refresh();
-                  } catch (e: any) {
-                    showToast("error", e.message || "Failed to approve records");
-                  } finally {
-                    setActionLoading(false);
-                  }
-                }}
-                disabled={actionLoading}
-                className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
-              >
-                {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
-                ✓ Approve All Check-Ins
-              </button>
+            {liveClass.status === "COMPLETED" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setActionLoading(true);
+                    try {
+                      const res = await fetch(`/api/trainer/live-classes/${liveClass.id}/attendance`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ action: "APPROVE_ALL" }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.success) throw new Error(data.error || "Failed to approve all");
+                      showToast("success", "All student check-in records have been verified & approved!");
+                      refreshClass();
+                      router.refresh();
+                    } catch (e: any) {
+                      showToast("error", e.message || "Failed to approve records");
+                    } finally {
+                      setActionLoading(false);
+                    }
+                  }}
+                  disabled={actionLoading}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+                >
+                  {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                  ✓ Approve All Check-Ins
+                </button>
 
-              <button
-                type="button"
-                onClick={handleSaveAttendance}
-                disabled={actionLoading}
-                className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
-              >
-                <Save className="w-3.5 h-3.5" /> Save Overrides
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={handleSaveAttendance}
+                  disabled={actionLoading}
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Overrides
+                </button>
+              </div>
+            ) : (
+              <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Approval controls unlock when class is marked <strong>COMPLETED</strong> in Overview.</span>
+              </div>
+            )}
           </div>
 
           {liveClass.batch.students.length > 0 ? (
@@ -511,38 +521,54 @@ export default function LiveClassDetailClient({
                               {new Date(existingAtt.joinClickTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                             </span>
                           ) : (
-                            <span className="text-slate-400">Not clicked join</span>
+                            <span className="text-slate-400 italic">Not joined yet</span>
                           )}
                         </td>
 
                         <td className="p-4">
-                          <div className="flex items-center gap-1.5">
-                            {(["PRESENT", "LATE", "EXCUSED", "ABSENT"] as const).map((st) => (
-                              <button
-                                key={st}
-                                type="button"
-                                onClick={() =>
-                                  setAttendanceState((prev) => ({
-                                    ...prev,
-                                    [bs.userId]: st,
-                                  }))
-                                }
-                                className={`px-2.5 py-1 rounded-lg font-bold text-[10px] transition ${
-                                  currentStatus === st
-                                    ? st === "PRESENT"
-                                      ? "bg-emerald-600 text-white shadow-xs"
-                                      : st === "LATE"
-                                      ? "bg-amber-500 text-white shadow-xs"
-                                      : st === "EXCUSED"
-                                      ? "bg-blue-600 text-white shadow-xs"
-                                      : "bg-rose-600 text-white shadow-xs"
-                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                                }`}
-                              >
-                                {st}
-                              </button>
-                            ))}
-                          </div>
+                          {liveClass.status === "COMPLETED" ? (
+                            <div className="flex items-center gap-1.5">
+                              {(["PRESENT", "LATE", "EXCUSED", "ABSENT"] as const).map((st) => (
+                                <button
+                                  key={st}
+                                  type="button"
+                                  onClick={() =>
+                                    setAttendanceState((prev) => ({
+                                      ...prev,
+                                      [bs.userId]: st,
+                                    }))
+                                  }
+                                  className={`px-2.5 py-1 rounded-lg font-bold text-[10px] transition ${
+                                    currentStatus === st
+                                      ? st === "PRESENT"
+                                        ? "bg-emerald-600 text-white shadow-xs"
+                                        : st === "LATE"
+                                        ? "bg-amber-500 text-white shadow-xs"
+                                        : st === "EXCUSED"
+                                        ? "bg-blue-600 text-white shadow-xs"
+                                        : "bg-rose-600 text-white shadow-xs"
+                                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  {st}
+                                </button>
+                              ))}
+                            </div>
+                          ) : (
+                            <span
+                              className={`px-2.5 py-1 rounded-lg font-bold text-[10px] inline-block ${
+                                currentStatus === "PRESENT"
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : currentStatus === "LATE"
+                                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                  : currentStatus === "EXCUSED"
+                                  ? "bg-blue-50 text-blue-700 border border-blue-200"
+                                  : "bg-slate-100 text-slate-500 border border-slate-200"
+                              }`}
+                            >
+                              {currentStatus}
+                            </span>
+                          )}
                         </td>
 
                         <td className="p-4">
@@ -552,7 +578,7 @@ export default function LiveClassDetailClient({
                             </span>
                           ) : (
                             <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-amber-50 text-amber-700 border border-amber-200">
-                              ⏳ Pending Approval
+                              ⏳ Pending Class End
                             </span>
                           )}
                         </td>
@@ -563,7 +589,7 @@ export default function LiveClassDetailClient({
                               <span className="font-bold block text-[10px] text-blue-700 uppercase">Absence Reason:</span>
                               <p className="line-clamp-2">{existingAtt.excuseReason}</p>
                             </div>
-                          ) : !isApproved && existingAtt ? (
+                          ) : !isApproved && existingAtt && liveClass.status === "COMPLETED" ? (
                             <button
                               type="button"
                               onClick={async () => {

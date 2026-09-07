@@ -8,12 +8,8 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  FileText,
   Loader2,
   X,
-  BookOpen,
-  Layers,
-  Sparkles,
 } from "lucide-react";
 
 export interface StudentLiveClassItem {
@@ -39,21 +35,43 @@ export interface StudentLiveClassItem {
   }[];
 }
 
+// Consistent date/time formatting helpers to prevent hydration mismatches
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+function formatTime(dateStr: string) {
+  const d = new Date(dateStr);
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 becomes 12
+  const formattedHours = hours.toString().padStart(2, "0");
+  return `${formattedHours}:${minutes} ${ampm}`;
+}
+
 export default function StudentLiveClassesClient({
   initialClasses,
 }: {
   initialClasses: StudentLiveClassItem[];
 }) {
   const [classes, setClasses] = useState<StudentLiveClassItem[]>(initialClasses);
-  const [currentTime, setCurrentTime] = useState(Date.now());
+  const [mounted, setMounted] = useState(false);
+  const [currentTime, setCurrentTime] = useState<number>(() => Date.now());
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [excuseModalClass, setExcuseModalClass] = useState<StudentLiveClassItem | null>(null);
   const [excuseReason, setExcuseReason] = useState("");
   const [submittingExcuse, setSubmittingExcuse] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Update clock every second for dynamic countdowns and schedule adjustments
+  // Mount flag & live timer clock
   useEffect(() => {
+    setMounted(true);
+    setCurrentTime(Date.now());
     const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -156,21 +174,25 @@ export default function StudentLiveClassesClient({
     }
   };
 
-  // Helper function for countdown and status
+  // Live session status & countdown computation
+  // Rule: Class is ONLY COMPLETED if status is explicitly COMPLETED or CANCELLED.
+  // When currentTime reaches near startTime (or anytime thereafter while not explicitly completed), the session is LIVE NOW.
   const getSessionTimeInfo = (classItem: StudentLiveClassItem) => {
-    const startTimeMs = new Date(classItem.startTime).getTime();
-    const endTimeMs = new Date(classItem.endTime).getTime();
-    const lateCutoffMs = startTimeMs + (classItem.lateCutoffMinutes || 10) * 60 * 1000;
-
-    const diffToStart = startTimeMs - currentTime;
-    const isLiveTime = currentTime >= startTimeMs - 10 * 60 * 1000 && currentTime <= endTimeMs;
-    const isPast = currentTime > endTimeMs || classItem.status === "COMPLETED";
-
-    if (isPast) {
-      return { statusLabel: "COMPLETED", canJoin: false, countdownText: "Session Ended" };
+    if (classItem.status === "COMPLETED") {
+      return { statusLabel: "COMPLETED", canJoin: false, countdownText: "Session Completed" };
+    }
+    if (classItem.status === "CANCELLED") {
+      return { statusLabel: "CANCELLED", canJoin: false, countdownText: "Session Cancelled" };
     }
 
-    if (diffToStart > 0 && !isLiveTime) {
+    const startTimeMs = new Date(classItem.startTime).getTime();
+    const lateCutoffMs = startTimeMs + (classItem.lateCutoffMinutes || 10) * 60 * 1000;
+    const diffToStart = startTimeMs - currentTime;
+
+    // Room opens 10 minutes prior to scheduled start time
+    const isUpcoming = diffToStart > 10 * 60 * 1000;
+
+    if (isUpcoming) {
       const hours = Math.floor(diffToStart / (1000 * 60 * 60));
       const mins = Math.floor((diffToStart % (1000 * 60 * 60)) / (1000 * 60));
       const secs = Math.floor((diffToStart % (1000 * 60)) / 1000);
@@ -181,11 +203,12 @@ export default function StudentLiveClassesClient({
       };
     }
 
+    // Automatically active & joinable once reached start window
     const isLateNow = currentTime > lateCutoffMs;
     return {
       statusLabel: "LIVE NOW",
       canJoin: true,
-      countdownText: isLateNow ? "⚠️ Running (Late Check-in)" : "🟢 Live Room Open",
+      countdownText: isLateNow ? "⚠️ Live (Late Check-in)" : "🟢 Live Room Open",
     };
   };
 
@@ -271,26 +294,21 @@ export default function StudentLiveClassesClient({
                     <div className="flex items-center justify-between text-slate-600">
                       <span className="flex items-center gap-1.5 font-bold">
                         <Calendar className="w-3.5 h-3.5 text-purple-600" />
-                        {new Date(lc.scheduledDate).toLocaleDateString(undefined, {
-                          weekday: "short",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {formatDate(lc.scheduledDate)}
                       </span>
-                      <span className="font-mono text-slate-500">
-                        {new Date(lc.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                        {new Date(lc.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      <span className="font-mono text-slate-500 font-bold">
+                        {formatTime(lc.startTime)}
                       </span>
                     </div>
 
                     <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 font-mono text-[11px]">
-                      <span className="text-slate-400">Timer:</span>
+                      <span className="text-slate-400">Status / Timer:</span>
                       <strong
                         className={`font-bold ${
                           timeInfo.statusLabel === "LIVE NOW" ? "text-emerald-700" : "text-[#7C248C]"
                         }`}
                       >
-                        {timeInfo.countdownText}
+                        {mounted ? timeInfo.countdownText : "Loading schedule..."}
                       </strong>
                     </div>
                   </div>
@@ -414,7 +432,7 @@ export default function StudentLiveClassesClient({
               <div className="p-3 rounded-xl bg-purple-50 text-[#7C248C]">
                 <strong>Class:</strong> {excuseModalClass.title}
                 <div className="text-[11px] text-slate-600 mt-0.5">
-                  Scheduled for {new Date(excuseModalClass.startTime).toLocaleString()}
+                  Scheduled for {formatDate(excuseModalClass.startTime)} at {formatTime(excuseModalClass.startTime)}
                 </div>
               </div>
 

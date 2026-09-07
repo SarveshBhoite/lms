@@ -16,24 +16,13 @@ export default async function LiveClassDetailPage({ params }: { params: Promise<
   const liveClass = await prisma.liveClass.findUnique({
     where: { id },
     include: {
+      course: { select: { id: true, title: true } },
       batch: {
         select: {
           id: true,
           name: true,
           courseId: true,
           course: { select: { id: true, title: true } },
-          students: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  profile: { select: { phone: true, avatarUrl: true } },
-                },
-              },
-            },
-          },
         },
       },
       trainer: { select: { id: true, name: true, email: true } },
@@ -52,5 +41,32 @@ export default async function LiveClassDetailPage({ params }: { params: Promise<
     redirect("/unauthorized");
   }
 
-  return <LiveClassDetailClient initialClass={liveClass as any} currentUserId={session.userId} />;
+  // Load all students across all assigned batches for this live class
+  const allBatchIds = liveClass.batchIds.length > 0 ? liveClass.batchIds : [liveClass.batchId];
+  const allBatchStudents = await prisma.batchStudent.findMany({
+    where: { batchId: { in: allBatchIds } },
+    include: {
+      batch: { select: { id: true, name: true } },
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: { select: { phone: true, avatarUrl: true } },
+        },
+      },
+    },
+    orderBy: { joinedAt: "asc" },
+  });
+
+  // Attach all assigned students to batch.students for full multi-batch roster display
+  const enrichedClass = {
+    ...liveClass,
+    batch: {
+      ...liveClass.batch,
+      students: allBatchStudents,
+    },
+  };
+
+  return <LiveClassDetailClient initialClass={enrichedClass as any} currentUserId={session.userId} />;
 }

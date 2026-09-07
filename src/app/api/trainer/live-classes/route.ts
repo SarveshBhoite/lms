@@ -59,9 +59,13 @@ export async function POST(req: NextRequest) {
       new Set([batchId, ...(Array.isArray(batchIds) ? batchIds : [])].filter(Boolean))
     );
 
-    if (allBatchIds.length === 0 || !title || !scheduledDate || !startTime || !endTime) {
-      throw new Error("Missing required live class fields (batch, title, scheduledDate, startTime, endTime)");
+    if (allBatchIds.length === 0 || !title || !scheduledDate || !startTime) {
+      throw new Error("Missing required live class fields (batch, title, scheduledDate, startTime)");
     }
+
+    const calculatedEndTime = endTime 
+      ? new Date(endTime) 
+      : new Date(new Date(startTime).getTime() + 2 * 60 * 60 * 1000);
 
     const primaryBatchId = allBatchIds[0];
 
@@ -81,7 +85,7 @@ export async function POST(req: NextRequest) {
             title: `JVM LMS: ${title}`,
             description: description || `Live session for batch ${primaryBatchId}`,
             startTime: new Date(startTime),
-            endTime: new Date(endTime),
+            endTime: calculatedEndTime,
           });
           finalMeetUrl = meetEvent.meetUrl;
         } catch (e: any) {
@@ -107,7 +111,7 @@ export async function POST(req: NextRequest) {
         description: description || null,
         scheduledDate: new Date(scheduledDate),
         startTime: new Date(startTime),
-        endTime: new Date(endTime),
+        endTime: calculatedEndTime,
         lateCutoffMinutes: Number(lateCutoffMinutes) || 10,
         meetUrl: finalMeetUrl,
         recordingUrl: recordingUrl || null,

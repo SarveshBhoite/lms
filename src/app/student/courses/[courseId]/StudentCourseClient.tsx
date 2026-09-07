@@ -555,9 +555,9 @@ export default function StudentCourseClient({
               {course.liveClasses?.map((lc) => {
                 const userAtt = lc.attendances?.[0];
                 const startTimeMs = new Date(lc.startTime).getTime();
-                const endTimeMs = new Date(lc.endTime).getTime();
-                const isLive = lc.status === "LIVE" || (Date.now() >= startTimeMs - 10 * 60 * 1000 && Date.now() <= endTimeMs);
-                const isCompleted = lc.status === "COMPLETED" || Date.now() > endTimeMs;
+                const diffToStart = startTimeMs - Date.now();
+                const isCompleted = lc.status === "COMPLETED";
+                const isLive = lc.status === "LIVE" || (!isCompleted && diffToStart <= 10 * 60 * 1000);
 
                 return (
                   <div key={lc.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 flex flex-col justify-between">
@@ -586,10 +586,9 @@ export default function StudentCourseClient({
 
                       <div className="p-3 rounded-xl bg-white border border-slate-100 text-xs font-mono space-y-1 text-slate-600">
                         <div className="flex justify-between">
-                          <span>Time:</span>
+                          <span>Scheduled Time:</span>
                           <strong className="text-slate-900">
-                            {new Date(lc.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                            {new Date(lc.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {new Date(lc.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </strong>
                         </div>
                         <div className="flex justify-between">
