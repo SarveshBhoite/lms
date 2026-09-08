@@ -65,6 +65,20 @@
   transform: translateY(-2px);
 }
 
+/* JVM Portal Gentle Ambient Canvas */
+.portal-bg-mesh {
+  background-color: #F8FAFC;
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(124, 36, 140, 0.035) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(30, 43, 136, 0.04) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(224, 30, 106, 0.025) 0px, transparent 50%);
+}
+
+.portal-dot-grid {
+  background-image: radial-gradient(rgba(100, 116, 139, 0.07) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
 /* Ambient Glow Utilities */
 .ambient-glow-purple {
   background: radial-gradient(circle, rgba(124, 36, 140, 0.1) 0%, rgba(124, 36, 140, 0) 70%);

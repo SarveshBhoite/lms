@@ -52,15 +52,19 @@ export default async function StudentLayout({ children }: { children: React.Reac
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen portal-bg-mesh flex flex-col md:flex-row selection:bg-purple-500 selection:text-white relative">
+      {/* Gentle, subtle ambient glows */}
+      <div className="fixed top-0 right-0 w-[450px] h-[450px] bg-purple-200/15 rounded-full blur-[90px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-64 w-[500px] h-[500px] bg-indigo-200/15 rounded-full blur-[100px] pointer-events-none z-0" />
+
       {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 shadow-xs">
+      <aside className="w-full md:w-64 bg-white/95 backdrop-blur-md border-r border-slate-200/80 flex flex-col justify-between shrink-0 shadow-xs z-20">
         <div>
           {/* Logo Header */}
           <div className="h-20 px-5 border-b border-slate-100 flex items-center justify-between">
             <Link href="/student/dashboard" className="flex items-center gap-2.5">
               <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-10 w-auto object-contain" />
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100 text-[#7C248C]">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100/90 text-[#7C248C] border border-purple-200/60 shadow-2xs">
                 Student
               </span>
             </Link>
@@ -71,9 +75,9 @@ export default async function StudentLayout({ children }: { children: React.Reac
         </div>
 
         {/* User Info & Logout Footer */}
-        <div className="p-4 border-t border-slate-100 space-y-3">
-          <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-100 border border-indigo-200 text-indigo-700 font-extrabold flex items-center justify-center text-xs shrink-0">
+        <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-50/60">
+          <div className="p-3 rounded-2xl bg-white/90 border border-slate-200/80 flex items-center gap-3 shadow-xs">
+            <div className="w-9 h-9 rounded-xl jvm-gradient-bg text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-xs">
               {user.name.charAt(0)}
             </div>
             <div className="overflow-hidden">
@@ -85,7 +89,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
-              className="w-full py-2.5 px-3 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold text-xs transition flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-3 rounded-xl bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold text-xs transition flex items-center justify-center gap-2 cursor-pointer border border-slate-200 hover:border-rose-200 shadow-2xs"
             >
               <LogOut className="w-4 h-4" /> Sign Out
             </button>
@@ -94,7 +98,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto min-h-screen">
+      <main className="flex-1 overflow-y-auto min-h-screen relative z-10">
         {children}
       </main>
     </div>
