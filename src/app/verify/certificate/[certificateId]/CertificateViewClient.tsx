@@ -95,16 +95,15 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
           <div
             className="absolute left-0 right-0 text-center flex items-center justify-center pointer-events-none"
             style={{
-              top: "37.5%",
-              height: "7%",
+              top: "37.2%",
+              height: "7.2%",
             }}
           >
             <h2
-              className="text-[#101828] font-serif font-black tracking-wide uppercase px-4"
+              className="text-[#2B364B] font-serif font-bold tracking-wider uppercase px-4"
               style={{
-                fontSize: "clamp(16px, 3.2vw, 34px)",
-                letterSpacing: "0.04em",
-                textShadow: "0 0.5px 1px rgba(0,0,0,0.05)",
+                fontSize: "clamp(14px, 2.5vw, 28px)",
+                letterSpacing: "0.07em",
               }}
             >
               {certificate.user.name}
@@ -112,18 +111,19 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
           </div>
 
           {/* 2. DYNAMIC ISSUE DATE OVERLAY */}
-          {/* Positioned directly right after "Date of Issue:" underline */}
+          {/* Positioned directly right on "Date of Issue: ________" underline */}
           <div
-            className="absolute pointer-events-none"
+            className="absolute pointer-events-none flex items-center"
             style={{
               bottom: "10.4%",
-              left: "28.5%",
+              left: "28.8%",
+              width: "10.5%",
             }}
           >
             <span
-              className="font-bold text-[#1e1b4b] font-mono tracking-tight"
+              className="font-bold text-[#192338] font-serif tracking-tight whitespace-nowrap"
               style={{
-                fontSize: "clamp(9px, 1.25vw, 15px)",
+                fontSize: "clamp(7px, 1.05vw, 12px)",
               }}
             >
               {formattedDate}
@@ -131,12 +131,12 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
           </div>
 
           {/* 3. DYNAMIC SCANNABLE VERIFICATION QR CODE OVERLAY */}
-          {/* Positioned cleanly on the bottom-center/left with Certificate Number label */}
+          {/* Positioned cleanly on the bottom-left corner with high-contrast white ID label */}
           <div
             className="absolute flex flex-col items-center pointer-events-none"
             style={{
-              bottom: "4.5%",
-              left: "5.5%",
+              bottom: "4%",
+              left: "3%",
             }}
           >
             {certificate.qrCodeUrl && (
@@ -149,9 +149,9 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
               </div>
             )}
             <span
-              className="mt-1 font-mono font-bold text-[#475467] uppercase tracking-tighter"
+              className="mt-1 font-mono font-extrabold text-white uppercase tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
               style={{
-                fontSize: "clamp(7px, 0.8vw, 10px)",
+                fontSize: "clamp(7px, 0.85vw, 10.5px)",
               }}
             >
               ID: {certificate.certificateNumber}
