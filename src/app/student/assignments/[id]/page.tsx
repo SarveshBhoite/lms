@@ -30,5 +30,31 @@ export default async function StudentAssignmentDetailPage({ params }: { params: 
     notFound();
   }
 
-  return <StudentAssignmentClient initialAssignment={assignment as any} currentUserId={session.userId} />;
+  const serializedAssignment = {
+    id: assignment.id,
+    title: assignment.title,
+    description: assignment.description,
+    totalMarks: assignment.totalMarks,
+    deadline: assignment.deadline ? assignment.deadline.toISOString() : null,
+    course: assignment.course,
+    submissions: assignment.submissions.map((sub) => ({
+      id: sub.id,
+      fileUrl: sub.fileUrl,
+      fileName: sub.fileName,
+      fileSize: sub.fileSize,
+      status: sub.status,
+      submittedAt: sub.submittedAt.toISOString(),
+      notes: sub.notes || null,
+      feedback: sub.feedback
+        ? {
+            marksAwarded: sub.feedback.marksAwarded,
+            feedbackText: sub.feedback.feedbackText,
+            trainer: { name: sub.feedback.trainer?.name || "Lead Instructor" },
+          }
+        : null,
+    })),
+  };
+
+  return <StudentAssignmentClient initialAssignment={serializedAssignment as any} currentUserId={session.userId} />;
 }
+
