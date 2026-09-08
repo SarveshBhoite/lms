@@ -16,23 +16,34 @@ import {
 } from "lucide-react";
 
 interface StudentNavProps {
-  unreadCount: number;
+  unreadCount?: number;
+  notificationsCount?: number;
+  liveClassesCount?: number;
+  quizzesCount?: number;
+  assignmentsCount?: number;
 }
 
-export default function StudentSidebarNav({ unreadCount }: StudentNavProps) {
+export default function StudentSidebarNav({
+  unreadCount = 0,
+  notificationsCount = unreadCount,
+  liveClassesCount = 0,
+  quizzesCount = 0,
+  assignmentsCount = 0,
+}: StudentNavProps) {
   const pathname = usePathname();
 
   const navigation = [
     { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
     { name: "My Courses", href: "/student/courses", icon: BookOpen },
-    { name: "Live Classes", href: "/student/live-classes", icon: Video },
-    { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle },
-    { name: "Assignments", href: "/student/assignments", icon: FileCheck },
+    { name: "Live Classes", href: "/student/live-classes", icon: Video, badge: liveClassesCount },
+    { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle, badge: quizzesCount },
+    { name: "Assignments", href: "/student/assignments", icon: FileCheck, badge: assignmentsCount },
     { name: "Attendance", href: "/student/attendance", icon: CheckSquare },
     { name: "Certificates", href: "/student/certificates", icon: Award },
-    { name: "Notifications", href: "/student/notifications", icon: Bell, badge: unreadCount },
+    { name: "Notifications", href: "/student/notifications", icon: Bell, badge: notificationsCount },
     { name: "Profile", href: "/student/profile", icon: User },
   ];
+
 
   return (
     <nav className="p-4 space-y-1">

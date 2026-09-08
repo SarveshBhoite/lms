@@ -50,8 +50,12 @@ export default async function StudentAssignmentsPage() {
         orderBy: { submittedAt: "desc" },
       },
     },
-    orderBy: { deadline: "asc" },
+    orderBy: [
+      { deadline: "desc" },
+      { createdAt: "desc" },
+    ],
   });
+
 
   const serialized = assignments.map((asgn) => {
     const submission = asgn.submissions[0];

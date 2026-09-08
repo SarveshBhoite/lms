@@ -24,8 +24,12 @@ export default async function StudentAttendancePage() {
         },
       },
     },
-    orderBy: { recordedAt: "desc" },
+    orderBy: [
+      { recordedAt: "desc" },
+      { liveClass: { scheduledDate: "desc" } },
+    ],
   });
+
 
   const validEvaluated = attendances.filter((a) => a.status !== "EXCUSED");
   const totalEvaluated = validEvaluated.length;

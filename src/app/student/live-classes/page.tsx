@@ -38,7 +38,10 @@ export default async function StudentLiveClassesPage() {
         },
       },
     },
-    orderBy: { scheduledDate: "asc" },
+    orderBy: [
+      { scheduledDate: "desc" },
+      { startTime: "desc" },
+    ],
   });
 
   const serialized = liveClasses.map((lc) => ({

@@ -148,8 +148,12 @@ export default async function StudentDashboardPage() {
       include: {
         course: { select: { title: true } },
       },
-      orderBy: { deadline: "asc" },
+      orderBy: [
+        { deadline: "desc" },
+        { createdAt: "desc" },
+      ],
     }),
+
   ]);
 
   const attemptedQuizIds = new Set(quizAttempts.map((q) => q.quizId));

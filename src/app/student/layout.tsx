@@ -35,21 +35,76 @@ export default async function StudentLayout({ children }: { children: React.Reac
     redirect("/login");
   }
 
-  const unreadCount = await prisma.notification.count({
-    where: { userId: session.userId, isRead: false },
-  });
+  // Query student's enrolled courses and batches for accurate badge counts
+  const [batchStudents, userEnrollments] = await Promise.all([
+    prisma.batchStudent.findMany({
+      where: { userId: session.userId },
+      select: { batchId: true },
+    }),
+    prisma.enrollment.findMany({
+      where: { userId: session.userId, status: "ACTIVE" },
+      select: { batchId: true, courseId: true },
+    }),
+  ]);
 
-  const navigation = [
-    { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
-    { name: "My Courses", href: "/student/courses", icon: BookOpen },
-    { name: "Live Classes", href: "/student/live-classes", icon: Video },
-    { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle },
-    { name: "Assignments", href: "/student/assignments", icon: FileCheck },
-    { name: "Attendance", href: "/student/attendance", icon: CheckSquare },
-    { name: "Certificates", href: "/student/certificates", icon: Award },
-    { name: "Notifications", href: "/student/notifications", icon: Bell, badge: unreadCount },
-    { name: "Profile", href: "/student/profile", icon: User },
-  ];
+  const enrolledCourseIds = userEnrollments.map((e) => e.courseId);
+  const enrolledBatchIds = Array.from(
+    new Set([
+      ...batchStudents.map((b) => b.batchId),
+      ...userEnrollments.map((e) => e.batchId).filter(Boolean) as string[],
+    ])
+  );
+
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  // Parallel counts for badge indicators
+  const [unreadNotificationsCount, liveClassesCount, quizzesCount, assignmentsCount] = await Promise.all([
+    // 1. Unread notifications
+    prisma.notification.count({
+      where: { userId: session.userId, isRead: false },
+    }),
+
+    // 2. Upcoming live classes (scheduled today onwards)
+    prisma.liveClass.count({
+      where: {
+        batchId: { in: enrolledBatchIds },
+        scheduledDate: { gte: todayStart },
+      },
+    }),
+
+    // 3. Pending quizzes (published quizzes with no passing attempts yet)
+    prisma.quiz.count({
+      where: {
+        courseId: { in: enrolledCourseIds },
+        lessonId: null,
+        status: "PUBLISHED",
+        OR: [{ batchIds: { isEmpty: true } }, { batchIds: { hasSome: enrolledBatchIds } }],
+        quizAttempts: {
+          none: {
+            userId: session.userId,
+            isPassed: true,
+          },
+        },
+      },
+    }),
+
+    // 4. Pending assignments (no submission uploaded yet)
+    prisma.assignment.count({
+      where: {
+        courseId: { in: enrolledCourseIds },
+        lessonId: null,
+        OR: [{ batchIds: { isEmpty: true } }, { batchIds: { hasSome: enrolledBatchIds } }],
+        submissions: {
+          none: {
+            userId: session.userId,
+          },
+        },
+      },
+    }),
+  ]);
+
 
   return (
     <div className="min-h-screen h-screen portal-bg-mesh flex flex-col md:flex-row selection:bg-purple-500 selection:text-white relative overflow-hidden">
@@ -72,7 +127,12 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
           {/* Scrollable Navigation Links (if screen height is small) */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            <StudentSidebarNav unreadCount={unreadCount} />
+            <StudentSidebarNav
+              notificationsCount={unreadNotificationsCount}
+              liveClassesCount={liveClassesCount}
+              quizzesCount={quizzesCount}
+              assignmentsCount={assignmentsCount}
+            />
           </div>
         </div>
 
