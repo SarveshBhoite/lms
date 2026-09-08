@@ -18,7 +18,9 @@ import {
   Check,
   BookOpen,
   ArrowLeft,
+  Award,
 } from "lucide-react";
+import confetti from "canvas-confetti";
 
 interface LessonOption {
   id: string;
@@ -96,6 +98,12 @@ interface StudentLessonPlayerProps {
   completedLessonIds: string[];
   prevLesson: { id: string; title: string } | null;
   nextLesson: { id: string; title: string } | null;
+  certificate?: {
+    id: string;
+    certificateNumber: string;
+    issueDate: string;
+    qrCodeUrl?: string | null;
+  } | null;
 }
 
 export default function StudentLessonPlayerClient({
@@ -104,13 +112,46 @@ export default function StudentLessonPlayerClient({
   completedLessonIds: initialCompletedIds,
   prevLesson,
   nextLesson,
+  certificate: initialCertificate,
 }: StudentLessonPlayerProps) {
   const router = useRouter();
   const [completedIds, setCompletedIds] = useState<string[]>(initialCompletedIds);
+  const [certificate, setCertificate] = useState<any | null>(initialCertificate || null);
+  const [generatingCertificate, setGeneratingCertificate] = useState(false);
   const isCompleted = completedIds.includes(currentLesson.id);
+
+  const allLessons = course.modules.flatMap((m) => m.lessons);
+  const isAllCourseDone = allLessons.length > 0 && completedIds.length >= allLessons.length;
+  const isCourseComplete100 = Boolean(currentLesson.isFinalLesson || allLessons.some((l: any) => l.isFinalLesson)) && isAllCourseDone;
 
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [markingComplete, setMarkingComplete] = useState(false);
+
+  const handleGenerateCertificate = async () => {
+    if (!isCourseComplete100) return;
+    setGeneratingCertificate(true);
+    try {
+      const res = await fetch("/api/student/certificates/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: course.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to generate certificate");
+
+      setCertificate(data.data);
+      confetti({
+        particleCount: 120,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+      showToast("success", "🎉 Certificate issued! Click View Certificate to inspect or download.");
+    } catch (err: any) {
+      showToast("error", err.message || "Failed to generate certificate");
+    } finally {
+      setGeneratingCertificate(false);
+    }
+  };
 
   // In-Lesson Quiz state
   const [lessonQuizAnswers, setLessonQuizAnswers] = useState<Record<string, any>>({});
@@ -263,6 +304,34 @@ export default function StudentLessonPlayerClient({
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Top Header Certificate CTA if course is completed */}
+            {isCourseComplete100 && (
+              <div>
+                {certificate ? (
+                  <Link
+                    href={`/verify/certificate/${certificate.certificateNumber || certificate.id}`}
+                    className="px-4 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition whitespace-nowrap"
+                  >
+                    <Award className="w-4 h-4" /> View Certificate
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGenerateCertificate}
+                    disabled={generatingCertificate}
+                    className="px-4 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition whitespace-nowrap cursor-pointer"
+                  >
+                    {generatingCertificate ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Award className="w-4 h-4" />
+                    )}
+                    <span>Generate Certificate</span>
+                  </button>
+                )}
+              </div>
+            )}
+
             <button
               onClick={handleMarkComplete}
               disabled={Boolean(markingComplete || isCompleted || !canComplete)}
@@ -723,12 +792,37 @@ export default function StudentLessonPlayerClient({
               </Link>
             ) : currentLesson.isFinalLesson ? (
               isCompleted && (
-                <Link
-                  href={`/student/courses/${course.id}`}
-                  className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-emerald-700/20 transition hover:scale-[1.02]"
-                >
-                  🎉 Course Completed! Return to Index
-                </Link>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {certificate ? (
+                    <Link
+                      href={`/verify/certificate/${certificate.certificateNumber || certificate.id}`}
+                      className="px-5 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-purple-900/20 transition hover:scale-[1.02]"
+                    >
+                      <Award className="w-4 h-4" /> View Certificate
+                    </Link>
+                  ) : isCourseComplete100 ? (
+                    <button
+                      type="button"
+                      onClick={handleGenerateCertificate}
+                      disabled={generatingCertificate}
+                      className="px-5 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-purple-900/20 transition hover:scale-[1.02] cursor-pointer"
+                    >
+                      {generatingCertificate ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Award className="w-4 h-4" />
+                      )}
+                      <span>🎉 Claim Certificate</span>
+                    </button>
+                  ) : null}
+
+                  <Link
+                    href={`/student/courses/${course.id}`}
+                    className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition"
+                  >
+                    Return to Syllabus
+                  </Link>
+                </div>
               )
             ) : (
               isCompleted && (

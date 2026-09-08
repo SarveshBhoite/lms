@@ -49,14 +49,23 @@ export default async function StudentLessonViewPage({
     notFound();
   }
 
-  // Load lesson progress
-  const lessonProgresses = await prisma.lessonProgress.findMany({
-    where: {
-      userId: studentId,
-      lesson: { module: { courseId } },
-    },
-    select: { lessonId: true, isCompleted: true },
-  });
+  const [lessonProgresses, existingCertificate] = await Promise.all([
+    prisma.lessonProgress.findMany({
+      where: {
+        userId: studentId,
+        lesson: { module: { courseId } },
+      },
+      select: { lessonId: true, isCompleted: true },
+    }),
+    prisma.certificate.findUnique({
+      where: {
+        userId_courseId: {
+          userId: studentId,
+          courseId,
+        },
+      },
+    }),
+  ]);
   const completedLessonIds = lessonProgresses.filter((lp) => lp.isCompleted).map((lp) => lp.lessonId);
 
   // Flatten all lessons in sequential order
@@ -147,6 +156,7 @@ export default async function StudentLessonViewPage({
       completedLessonIds={completedLessonIds}
       prevLesson={prevLesson ? { id: prevLesson.id, title: prevLesson.title } : null}
       nextLesson={nextLesson ? { id: nextLesson.id, title: nextLesson.title } : null}
+      certificate={existingCertificate || null}
     />
   );
 }

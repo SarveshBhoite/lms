@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Download, Printer, CheckCircle2, ShieldCheck, Home, Award, ArrowLeft } from "lucide-react";
+import { Download, CheckCircle2, ShieldCheck, Home, Award, ArrowLeft, Loader2 } from "lucide-react";
 
 interface CertificateViewClientProps {
   certificate: {
@@ -24,6 +24,7 @@ interface CertificateViewClientProps {
 
 export default function CertificateViewClient({ certificate }: CertificateViewClientProps) {
   const certificateRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const formattedDate = new Date(certificate.issueDate).toLocaleDateString("en-US", {
     year: "numeric",
@@ -31,43 +32,166 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
     day: "numeric",
   });
 
-  const handlePrint = () => {
-    window.print();
+  // Direct high-resolution rendering and download
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      // 1. Create a 2000x1414 ultra-high-definition canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = 2000;
+      canvas.height = 1414;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Could not create canvas context");
+
+      // 2. Draw base template image
+      const baseImg = new window.Image();
+      baseImg.crossOrigin = "anonymous";
+      baseImg.src = "/certificate-template.png";
+
+      await new Promise((resolve, reject) => {
+        baseImg.onload = resolve;
+        baseImg.onerror = reject;
+      });
+
+      ctx.drawImage(baseImg, 0, 0, 2000, 1414);
+
+      // 3. Draw Student Full Name (centered above line at 37.2%)
+      ctx.fillStyle = "#2B364B";
+      ctx.font = "bold 56px 'Cinzel', 'Times New Roman', serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.letterSpacing = "3px";
+      ctx.fillText(certificate.user.name.toUpperCase(), 1000, 580);
+
+      // 4. Draw Issue Date (aligned on underline at bottom left)
+      ctx.fillStyle = "#192338";
+      ctx.font = "bold 26px 'Times New Roman', serif";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.letterSpacing = "0px";
+      ctx.fillText(formattedDate, 576, 1264);
+
+      // 5. Draw QR Code if present (at bottom-left corner)
+      if (certificate.qrCodeUrl) {
+        const qrImg = new window.Image();
+        qrImg.crossOrigin = "anonymous";
+        qrImg.src = certificate.qrCodeUrl;
+
+        await new Promise((resolve) => {
+          qrImg.onload = resolve;
+          qrImg.onerror = resolve; // Continue if error
+        });
+
+        // Draw white background card for QR Code
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(70, 1190, 140, 140, 12);
+        ctx.fill();
+
+        ctx.drawImage(qrImg, 75, 1195, 130, 130);
+
+        // Draw Certificate ID
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 19px monospace";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "rgba(0,0,0,0.8)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 1;
+        ctx.fillText(`ID: ${certificate.certificateNumber}`, 140, 1358);
+      }
+
+      // Convert canvas to printable PDF / High-res download
+      const dataUrl = canvas.toDataURL("image/png", 1.0);
+
+      // Create a print window or trigger direct download
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>${certificate.certificateNumber} - ${certificate.user.name}</title>
+              <style>
+                @page {
+                  size: landscape;
+                  margin: 0;
+                }
+                body {
+                  margin: 0;
+                  padding: 0;
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  background-color: white;
+                }
+                img {
+                  width: 100vw;
+                  height: 100vh;
+                  object-fit: contain;
+                }
+              </style>
+            </head>
+            <body>
+              <img src="${dataUrl}" onload="window.print();" />
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      } else {
+        // Fallback: direct download link if popups blocked
+        const link = document.createElement("a");
+        link.download = `${certificate.certificateNumber}_${certificate.user.name.replace(/\s+/g, "_")}.png`;
+        link.href = dataUrl;
+        link.click();
+      }
+    } catch (err) {
+      console.error(err);
+      window.print();
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-start py-8 px-4 sm:px-6 relative selection:bg-purple-600 selection:text-white">
-      {/* Subtle Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-purple-600/10 blur-[140px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col items-center justify-start py-8 px-4 sm:px-6 relative selection:bg-purple-600 selection:text-white">
+      {/* Subtle Purple Tint Background Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-purple-600/5 blur-[140px] rounded-full pointer-events-none" />
 
       {/* Top Header & Actions Bar */}
       <div className="max-w-5xl w-full flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 z-10 print:hidden">
         <div className="flex items-center gap-3">
           <Link
             href="/student/courses"
-            className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 transition flex items-center gap-1.5 text-xs font-bold"
+            className="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:text-[#7C248C] hover:border-purple-200 shadow-xs transition flex items-center gap-1.5 text-xs font-bold"
           >
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className="w-4 h-4" /> Back to Courses
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Verified Credential
+              <span className="text-xs font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Verified Credential
               </span>
-              <span className="text-xs font-mono text-slate-500">•</span>
-              <span className="text-xs font-mono text-slate-400 font-bold">{certificate.certificateNumber}</span>
+              <span className="text-xs font-mono text-slate-400">•</span>
+              <span className="text-xs font-mono text-slate-600 font-bold">{certificate.certificateNumber}</span>
             </div>
-            <h1 className="text-lg font-black text-white">Official Academic Certificate</h1>
+            <h1 className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">Official Academic Certificate</h1>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={handlePrint}
-            className="px-5 py-2.5 rounded-xl bg-white text-slate-900 hover:bg-slate-100 font-bold text-xs flex items-center gap-2 shadow-lg hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer"
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+            className="px-6 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
           >
-            <Printer className="w-4 h-4" /> Print / Save as PDF
+            {downloading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>Download PDF</span>
           </button>
         </div>
       </div>
@@ -162,8 +286,8 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
 
       {/* Verification Trust Badge Footer */}
       <div className="max-w-2xl w-full mt-8 text-center space-y-3 z-10 print:hidden">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300 text-xs font-mono">
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-xs text-slate-700 text-xs font-mono">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Tamper-proof digital certificate issued by JVM Institute Private Limited</span>
         </div>
         <p className="text-[11px] text-slate-500">

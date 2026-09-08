@@ -223,14 +223,44 @@ export default function StudentCourseClient({
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mt-1">{course.title}</h1>
         </div>
 
-        <div className="space-y-1 w-full md:w-64">
-          <div className="flex justify-between text-xs font-mono">
-            <span>Course Progress:</span>
-            <strong className="text-[#7C248C]">{progressPct.toFixed(1)}%</strong>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
+          <div className="space-y-1 w-full sm:w-48">
+            <div className="flex justify-between text-xs font-mono">
+              <span>Course Progress:</span>
+              <strong className="text-[#7C248C]">{progressPct.toFixed(1)}%</strong>
+            </div>
+            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+              <div className="bg-[#7C248C] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(progressPct, 100)}%` }}></div>
+            </div>
           </div>
-          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div className="bg-[#7C248C] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(progressPct, 100)}%` }}></div>
-          </div>
+
+          {/* Top Banner Certificate Button if 100% completed */}
+          {hasFinalLesson && isCourseComplete100 && (
+            <div>
+              {certificate ? (
+                <Link
+                  href={`/verify/certificate/${certificate.certificateNumber || certificate.id}`}
+                  className="px-4 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition whitespace-nowrap"
+                >
+                  <Award className="w-4 h-4" /> View Certificate
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGenerateCertificate}
+                  disabled={generatingCertificate}
+                  className="px-4 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition whitespace-nowrap cursor-pointer"
+                >
+                  {generatingCertificate ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Award className="w-4 h-4" />
+                  )}
+                  <span>Generate Certificate</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -314,17 +344,44 @@ export default function StudentCourseClient({
               </p>
             </div>
 
-            {/* Quick Resume CTA */}
+            {/* Quick Resume / Certificate Top CTA */}
             {allLessons.length > 0 && (
               (() => {
                 const nextIncomplete = allLessons.find((l) => !completedIds.includes(l.id) && isLessonUnlocked(l.id));
-                const hasFinalLesson = allLessons.some((l) => l.isFinalLesson);
-                const allDone = allLessons.length > 0 && completedIds.length >= allLessons.length;
+
+                if (isCourseComplete100) {
+                  return (
+                    <div className="flex items-center gap-2.5">
+                      {certificate ? (
+                        <Link
+                          href={`/verify/certificate/${certificate.certificateNumber || certificate.id}`}
+                          className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition"
+                        >
+                          <Award className="w-4 h-4" /> View Certificate
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleGenerateCertificate}
+                          disabled={generatingCertificate}
+                          className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition cursor-pointer"
+                        >
+                          {generatingCertificate ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Award className="w-4 h-4" />
+                          )}
+                          <span>Generate Certificate</span>
+                        </button>
+                      )}
+                    </div>
+                  );
+                }
 
                 if (allDone) {
                   return (
                     <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold">
-                      <span>{hasFinalLesson ? "🎉 Course Fully Completed!" : "✨ Up to Date • More Lessons Coming Soon"}</span>
+                      <span>✨ Up to Date • More Lessons Coming Soon</span>
                     </div>
                   );
                 }
