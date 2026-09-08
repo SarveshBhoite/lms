@@ -159,10 +159,10 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
       <div className="max-w-5xl w-full flex flex-col sm:flex-row items-center justify-between gap-4 mb-6 z-10 print:hidden">
         <div className="flex items-center gap-3">
           <Link
-            href="/student/courses"
+            href="/student/certificates"
             className="p-2.5 rounded-2xl bg-white border border-slate-200 text-slate-700 hover:text-[#7C248C] hover:border-purple-200 shadow-xs transition flex items-center gap-1.5 text-xs font-bold"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Courses
+            <ArrowLeft className="w-4 h-4" /> Back to Certificates
           </Link>
           <div>
             <div className="flex items-center gap-2">
