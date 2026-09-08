@@ -77,9 +77,17 @@ export default async function StudentLayout({ children }: { children: React.Reac
         {/* User Info & Logout Footer */}
         <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-50/60">
           <div className="p-3 rounded-2xl bg-white/90 border border-slate-200/80 flex items-center gap-3 shadow-xs">
-            <div className="w-9 h-9 rounded-xl jvm-gradient-bg text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-xs">
-              {user.name.charAt(0)}
-            </div>
+            {user.profile?.avatarUrl ? (
+              <img
+                src={user.profile.avatarUrl}
+                alt={user.name}
+                className="w-9 h-9 rounded-xl object-cover border border-purple-200/80 shrink-0 shadow-xs"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-xl jvm-gradient-bg text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-xs">
+                {user.name.charAt(0)}
+              </div>
+            )}
             <div className="overflow-hidden">
               <div className="font-bold text-slate-900 text-xs truncate">{user.name}</div>
               <div className="text-[10px] text-slate-500 font-mono truncate">{user.email}</div>

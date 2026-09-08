@@ -5,7 +5,7 @@ import cloudinary from "@/lib/cloudinary";
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session || (session.role !== "ADMIN" && session.role !== "TRAINER")) {
+    if (!session || (session.role !== "ADMIN" && session.role !== "TRAINER" && session.role !== "STUDENT")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
