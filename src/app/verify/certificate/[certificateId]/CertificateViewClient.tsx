@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Download, CheckCircle2, ShieldCheck, Home, Award, ArrowLeft, Loader2 } from "lucide-react";
+import jsPDF from "jspdf";
 
 interface CertificateViewClientProps {
   certificate: {
@@ -23,7 +24,8 @@ interface CertificateViewClientProps {
 }
 
 export default function CertificateViewClient({ certificate }: CertificateViewClientProps) {
-  const certificateRef = useRef<HTMLDivElement>(null);
+  const [lockedImageUrl, setLockedImageUrl] = useState<string | null>(null);
+  const [loadingImage, setLoadingImage] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
   const formattedDate = new Date(certificate.issueDate).toLocaleDateString("en-US", {
@@ -32,122 +34,117 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
     day: "numeric",
   });
 
-  // Direct high-resolution rendering and download
-  const handleDownloadPDF = async () => {
-    setDownloading(true);
-    try {
-      // 1. Create a 2000x1414 ultra-high-definition canvas
-      const canvas = document.createElement("canvas");
-      canvas.width = 2000;
-      canvas.height = 1414;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Could not create canvas context");
+  // Generate locked high-definition 2000x1414 composite image on mount
+  useEffect(() => {
+    let isMounted = true;
 
-      // 2. Draw base template image
-      const baseImg = new window.Image();
-      baseImg.crossOrigin = "anonymous";
-      baseImg.src = "/certificate-template.png";
+    async function generateLockedCertificate() {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = 2000;
+        canvas.height = 1414;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
 
-      await new Promise((resolve, reject) => {
-        baseImg.onload = resolve;
-        baseImg.onerror = reject;
-      });
+        // 1. Draw base template image
+        const baseImg = new window.Image();
+        baseImg.crossOrigin = "anonymous";
+        baseImg.src = "/certificate-template.png";
 
-      ctx.drawImage(baseImg, 0, 0, 2000, 1414);
-
-      // 3. Draw Student Full Name (centered above line at 37.2%)
-      ctx.fillStyle = "#2B364B";
-      ctx.font = "bold 56px 'Cinzel', 'Times New Roman', serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.letterSpacing = "3px";
-      ctx.fillText(certificate.user.name.toUpperCase(), 1000, 580);
-
-      // 4. Draw Issue Date (aligned on underline at bottom left)
-      ctx.fillStyle = "#192338";
-      ctx.font = "bold 26px 'Times New Roman', serif";
-      ctx.textAlign = "left";
-      ctx.textBaseline = "middle";
-      ctx.letterSpacing = "0px";
-      ctx.fillText(formattedDate, 576, 1264);
-
-      // 5. Draw QR Code if present (at bottom-left corner)
-      if (certificate.qrCodeUrl) {
-        const qrImg = new window.Image();
-        qrImg.crossOrigin = "anonymous";
-        qrImg.src = certificate.qrCodeUrl;
-
-        await new Promise((resolve) => {
-          qrImg.onload = resolve;
-          qrImg.onerror = resolve; // Continue if error
+        await new Promise((resolve, reject) => {
+          baseImg.onload = resolve;
+          baseImg.onerror = reject;
         });
 
-        // Draw white background card for QR Code
-        ctx.fillStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.roundRect(70, 1190, 140, 140, 12);
-        ctx.fill();
+        ctx.drawImage(baseImg, 0, 0, 2000, 1414);
 
-        ctx.drawImage(qrImg, 75, 1195, 130, 130);
-
-        // Draw Certificate ID
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 19px monospace";
+        // 2. Draw Student Name (centered nicely between "THIS CERTIFICATE IS PRESENTED TO" and the underline)
+        ctx.fillStyle = "#2B364B";
+        ctx.font = "bold 58px 'Cinzel', 'Times New Roman', 'Georgia', serif";
         ctx.textAlign = "center";
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 1;
-        ctx.fillText(`ID: ${certificate.certificateNumber}`, 140, 1358);
-      }
+        ctx.textBaseline = "middle";
+        ctx.letterSpacing = "2.5px";
+        ctx.fillText(certificate.user.name.toUpperCase(), 1000, 588);
 
-      // Convert canvas to printable PDF / High-res download
-      const dataUrl = canvas.toDataURL("image/png", 1.0);
+        // 3. Draw Issue Date (aligned comfortably on the underline after "Date of Issue:")
+        ctx.fillStyle = "#192338";
+        ctx.font = "bold 28px 'Times New Roman', 'Georgia', serif";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "alphabetic";
+        ctx.letterSpacing = "0px";
+        ctx.fillText(formattedDate, 570, 1258);
 
-      // Create a print window or trigger direct download
-      const printWindow = window.open("", "_blank");
-      if (printWindow) {
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <title>${certificate.certificateNumber} - ${certificate.user.name}</title>
-              <style>
-                @page {
-                  size: landscape;
-                  margin: 0;
-                }
-                body {
-                  margin: 0;
-                  padding: 0;
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                  background-color: white;
-                }
-                img {
-                  width: 100vw;
-                  height: 100vh;
-                  object-fit: contain;
-                }
-              </style>
-            </head>
-            <body>
-              <img src="${dataUrl}" onload="window.print();" />
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-      } else {
-        // Fallback: direct download link if popups blocked
-        const link = document.createElement("a");
-        link.download = `${certificate.certificateNumber}_${certificate.user.name.replace(/\s+/g, "_")}.png`;
-        link.href = dataUrl;
-        link.click();
+        // 4. Draw QR Code and crisp white ID label (bottom-left corner)
+        if (certificate.qrCodeUrl) {
+          const qrImg = new window.Image();
+          qrImg.crossOrigin = "anonymous";
+          qrImg.src = certificate.qrCodeUrl;
+
+          await new Promise((resolve) => {
+            qrImg.onload = resolve;
+            qrImg.onerror = resolve;
+          });
+
+          // Draw white card for QR
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.roundRect(102, 1142, 160, 160, 14);
+          ctx.fill();
+
+          ctx.drawImage(qrImg, 107, 1147, 150, 150);
+
+          // Draw Certificate ID in pure bright white with shadow
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "bold 17px monospace, sans-serif";
+          ctx.textAlign = "center";
+          ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetX = 0;
+          ctx.shadowOffsetY = 1;
+          ctx.fillText(`ID: ${certificate.certificateNumber}`, 182, 1332);
+        }
+
+        const compositeUrl = canvas.toDataURL("image/png", 1.0);
+        if (isMounted) {
+          setLockedImageUrl(compositeUrl);
+          setLoadingImage(false);
+        }
+      } catch (err) {
+        console.error("Failed to render locked certificate image:", err);
+        if (isMounted) setLoadingImage(false);
       }
+    }
+
+    generateLockedCertificate();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [certificate, formattedDate]);
+
+  // Direct 1-click single-page landscape PDF export
+  const handleDownloadPDF = () => {
+    if (!lockedImageUrl) return;
+    setDownloading(true);
+
+    try {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "px",
+        format: [1000, 707],
+      });
+
+      pdf.addImage(lockedImageUrl, "PNG", 0, 0, 1000, 707);
+
+      const fileName = `${certificate.certificateNumber}_${certificate.user.name.replace(/\s+/g, "_")}.pdf`;
+      pdf.save(fileName);
     } catch (err) {
-      console.error(err);
-      window.print();
+      console.error("PDF download error:", err);
+      // Fallback direct image download
+      const link = document.createElement("a");
+      link.download = `${certificate.certificateNumber}_${certificate.user.name.replace(/\s+/g, "_")}.png`;
+      link.href = lockedImageUrl;
+      link.click();
     } finally {
       setDownloading(false);
     }
@@ -183,7 +180,7 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
           <button
             type="button"
             onClick={handleDownloadPDF}
-            disabled={downloading}
+            disabled={Boolean(downloading || loadingImage || !lockedImageUrl)}
             className="px-6 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] active:scale-[0.98] transition cursor-pointer disabled:opacity-50"
           >
             {downloading ? (
@@ -196,91 +193,22 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
         </div>
       </div>
 
-      {/* ---------------- CERTIFICATE CANVAS CONTAINER ---------------- */}
-      {/* Standard Aspect Ratio matching 1000x707 (approx 1.414 standard certificate ratio) */}
+      {/* ---------------- LOCKED CERTIFICATE DISPLAY CONTAINER ---------------- */}
+      {/* Rendered as a single unified responsive image so nothing can ever misalign */}
       <div className="max-w-5xl w-full flex justify-center z-10">
-        <div
-          ref={certificateRef}
-          id="jvm-certificate-document"
-          className="relative w-full aspect-[1000/707] max-w-[1000px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-800 bg-white select-none print:shadow-none print:border-none print:m-0 print:w-full"
-          style={{
-            pageBreakInside: "avoid",
-          }}
-        >
-          {/* Base High-Resolution JVM Institute Certificate Template */}
-          <img
-            src="/certificate-template.png"
-            alt="JVM Institute Certificate of Completion Template"
-            className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-          />
-
-          {/* 1. DYNAMIC STUDENT RECIPIENT NAME OVERLAY */}
-          {/* Positioned precisely above the underline beneath "THIS CERTIFICATE IS PRESENTED TO" */}
-          <div
-            className="absolute left-0 right-0 text-center flex items-center justify-center pointer-events-none"
-            style={{
-              top: "37.2%",
-              height: "7.2%",
-            }}
-          >
-            <h2
-              className="text-[#2B364B] font-serif font-bold tracking-wider uppercase px-4"
-              style={{
-                fontSize: "clamp(14px, 2.5vw, 28px)",
-                letterSpacing: "0.07em",
-              }}
-            >
-              {certificate.user.name}
-            </h2>
-          </div>
-
-          {/* 2. DYNAMIC ISSUE DATE OVERLAY */}
-          {/* Positioned directly right on "Date of Issue: ________" underline */}
-          <div
-            className="absolute pointer-events-none flex items-center"
-            style={{
-              bottom: "10.4%",
-              left: "28.8%",
-              width: "10.5%",
-            }}
-          >
-            <span
-              className="font-bold text-[#192338] font-serif tracking-tight whitespace-nowrap"
-              style={{
-                fontSize: "clamp(7px, 1.05vw, 12px)",
-              }}
-            >
-              {formattedDate}
-            </span>
-          </div>
-
-          {/* 3. DYNAMIC SCANNABLE VERIFICATION QR CODE OVERLAY */}
-          {/* Positioned cleanly on the bottom-left corner with high-contrast white ID label */}
-          <div
-            className="absolute flex flex-col items-center pointer-events-none"
-            style={{
-              bottom: "4%",
-              left: "3%",
-            }}
-          >
-            {certificate.qrCodeUrl && (
-              <div className="p-1 sm:p-1.5 bg-white rounded-lg shadow-sm border border-slate-200/80">
-                <img
-                  src={certificate.qrCodeUrl}
-                  alt="Official Certificate Verification QR Code"
-                  className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20"
-                />
-              </div>
-            )}
-            <span
-              className="mt-1 font-mono font-extrabold text-white uppercase tracking-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]"
-              style={{
-                fontSize: "clamp(7px, 0.85vw, 10.5px)",
-              }}
-            >
-              ID: {certificate.certificateNumber}
-            </span>
-          </div>
+        <div className="relative w-full aspect-[1000/707] max-w-[1000px] rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl border border-slate-200 bg-white select-none">
+          {loadingImage || !lockedImageUrl ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 gap-3 text-slate-500">
+              <Loader2 className="w-8 h-8 animate-spin text-[#7C248C]" />
+              <span className="text-xs font-bold font-mono">Generating Official Credential...</span>
+            </div>
+          ) : (
+            <img
+              src={lockedImageUrl}
+              alt={`Certificate of Completion - ${certificate.user.name}`}
+              className="w-full h-full object-contain rounded-2xl sm:rounded-3xl pointer-events-none"
+            />
+          )}
         </div>
       </div>
 
@@ -294,28 +222,7 @@ export default function CertificateViewClient({ certificate }: CertificateViewCl
           This digital credential can be independently validated anytime by scanning the on-document QR code.
         </p>
       </div>
-
-      {/* Print Specific CSS */}
-      <style jsx global>{`
-        @media print {
-          @page {
-            size: landscape;
-            margin: 0;
-          }
-          body {
-            background-color: white !important;
-            color: black !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-          #jvm-certificate-document {
-            width: 100vw !important;
-            height: 100vh !important;
-            max-width: none !important;
-            border-radius: 0 !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
+
