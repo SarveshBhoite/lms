@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       ...(startDate ? { gte: new Date(startDate) } : {}),
       ...(endDate ? { lte: new Date(`${endDate}T23:59:59.999Z`) } : {}),
     };
-    const hasDateFilter = startDate || endDate;
+    const hasDateFilter = Boolean(startDate || endDate);
 
     let rows: Record<string, any>[] = [];
     let reportTitle = "Report";
@@ -38,13 +38,29 @@ export async function POST(req: NextRequest) {
         where: {
           role: "STUDENT",
           ...(hasDateFilter ? { createdAt: dateFilter } : {}),
-          ...(courseId ? { enrollments: { some: { courseId } } } : {}),
-          ...(batchId ? { studentBatches: { some: { batchId } } } : {}),
+          ...(courseId
+            ? {
+                OR: [
+                  { enrollments: { some: { courseId } } },
+                  { studentBatches: { some: { batch: { courseId } } } },
+                ],
+              }
+            : {}),
+          ...(batchId
+            ? {
+                OR: [
+                  { enrollments: { some: { batchId } } },
+                  { studentBatches: { some: { batchId } } },
+                ],
+              }
+            : {}),
           ...(isTrainer
             ? {
                 OR: [
                   { enrollments: { some: { course: { trainerId } } } },
+                  { enrollments: { some: { batch: { trainers: { some: { trainerId } } } } } },
                   { studentBatches: { some: { batch: { trainers: { some: { trainerId } } } } } },
+                  { studentBatches: { some: { batch: { course: { trainerId } } } } },
                 ],
               }
             : {}),
@@ -57,22 +73,38 @@ export async function POST(req: NextRequest) {
               batch: { select: { name: true } },
             },
           },
+          studentBatches: {
+            include: {
+              batch: { select: { name: true } },
+            },
+          },
           courseProgresses: true,
         },
         orderBy: { createdAt: "desc" },
       });
 
       rows = students.map((s) => {
-        const coursesList = s.enrollments.map((e) => e.course.title).join(", ") || "None";
-        const batchesList = s.enrollments.map((e) => e.batch?.name).filter(Boolean).join(", ") || "None";
+        const coursesList = Array.from(
+          new Set(s.enrollments.map((e) => e.course?.title).filter(Boolean))
+        ).join(", ") || "None";
+
+        const batchNames = [
+          ...s.enrollments.map((e) => e.batch?.name).filter(Boolean),
+          ...s.studentBatches.map((sb) => sb.batch?.name).filter(Boolean),
+        ];
+        const batchesList = Array.from(new Set(batchNames)).join(", ") || "None";
+
         const avgProgress =
           s.courseProgresses.length > 0
-            ? (s.courseProgresses.reduce((acc, p) => acc + p.progressPercent, 0) / s.courseProgresses.length).toFixed(1) + "%"
+            ? (
+                s.courseProgresses.reduce((acc, p) => acc + p.progressPercent, 0) /
+                s.courseProgresses.length
+              ).toFixed(1) + "%"
             : "0%";
 
         return {
           "Student ID": s.id,
-          "Full Name": s.name,
+          "Full Name": s.name || "N/A",
           Email: s.email,
           Phone: s.profile?.phone || "N/A",
           Status: s.isActive ? "ACTIVE" : "INACTIVE",
@@ -91,9 +123,21 @@ export async function POST(req: NextRequest) {
         where: {
           ...(hasDateFilter ? { recordedAt: dateFilter } : {}),
           liveClass: {
-            ...(courseId ? { courseId } : {}),
-            ...(batchId ? { OR: [{ batchId }, { batchIds: { has: batchId } }] } : {}),
-            ...(isTrainer ? { trainerId } : {}),
+            AND: [
+              ...(courseId ? [{ courseId }] : []),
+              ...(batchId ? [{ OR: [{ batchId }, { batchIds: { has: batchId } }] }] : []),
+              ...(isTrainer
+                ? [
+                    {
+                      OR: [
+                        { trainerId },
+                        { course: { trainerId } },
+                        { batch: { trainers: { some: { trainerId } } } },
+                      ],
+                    },
+                  ]
+                : []),
+            ],
           },
         },
         include: {
@@ -111,12 +155,12 @@ export async function POST(req: NextRequest) {
 
       rows = attendances.map((a) => ({
         "Attendance ID": a.id,
-        "Student Name": a.user.name,
+        "Student Name": a.user.name || "N/A",
         "Student Email": a.user.email,
         "Session Title": a.liveClass.title,
         "Course Title": a.liveClass.course?.title || "General Cohort Session",
-        "Batch Name": a.liveClass.batch.name,
-        Trainer: a.liveClass.trainer.name,
+        "Batch Name": a.liveClass.batch?.name || "N/A",
+        Trainer: a.liveClass.trainer?.name || "N/A",
         "Scheduled Date": new Date(a.liveClass.scheduledDate).toLocaleDateString(),
         Status: a.status,
         "Verified by Trainer": a.isApproved ? "VERIFIED" : "PENDING",
@@ -132,7 +176,15 @@ export async function POST(req: NextRequest) {
         where: {
           ...(hasDateFilter ? { createdAt: dateFilter } : {}),
           ...(courseId ? { id: courseId } : {}),
-          ...(isTrainer ? { trainerId } : {}),
+          ...(batchId ? { batches: { some: { id: batchId } } } : {}),
+          ...(isTrainer
+            ? {
+                OR: [
+                  { trainerId },
+                  { batches: { some: { trainers: { some: { trainerId } } } } },
+                ],
+              }
+            : {}),
         },
         include: {
           trainer: { select: { name: true, email: true } },
@@ -155,7 +207,7 @@ export async function POST(req: NextRequest) {
           Title: c.title,
           Level: c.level,
           Status: c.status,
-          Trainer: c.trainer.name,
+          Trainer: c.trainer?.name || "N/A",
           "Total Modules": c.modules.length,
           "Total Lessons": totalLessons,
           "Enrolled Students": c.enrollments.length,
@@ -173,9 +225,26 @@ export async function POST(req: NextRequest) {
       const quizAttempts = await prisma.quizAttempt.findMany({
         where: {
           ...(hasDateFilter ? { startedAt: dateFilter } : {}),
+          ...(batchId
+            ? {
+                user: {
+                  OR: [
+                    { enrollments: { some: { batchId } } },
+                    { studentBatches: { some: { batchId } } },
+                  ],
+                },
+              }
+            : {}),
           quiz: {
             ...(courseId ? { courseId } : {}),
-            ...(isTrainer ? { course: { trainerId } } : {}),
+            ...(isTrainer
+              ? {
+                  OR: [
+                    { course: { trainerId } },
+                    { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
+                  ],
+                }
+              : {}),
           },
         },
         include: {
@@ -191,12 +260,12 @@ export async function POST(req: NextRequest) {
 
       rows = quizAttempts.map((qa) => ({
         "Attempt ID": qa.id,
-        "Student Name": qa.user.name,
+        "Student Name": qa.user.name || "N/A",
         "Student Email": qa.user.email,
         "Quiz Title": qa.quiz.title,
-        "Course Title": qa.quiz.course.title,
-        "Score (%)": qa.score.toFixed(1) + "%",
-        "Pass Criteria (%)": qa.quiz.passingMarks + "%",
+        "Course Title": qa.quiz.course?.title || "N/A",
+        "Score (%)": `${qa.score.toFixed(1)}%`,
+        "Pass Criteria (%)": `${qa.quiz.passingMarks}%`,
         Result: qa.isPassed ? "PASSED" : "FAILED",
         "Attempt Date": new Date(qa.startedAt).toLocaleDateString(),
       }));
@@ -208,9 +277,31 @@ export async function POST(req: NextRequest) {
       const submissions = await prisma.assignmentSubmission.findMany({
         where: {
           ...(hasDateFilter ? { submittedAt: dateFilter } : {}),
+          ...(batchId
+            ? {
+                OR: [
+                  { assignment: { batchIds: { has: batchId } } },
+                  {
+                    user: {
+                      OR: [
+                        { enrollments: { some: { batchId } } },
+                        { studentBatches: { some: { batchId } } },
+                      ],
+                    },
+                  },
+                ],
+              }
+            : {}),
           assignment: {
             ...(courseId ? { courseId } : {}),
-            ...(isTrainer ? { course: { trainerId } } : {}),
+            ...(isTrainer
+              ? {
+                  OR: [
+                    { course: { trainerId } },
+                    { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
+                  ],
+                }
+              : {}),
           },
         },
         include: {
@@ -231,15 +322,15 @@ export async function POST(req: NextRequest) {
 
       rows = submissions.map((sub) => ({
         "Submission ID": sub.id,
-        "Student Name": sub.user.name,
+        "Student Name": sub.user.name || "N/A",
         "Student Email": sub.user.email,
         "Assignment Title": sub.assignment.title,
-        "Course Title": sub.assignment.course.title,
+        "Course Title": sub.assignment.course?.title || "N/A",
         Status: sub.status,
         "Submitted Date": new Date(sub.submittedAt).toLocaleDateString(),
         "Solution Link": sub.fileUrl,
         "Marks Awarded": sub.feedback ? `${sub.feedback.marksAwarded} / ${sub.assignment.totalMarks}` : "Ungraded",
-        "Graded By": sub.feedback?.trainer.name || "N/A",
+        "Graded By": sub.feedback?.trainer?.name || "N/A",
         "Feedback Remark": sub.feedback?.feedbackText || "None",
       }));
     }
@@ -251,7 +342,24 @@ export async function POST(req: NextRequest) {
         where: {
           ...(hasDateFilter ? { issueDate: dateFilter } : {}),
           ...(courseId ? { courseId } : {}),
-          ...(isTrainer ? { course: { trainerId } } : {}),
+          ...(batchId
+            ? {
+                user: {
+                  OR: [
+                    { enrollments: { some: { batchId } } },
+                    { studentBatches: { some: { batchId } } },
+                  ],
+                },
+              }
+            : {}),
+          ...(isTrainer
+            ? {
+                OR: [
+                  { course: { trainerId } },
+                  { course: { batches: { some: { trainers: { some: { trainerId } } } } } },
+                ],
+              }
+            : {}),
         },
         include: {
           user: { select: { name: true, email: true } },
@@ -262,10 +370,10 @@ export async function POST(req: NextRequest) {
 
       rows = certificates.map((c) => ({
         "Certificate ID": c.certificateNumber,
-        "Recipient Name": c.user.name,
+        "Recipient Name": c.user.name || "N/A",
         "Recipient Email": c.user.email,
-        "Course Title": c.course.title,
-        "Course Level": c.course.level,
+        "Course Title": c.course?.title || "N/A",
+        "Course Level": c.course?.level || "N/A",
         "Issue Date": new Date(c.issueDate).toLocaleDateString(),
         Status: "VERIFIED",
       }));
