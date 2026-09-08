@@ -52,16 +52,16 @@ export default async function StudentLayout({ children }: { children: React.Reac
   ];
 
   return (
-    <div className="min-h-screen portal-bg-mesh flex flex-col md:flex-row selection:bg-purple-500 selection:text-white relative">
+    <div className="min-h-screen h-screen portal-bg-mesh flex flex-col md:flex-row selection:bg-purple-500 selection:text-white relative overflow-hidden">
       {/* Gentle, subtle ambient glows */}
       <div className="fixed top-0 right-0 w-[450px] h-[450px] bg-purple-200/15 rounded-full blur-[90px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-64 w-[500px] h-[500px] bg-indigo-200/15 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      {/* Sidebar */}
-      <aside className="w-full md:w-64 bg-white/95 backdrop-blur-md border-r border-slate-200/80 flex flex-col justify-between shrink-0 shadow-xs z-20">
-        <div>
+      {/* Fixed / Sticky Sidebar */}
+      <aside className="w-full md:w-64 h-auto md:h-screen md:sticky top-0 bg-white/95 backdrop-blur-md border-r border-slate-200/80 flex flex-col justify-between shrink-0 shadow-xs z-20 overflow-hidden">
+        <div className="flex-1 flex flex-col min-h-0">
           {/* Logo Header */}
-          <div className="h-20 px-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="h-20 px-5 border-b border-slate-100 flex items-center justify-between shrink-0">
             <Link href="/student/dashboard" className="flex items-center gap-2.5">
               <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-10 w-auto object-contain" />
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-purple-100/90 text-[#7C248C] border border-purple-200/60 shadow-2xs">
@@ -70,13 +70,15 @@ export default async function StudentLayout({ children }: { children: React.Reac
             </Link>
           </div>
 
-          {/* Navigation Links */}
-          <StudentSidebarNav unreadCount={unreadCount} />
+          {/* Scrollable Navigation Links (if screen height is small) */}
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <StudentSidebarNav unreadCount={unreadCount} />
+          </div>
         </div>
 
-        {/* User Info & Logout Footer */}
-        <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-50/60">
-          <div className="p-3 rounded-2xl bg-white/90 border border-slate-200/80 flex items-center gap-3 shadow-xs">
+        {/* User Info & Logout Footer - Stationary / Pinned at bottom */}
+        <div className="p-4 border-t border-slate-100 space-y-3 bg-slate-50/70 shrink-0">
+          <div className="p-3 rounded-2xl bg-white/95 border border-slate-200/80 flex items-center gap-3 shadow-xs">
             {user.profile?.avatarUrl ? (
               <img
                 src={user.profile.avatarUrl}
@@ -105,10 +107,11 @@ export default async function StudentLayout({ children }: { children: React.Reac
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto min-h-screen relative z-10">
+      {/* Main Content Area - Independently Scrollable */}
+      <main className="flex-1 h-screen overflow-y-auto relative z-10">
         {children}
       </main>
     </div>
   );
 }
+
