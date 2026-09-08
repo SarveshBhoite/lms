@@ -156,7 +156,16 @@ export default async function StudentLessonViewPage({
       completedLessonIds={completedLessonIds}
       prevLesson={prevLesson ? { id: prevLesson.id, title: prevLesson.title } : null}
       nextLesson={nextLesson ? { id: nextLesson.id, title: nextLesson.title } : null}
-      certificate={existingCertificate || null}
+      certificate={
+        existingCertificate
+          ? {
+              id: existingCertificate.id,
+              certificateNumber: existingCertificate.certificateNumber,
+              issueDate: existingCertificate.issueDate.toISOString(),
+              qrCodeUrl: existingCertificate.qrCodeUrl,
+            }
+          : null
+      }
     />
   );
 }
