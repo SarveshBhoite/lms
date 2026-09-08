@@ -212,6 +212,25 @@ export default function StudentLiveClassesClient({
     };
   };
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+
+  const filteredClasses = classes.filter((lc) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      lc.title.toLowerCase().includes(q) ||
+      (lc.course?.title || "").toLowerCase().includes(q) ||
+      lc.batch.name.toLowerCase().includes(q) ||
+      lc.trainer.name.toLowerCase().includes(q);
+
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "LIVE" && (lc.status === "LIVE" || lc.status === "SCHEDULED")) ||
+      lc.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
       {/* Toast Alert */}
@@ -240,10 +259,36 @@ export default function StudentLiveClassesClient({
         </div>
       </div>
 
+      {/* Live Search & Filter Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="relative flex-1 max-w-md">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search classes by title, course, batch, or instructor..."
+            className="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] transition"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none cursor-pointer"
+          >
+            <option value="ALL">All Sessions</option>
+            <option value="SCHEDULED">Scheduled</option>
+            <option value="COMPLETED">Completed</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+      </div>
+
       {/* Grid of Classes */}
-      {classes.length > 0 ? (
+      {filteredClasses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((lc) => {
+          {filteredClasses.map((lc) => {
             const timeInfo = getSessionTimeInfo(lc);
             const attendance = lc.attendances[0];
             const isCourseClass = Boolean(lc.courseId || lc.course);
