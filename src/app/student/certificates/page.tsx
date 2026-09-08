@@ -58,7 +58,7 @@ export default async function StudentCertificatesPage() {
                 </span>
 
                 <Link
-                  href={`/verify/certificate/${cert.id}`}
+                  href={`/verify/certificate/${cert.certificateNumber || cert.id}`}
                   className="px-4 py-2 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-1.5 transition shadow-sm hover:scale-[1.02]"
                 >
                   <Download className="w-3.5 h-3.5" /> View & Download

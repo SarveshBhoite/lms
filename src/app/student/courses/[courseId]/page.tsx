@@ -131,7 +131,7 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
     notFound();
   }
 
-  const [lessonProgresses, courseProgress] = await Promise.all([
+  const [lessonProgresses, courseProgress, existingCertificate] = await Promise.all([
     prisma.lessonProgress.findMany({
       where: {
         userId: studentId,
@@ -141,6 +141,14 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
     }),
     prisma.courseProgress.findFirst({
       where: { userId: studentId, courseId },
+    }),
+    prisma.certificate.findUnique({
+      where: {
+        userId_courseId: {
+          userId: studentId,
+          courseId,
+        },
+      },
     }),
   ]);
 
@@ -164,6 +172,7 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
     batch: enrollment?.batch || null,
     completedLessonIds,
     progressPercent: courseProgress ? courseProgress.progressPercent : 0,
+    certificate: existingCertificate || null,
   };
 
   return <StudentCourseClient initialCourse={initialData as any} currentUserId={session.userId} />;

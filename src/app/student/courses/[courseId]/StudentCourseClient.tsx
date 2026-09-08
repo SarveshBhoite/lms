@@ -21,7 +21,9 @@ import {
   Check,
   X,
   AlertTriangle,
+  Award,
 } from "lucide-react";
+import confetti from "canvas-confetti";
 
 interface LessonQuiz {
   id: string;
@@ -111,6 +113,12 @@ interface CourseDetailData {
   completedLessonIds: string[];
   progressPercent: number;
   lastAccessedLessonId?: string | null;
+  certificate?: {
+    id: string;
+    certificateNumber: string;
+    issueDate: string;
+    qrCodeUrl?: string | null;
+  } | null;
 }
 
 export default function StudentCourseClient({
@@ -124,9 +132,14 @@ export default function StudentCourseClient({
   const [course, setCourse] = useState<CourseDetailData>(initialCourse);
   const [completedIds, setCompletedIds] = useState<string[]>(initialCourse.completedLessonIds);
   const [progressPct, setProgressPct] = useState<number>(initialCourse.progressPercent);
+  const [certificate, setCertificate] = useState<any | null>(initialCourse.certificate || null);
+  const [generatingCertificate, setGeneratingCertificate] = useState(false);
 
   // Flatten all lessons in order
   const allLessons = course.modules.flatMap((m) => m.lessons);
+  const hasFinalLesson = allLessons.some((l) => l.isFinalLesson);
+  const allDone = allLessons.length > 0 && completedIds.length >= allLessons.length;
+  const isCourseComplete100 = hasFinalLesson && allDone;
 
   // Helper to determine if a lesson is unlocked
   // Rule: Lesson 0 is unlocked. Lesson N is unlocked if Lesson N-1 is in completedIds.
@@ -135,6 +148,32 @@ export default function StudentCourseClient({
     if (idx <= 0) return true;
     const prevLesson = allLessons[idx - 1];
     return completedIds.includes(prevLesson.id);
+  };
+
+  const handleGenerateCertificate = async () => {
+    if (!isCourseComplete100) return;
+    setGeneratingCertificate(true);
+    try {
+      const res = await fetch("/api/student/certificates/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: course.id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to generate certificate");
+
+      setCertificate(data.data);
+      confetti({
+        particleCount: 120,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+      showToast("success", "🎉 Certificate issued! Click View Certificate to inspect or download.");
+    } catch (err: any) {
+      showToast("error", err.message || "Failed to generate certificate");
+    } finally {
+      setGeneratingCertificate(false);
+    }
   };
 
   // Find initial accessible lesson
@@ -470,6 +509,94 @@ export default function StudentCourseClient({
               );
             })}
           </div>
+
+          {/* ---------------- FINAL COURSE COMPLETION & CERTIFICATE MODULE ---------------- */}
+          {hasFinalLesson && (
+            <div
+              className={`p-6 sm:p-8 rounded-3xl border transition-all duration-300 ${
+                certificate
+                  ? "bg-gradient-to-br from-purple-50 via-white to-pink-50 border-purple-200 shadow-md shadow-purple-900/10"
+                  : isCourseComplete100
+                  ? "bg-gradient-to-br from-emerald-50 via-white to-purple-50 border-emerald-300 shadow-md shadow-emerald-900/10"
+                  : "bg-slate-50 border-slate-200 opacity-85"
+              }`}
+            >
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-start sm:items-center gap-4">
+                  <div
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${
+                      certificate
+                        ? "bg-purple-100 text-[#7C248C] border-purple-200 shadow-inner"
+                        : isCourseComplete100
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200 shadow-inner animate-bounce"
+                        : "bg-slate-200 text-slate-400 border-slate-300"
+                    }`}
+                  >
+                    <Award className="w-8 h-8" />
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-purple-100 text-[#7C248C] border border-purple-200">
+                        Official Academic Credential
+                      </span>
+                      {certificate && (
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {certificate.certificateNumber}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg sm:text-xl font-black text-slate-900">
+                      {certificate
+                        ? "Official Course Certificate Issued"
+                        : isCourseComplete100
+                        ? "🎉 Course Completed! Claim Your Certificate"
+                        : "Official Course Completion Certificate"}
+                    </h3>
+                    <p className="text-xs text-slate-600 max-w-xl">
+                      {certificate
+                        ? `Issued on ${new Date(certificate.issueDate).toLocaleDateString()}. Includes tamper-proof QR code and official digital verification.`
+                        : isCourseComplete100
+                        ? "You have successfully finished 100% of curriculum modules and met all passing requirements. Click below to generate your official certificate."
+                        : `Complete 100% of all lessons, quizzes, and tasks (${completedIds.length}/${allLessons.length} done) to unlock and generate your accredited certificate.`}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="w-full md:w-auto shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {certificate ? (
+                    <Link
+                      href={`/verify/certificate/${certificate.certificateNumber || certificate.id}`}
+                      className="px-6 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-purple-900/20 hover:scale-[1.02] transition"
+                    >
+                      <Award className="w-4 h-4" /> View & Download Certificate
+                    </Link>
+                  ) : isCourseComplete100 ? (
+                    <button
+                      type="button"
+                      onClick={handleGenerateCertificate}
+                      disabled={generatingCertificate}
+                      className="px-6 py-3.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-purple-900/25 hover:scale-[1.03] active:scale-[0.98] transition cursor-pointer"
+                    >
+                      {generatingCertificate ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" /> Generating Certificate...
+                        </>
+                      ) : (
+                        <>
+                          <Award className="w-4 h-4" /> Generate Certificate Now
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="px-5 py-3 rounded-2xl bg-white border border-slate-200 text-slate-400 font-bold text-xs flex items-center justify-center gap-2 cursor-not-allowed">
+                      <span>🔒 Locked (Complete 100% of Lessons)</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
