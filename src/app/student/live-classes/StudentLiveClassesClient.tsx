@@ -67,6 +67,7 @@ export default function StudentLiveClassesClient({
   const [excuseReason, setExcuseReason] = useState("");
   const [submittingExcuse, setSubmittingExcuse] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [activeRecordingUrl, setActiveRecordingUrl] = useState<{ title: string; url: string } | null>(null);
 
   // Mount flag & live timer clock
   useEffect(() => {
@@ -484,14 +485,13 @@ export default function StudentLiveClassesClient({
                     </button>
                   ) : isCompleted ? (
                     lc.recordingUrl ? (
-                      <a
-                        href={lc.recordingUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C248C] font-bold text-xs flex items-center justify-center gap-2 transition shadow-2xs"
+                      <button
+                        type="button"
+                        onClick={() => setActiveRecordingUrl({ title: lc.title, url: lc.recordingUrl! })}
+                        className="w-full py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C248C] font-bold text-xs flex items-center justify-center gap-2 transition shadow-2xs cursor-pointer"
                       >
-                        <Video className="w-4 h-4" /> Watch Class Recording <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                        <Video className="w-4 h-4" /> Watch Recording In-App
+                      </button>
                     ) : (
                       <div className="text-center py-2.5 text-xs text-slate-500 font-mono bg-slate-50 rounded-2xl border border-slate-200/60">
                         Class Completed (Recording Pending)
@@ -583,6 +583,73 @@ export default function StudentLiveClassesClient({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ---------------- IN-APP LIVE CLASS RECORDING VIEWER MODAL ---------------- */}
+      {activeRecordingUrl && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="w-full max-w-5xl bg-black rounded-3xl border border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+            {/* Recording Modal Header */}
+            <div className="p-4 sm:p-5 bg-slate-950 text-white flex items-center justify-between gap-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl jvm-gradient-bg flex items-center justify-center shrink-0">
+                  <Video className="w-4 h-4 text-white" />
+                </div>
+                <div className="overflow-hidden">
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                    Live Session Recording
+                  </span>
+                  <h3 className="font-extrabold text-white text-sm sm:text-base truncate mt-0.5">{activeRecordingUrl.title}</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveRecordingUrl(null)}
+                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                title="Close Player"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Video Player Container */}
+            <div className="w-full aspect-video bg-black flex items-center justify-center">
+              {activeRecordingUrl.url.includes("youtube.com") || activeRecordingUrl.url.includes("youtu.be") ? (
+                <iframe
+                  src={activeRecordingUrl.url.replace("watch?v=", "embed/")}
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+              ) : activeRecordingUrl.url.includes("drive.google.com") ? (
+                <iframe
+                  src={activeRecordingUrl.url.replace("/view", "/preview")}
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={activeRecordingUrl.url}
+                  controls
+                  controlsList="nodownload"
+                  className="w-full h-full"
+                />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 bg-slate-900 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Streaming JVM Faculty Session Archive</span>
+              <button
+                type="button"
+                onClick={() => setActiveRecordingUrl(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition cursor-pointer"
+              >
+                Exit Player
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

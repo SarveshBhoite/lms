@@ -19,6 +19,8 @@ import {
   BookOpen,
   ArrowLeft,
   Award,
+  X,
+  ShieldCheck,
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
@@ -167,6 +169,7 @@ export default function StudentLessonPlayerClient({
   const [assignmentSubmission, setAssignmentSubmission] = useState<any | null>(() => {
     return currentLesson.assignment?.submissions?.[0] || null;
   });
+  const [selectedResource, setSelectedResource] = useState<{ id: string; title: string; fileUrl: string } | null>(null);
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });
@@ -424,8 +427,20 @@ export default function StudentLessonPlayerClient({
                 className="w-full aspect-video rounded-3xl"
                 allowFullScreen
               />
+            ) : currentLesson.contentUrl.includes("drive.google.com") ? (
+              <iframe
+                src={currentLesson.contentUrl.replace("/view", "/preview")}
+                className="w-full aspect-video rounded-3xl"
+                allowFullScreen
+              />
             ) : (
-              <video src={currentLesson.contentUrl} controls className="w-full aspect-video rounded-3xl" />
+              <video
+                src={currentLesson.contentUrl}
+                controls
+                controlsList="nodownload"
+                onContextMenu={(e) => e.preventDefault()}
+                className="w-full aspect-video rounded-3xl"
+              />
             )}
           </div>
         )}
@@ -444,29 +459,28 @@ export default function StudentLessonPlayerClient({
           )}
         </div>
 
-        {/* Downloadable Lesson Resources */}
+        {/* Protected Lesson Resources */}
         {currentLesson.resources.length > 0 && (
           <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-3">
             <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2">
-              <Download className="w-4 h-4 text-[#7C248C]" /> Lesson Downloadable Assets & Resources
+              <FileText className="w-4 h-4 text-[#7C248C]" /> Lesson Study Materials & Assets (In-App Protected)
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {currentLesson.resources.map((res) => (
-                <a
+                <button
                   key={res.id}
-                  href={res.fileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-3.5 bg-slate-50 hover:bg-purple-50/60 rounded-2xl border border-slate-200 hover:border-purple-300 flex items-center justify-between gap-3 transition"
+                  type="button"
+                  onClick={() => setSelectedResource(res)}
+                  className="p-3.5 bg-slate-50 hover:bg-purple-50/60 rounded-2xl border border-slate-200 hover:border-purple-300 flex items-center justify-between gap-3 transition text-left cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 overflow-hidden">
                     <FileText className="w-4 h-4 text-[#7C248C] shrink-0" />
                     <span className="text-xs font-bold text-slate-800 truncate">{res.title}</span>
                   </div>
-                  <span className="px-2.5 py-1 rounded-lg jvm-gradient-bg text-white text-[10px] font-bold shrink-0">
-                    Download
+                  <span className="px-3 py-1 rounded-lg jvm-gradient-bg text-white text-[10px] font-bold shrink-0 flex items-center gap-1">
+                    <Play className="w-3 h-3 fill-white" /> View
                   </span>
-                </a>
+                </button>
               ))}
             </div>
           </div>
@@ -842,6 +856,111 @@ export default function StudentLessonPlayerClient({
           </div>
         </div>
       </main>
+
+      {/* ---------------- IN-APP PROTECTED RESOURCE VIEWER MODAL ---------------- */}
+      {selectedResource && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="w-full max-w-5xl h-[88vh] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header Bar */}
+            <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between gap-4 border-b border-slate-800">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl jvm-gradient-bg flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-white" />
+                </div>
+                <div className="overflow-hidden">
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                    Lesson Study Material
+                  </span>
+                  <h3 className="font-extrabold text-white text-sm sm:text-base truncate mt-0.5">{selectedResource.title}</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedResource(null)}
+                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                title="Close Viewer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* In-App Viewer Content Container */}
+            <div className="flex-1 bg-slate-100 p-2 sm:p-4 overflow-hidden relative flex flex-col">
+              {(() => {
+                const url = selectedResource.fileUrl || "";
+                const isPdf = url.toLowerCase().includes(".pdf");
+                const isDrive = url.includes("drive.google.com");
+                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i);
+
+                if (isDrive) {
+                  const previewUrl = url.replace(/\/view.*$/, "/preview").replace(/\/edit.*$/, "/preview");
+                  return (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full rounded-2xl bg-white border border-slate-200 shadow-inner"
+                      title={selectedResource.title}
+                      allow="autoplay"
+                    />
+                  );
+                }
+
+                if (isImage) {
+                  return (
+                    <div className="w-full h-full flex items-center justify-center p-4 bg-slate-50 rounded-2xl">
+                      <img
+                        src={url}
+                        alt={selectedResource.title}
+                        className="max-h-full max-w-full object-contain rounded-xl shadow-md pointer-events-none"
+                        onContextMenu={(e) => e.preventDefault()}
+                      />
+                    </div>
+                  );
+                }
+
+                if (isPdf) {
+                  const viewerUrl = url.startsWith("http")
+                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+                    : `${url}#toolbar=0&navpanes=0`;
+
+                  return (
+                    <div className="w-full h-full rounded-2xl bg-white border border-slate-200 overflow-hidden relative shadow-inner">
+                      <iframe
+                        src={viewerUrl}
+                        className="w-full h-full border-0"
+                        title={selectedResource.title}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <iframe
+                    src={url}
+                    className="w-full h-full rounded-2xl bg-white border border-slate-200 shadow-inner"
+                    title={selectedResource.title}
+                  />
+                );
+              })()}
+            </div>
+
+            {/* Bottom Security Footer */}
+            <div className="p-3.5 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 font-mono">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>JVM Protected Academic Resource &bull; In-Studio Inspection Active</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedResource(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+              >
+                Close Studio Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

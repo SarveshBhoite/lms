@@ -34,6 +34,27 @@ import {
 } from "lucide-react";
 import confetti from "canvas-confetti";
 
+// Hydration-safe date/time formatting helpers
+function formatDateSafe(dateStr?: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+function formatTimeSafe(dateStr?: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  let hours = d.getHours();
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${hours.toString().padStart(2, "0")}:${minutes} ${ampm}`;
+}
+
 interface LessonQuiz {
   id: string;
   title: string;
@@ -193,6 +214,8 @@ export default function StudentCourseClient({
 
   const [activeTab, setActiveTab] = useState<"player" | "overview" | "resources" | "quizzes" | "assignments" | "liveClasses">("player");
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [selectedResource, setSelectedResource] = useState<ResourceItem | null>(null);
+  const [activeRecordingUrl, setActiveRecordingUrl] = useState<{ title: string; url: string } | null>(null);
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });
@@ -647,7 +670,7 @@ export default function StudentCourseClient({
                     </h3>
                     <p className="text-xs text-slate-600 max-w-xl">
                       {certificate
-                        ? `Issued on ${new Date(certificate.issueDate).toLocaleDateString()}. Includes tamper-proof QR verification.`
+                        ? `Issued on ${formatDateSafe(certificate.issueDate)}. Includes tamper-proof QR verification.`
                         : isCourseComplete100
                         ? "You have successfully finished 100% of curriculum modules. Click below to generate your official certificate."
                         : `Complete 100% of all lessons (${completedIds.length}/${allLessons.length} done) to unlock and claim your certificate.`}
@@ -756,13 +779,7 @@ export default function StudentCourseClient({
 
                         <div className="flex items-center gap-1 text-xs font-mono text-slate-500 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200/60">
                           <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>
-                            {new Date(lc.scheduledDate).toLocaleDateString(undefined, {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </span>
+                          <span>{formatDateSafe(lc.scheduledDate)}</span>
                         </div>
                       </div>
 
@@ -786,8 +803,7 @@ export default function StudentCourseClient({
                             <span className="font-mono text-[11px]">Timing:</span>
                           </div>
                           <strong className="text-slate-900 font-mono text-xs">
-                            {new Date(lc.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} -{" "}
-                            {new Date(lc.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {formatTimeSafe(lc.startTime)} - {formatTimeSafe(lc.endTime)}
                           </strong>
                         </div>
 
@@ -824,14 +840,13 @@ export default function StudentCourseClient({
                           <Video className="w-4 h-4 fill-white animate-pulse" /> Enter Live Classroom Studio
                         </Link>
                       ) : isCompleted && lc.recordingUrl ? (
-                        <a
-                          href={lc.recordingUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="w-full py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 text-[#7C248C] font-bold text-xs flex items-center justify-center gap-2 transition border border-purple-200 shadow-2xs"
+                        <button
+                          type="button"
+                          onClick={() => setActiveRecordingUrl({ title: lc.title, url: lc.recordingUrl! })}
+                          className="w-full py-3 rounded-2xl bg-purple-50 hover:bg-purple-100 text-[#7C248C] font-bold text-xs flex items-center justify-center gap-2 transition border border-purple-200 shadow-2xs cursor-pointer"
                         >
-                          <Video className="w-4 h-4" /> Watch Class Recording <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                          <Video className="w-4 h-4" /> Watch Recording In-App
+                        </button>
                       ) : (
                         <Link
                           href="/student/live-classes"
@@ -914,22 +929,21 @@ export default function StudentCourseClient({
                       </div>
 
                       <div className="p-3.5 rounded-2xl bg-slate-50/80 border border-slate-200/60 text-xs font-mono text-slate-600 flex items-center justify-between">
-                        <span className="text-slate-400">Resource Access:</span>
+                        <span className="text-slate-400">Security / Access:</span>
                         <span className="font-bold text-[#7C248C] flex items-center gap-1">
-                          Verified Asset Available
+                          Protected In-App View
                         </span>
                       </div>
                     </div>
 
                     <div className="p-6 pt-0">
-                      <a
-                        href={res.fileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="w-full py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-purple-900/20 transition hover:scale-[1.01]"
+                      <button
+                        type="button"
+                        onClick={() => setSelectedResource(res)}
+                        className="w-full py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md shadow-purple-900/20 transition hover:scale-[1.01] cursor-pointer"
                       >
-                        <Download className="w-4 h-4" /> Download Resource <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
+                        <Play className="w-4 h-4 fill-white" /> Open & Inspect Resource
+                      </button>
                     </div>
                   </div>
                 );
@@ -1048,7 +1062,7 @@ export default function StudentCourseClient({
                   <div className="p-6 space-y-4">
                     <div className="flex justify-between items-center text-xs font-mono">
                       <span className="text-[#E01E6A] font-bold text-[10px] px-3 py-1 rounded-full bg-pink-50 border border-pink-200 shadow-2xs">
-                        Deadline: {asgn.deadline ? new Date(asgn.deadline).toLocaleDateString() : "Flexible Schedule"}
+                        Deadline: {asgn.deadline ? formatDateSafe(asgn.deadline) : "Flexible Schedule"}
                       </span>
                       <span className="text-slate-700 font-bold text-[11px] bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200/60">
                         {asgn.totalMarks} Total Marks
@@ -1188,6 +1202,184 @@ export default function StudentCourseClient({
               {course.trainer.profile?.bio && (
                 <p className="text-xs text-slate-600 leading-relaxed pt-1">{course.trainer.profile.bio}</p>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- IN-APP PROTECTED RESOURCE VIEWER MODAL ---------------- */}
+      {selectedResource && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="w-full max-w-5xl h-[88vh] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+            {/* Modal Header Bar */}
+            <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between gap-4 border-b border-slate-800">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl jvm-gradient-bg flex items-center justify-center shrink-0">
+                  <FileText className="w-4 h-4 text-white" />
+                </div>
+                <div className="overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                      {selectedResource.type || "RESOURCE"}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400">• In-App Protected Viewer</span>
+                  </div>
+                  <h3 className="font-extrabold text-white text-sm sm:text-base truncate">{selectedResource.title}</h3>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedResource(null)}
+                  className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                  title="Close Viewer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* In-App Viewer Content Container */}
+            <div className="flex-1 bg-slate-100 p-2 sm:p-4 overflow-hidden relative flex flex-col">
+              {(() => {
+                const url = selectedResource.fileUrl || "";
+                const isPdf = url.toLowerCase().includes(".pdf") || (selectedResource.type && selectedResource.type.toUpperCase().includes("PDF"));
+                const isDrive = url.includes("drive.google.com");
+                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i);
+
+                if (isDrive) {
+                  const previewUrl = url.replace(/\/view.*$/, "/preview").replace(/\/edit.*$/, "/preview");
+                  return (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full rounded-2xl bg-white border border-slate-200 shadow-inner"
+                      title={selectedResource.title}
+                      allow="autoplay"
+                    />
+                  );
+                }
+
+                if (isImage) {
+                  return (
+                    <div className="w-full h-full flex items-center justify-center p-4 bg-slate-50 rounded-2xl">
+                      <img
+                        src={url}
+                        alt={selectedResource.title}
+                        className="max-h-full max-w-full object-contain rounded-xl shadow-md pointer-events-none"
+                        onContextMenu={(e) => e.preventDefault()}
+                      />
+                    </div>
+                  );
+                }
+
+                if (isPdf) {
+                  // For public/remote PDFs, Google Docs Viewer ensures direct rendering without triggering browser download
+                  const viewerUrl = url.startsWith("http")
+                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
+                    : `${url}#toolbar=0&navpanes=0`;
+
+                  return (
+                    <div className="w-full h-full rounded-2xl bg-white border border-slate-200 overflow-hidden relative shadow-inner">
+                      <iframe
+                        src={viewerUrl}
+                        className="w-full h-full border-0"
+                        title={selectedResource.title}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <iframe
+                    src={url}
+                    className="w-full h-full rounded-2xl bg-white border border-slate-200 shadow-inner"
+                    title={selectedResource.title}
+                  />
+                );
+              })()}
+            </div>
+
+            {/* Bottom Security Footer */}
+            <div className="p-3.5 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 font-mono">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>JVM Protected Academic Resource &bull; In-Studio Inspection Active</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedResource(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+              >
+                Close Studio Viewer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ---------------- IN-APP LIVE CLASS RECORDING VIEWER MODAL ---------------- */}
+      {activeRecordingUrl && (
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="w-full max-w-5xl bg-black rounded-3xl border border-slate-800 shadow-2xl flex flex-col overflow-hidden">
+            {/* Recording Modal Header */}
+            <div className="p-4 sm:p-5 bg-slate-950 text-white flex items-center justify-between gap-4 border-b border-slate-800/80">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl jvm-gradient-bg flex items-center justify-center shrink-0">
+                  <Video className="w-4 h-4 text-white" />
+                </div>
+                <div className="overflow-hidden">
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-purple-500/30 text-purple-200 border border-purple-400/30">
+                    Live Session Recording
+                  </span>
+                  <h3 className="font-extrabold text-white text-sm sm:text-base truncate mt-0.5">{activeRecordingUrl.title}</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveRecordingUrl(null)}
+                className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white flex items-center justify-center transition cursor-pointer"
+                title="Close Player"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Video Player Container */}
+            <div className="w-full aspect-video bg-black flex items-center justify-center">
+              {activeRecordingUrl.url.includes("youtube.com") || activeRecordingUrl.url.includes("youtu.be") ? (
+                <iframe
+                  src={activeRecordingUrl.url.replace("watch?v=", "embed/")}
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+              ) : activeRecordingUrl.url.includes("drive.google.com") ? (
+                <iframe
+                  src={activeRecordingUrl.url.replace("/view", "/preview")}
+                  className="w-full h-full"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  src={activeRecordingUrl.url}
+                  controls
+                  controlsList="nodownload"
+                  className="w-full h-full"
+                />
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-3 bg-slate-900 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400 font-mono">
+              <span>Streaming JVM Faculty Session Archive</span>
+              <button
+                type="button"
+                onClick={() => setActiveRecordingUrl(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition cursor-pointer"
+              >
+                Exit Player
+              </button>
             </div>
           </div>
         </div>
