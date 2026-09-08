@@ -26,7 +26,14 @@ export default async function StudentCourseDetailPage({ params }: { params: Prom
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     include: {
-      trainer: { select: { id: true, name: true, email: true } },
+      trainer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          profile: { select: { designation: true, bio: true, avatarUrl: true } },
+        },
+      },
       modules: {
         orderBy: { orderIndex: "asc" },
         include: {

@@ -59,14 +59,18 @@ export default async function StudentCoursesPage() {
   });
 
   return (
-    <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
-      <div className="flex justify-between items-center border-b border-slate-200 pb-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
-            <BookOpen className="w-7 h-7 text-[#1E2B88]" /> My Enrolled Programs
+    <div className="p-6 sm:p-8 space-y-6 max-w-7xl w-full mx-auto">
+      {/* Compact Header Banner (~10% vh) */}
+      <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-r from-white via-purple-50/40 to-indigo-50/30 px-6 py-4 sm:px-8 sm:py-5 shadow-2xs flex items-center justify-between">
+        <div className="space-y-1 relative z-10">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-[#7C248C] text-[10px] font-mono font-bold uppercase tracking-wider">
+            <BookOpen className="w-3 h-3 text-[#7C248C]" /> Academic Programs
+          </div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            My Enrolled <span className="jvm-gradient-text">Courses</span>
           </h1>
-          <p className="text-slate-600 text-sm mt-1">
-            Access curriculum modules, video lessons, resources, quizzes, and assignments for your active cohorts.
+          <p className="text-slate-500 text-xs font-medium">
+            Access curriculum modules, video lessons, resources, quizzes, and live classes for your cohorts.
           </p>
         </div>
       </div>
