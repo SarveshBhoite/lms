@@ -238,8 +238,17 @@ export default async function TrainerDashboardPage() {
   // Dynamic calculated KPI metrics
   const assignedCoursesCount = courses.length;
   const myBatchesCount = rawBatches.length;
-  const totalStudents = courses.reduce((acc, c) => acc + c.enrollments.length, 0);
   const activeCohortsCount = rawBatches.filter((b) => b.students.length > 0).length;
+
+  // Accurately calculate distinct assigned students across both course enrollments & batch assignments
+  const assignedCourseIds = courses.map((c) => c.id);
+  const assignedBatchIds = rawBatches.map((b) => b.id);
+
+  // Distinct students across all assigned batches and courses
+  const batchStudentIds = rawBatches.flatMap((b) => b.students.map((s) => s.id));
+  const enrollmentStudentIds = courses.flatMap((c) => c.enrollments.map((e) => e.id));
+  const distinctStudentsCount = Array.from(new Set([...batchStudentIds, ...enrollmentStudentIds])).length;
+  const totalStudents = distinctStudentsCount > 0 ? distinctStudentsCount : batchStudentIds.length;
 
   const allSubmissions = assignments.flatMap((a) => a.submissions);
   const pendingGradingCount = allSubmissions.filter((s) => s.status === "SUBMITTED").length;
@@ -366,103 +375,121 @@ export default async function TrainerDashboardPage() {
         </div>
       </div>
 
-      {/* 2. Premium Visual KPI Metric Grid (Handcrafted Studio Cards) */}
+      {/* 2. Premium Interactive Dynamic KPI Metric Cards (Linked to respective workspaces) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {/* Card 1: Courses */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition hover:border-[#1E2B88]/40 hover:shadow-sm group">
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-blue-50/50 pointer-events-none group-hover:scale-125 transition-transform" />
+        <Link
+          href="/trainer/courses"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-[#1E2B88]/50 hover:shadow-md group block cursor-pointer"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-blue-50/60 pointer-events-none group-hover:scale-125 transition-transform" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400">Courses</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100/80 text-[#1E2B88] flex items-center justify-center transition group-hover:scale-110">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400 group-hover:text-[#1E2B88] transition">Courses</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100/80 text-[#1E2B88] flex items-center justify-center transition group-hover:scale-110 group-hover:bg-[#1E2B88] group-hover:text-white">
               <BookOpen className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{assignedCoursesCount}</div>
+          <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight group-hover:text-[#1E2B88] transition">{assignedCoursesCount}</div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1E2B88]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#1E2B88] animate-pulse" />
             Active Scope
           </div>
-        </div>
+        </Link>
 
         {/* Card 2: Batches */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition hover:border-[#7C248C]/40 hover:shadow-sm group">
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-purple-50/50 pointer-events-none group-hover:scale-125 transition-transform" />
+        <Link
+          href="/trainer/batches"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-[#7C248C]/50 hover:shadow-md group block cursor-pointer"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-purple-50/60 pointer-events-none group-hover:scale-125 transition-transform" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400">Cohorts</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100/80 text-[#7C248C] flex items-center justify-center transition group-hover:scale-110">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400 group-hover:text-[#7C248C] transition">Cohorts</span>
+            <div className="w-8 h-8 rounded-xl bg-purple-50 border border-purple-100/80 text-[#7C248C] flex items-center justify-center transition group-hover:scale-110 group-hover:bg-[#7C248C] group-hover:text-white">
               <Layers className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-[#7C248C] tracking-tight">{myBatchesCount}</div>
+          <div className="mt-2 text-2xl sm:text-3xl font-black text-[#7C248C] tracking-tight group-hover:scale-105 transition-transform origin-left">{myBatchesCount}</div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#7C248C]" />
+            <span className="w-1.5 h-1.5 rounded-full bg-[#7C248C] animate-pulse" />
             {activeCohortsCount} Ongoing
           </div>
-        </div>
+        </Link>
 
         {/* Card 3: Total Enrolled Students */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition hover:border-indigo-400/40 hover:shadow-sm group">
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-indigo-50/50 pointer-events-none group-hover:scale-125 transition-transform" />
+        <Link
+          href="/trainer/students"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-indigo-400/50 hover:shadow-md group block cursor-pointer"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-indigo-50/60 pointer-events-none group-hover:scale-125 transition-transform" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400">Students</span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100/80 text-indigo-600 flex items-center justify-center transition group-hover:scale-110">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400 group-hover:text-indigo-600 transition">Students</span>
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-100/80 text-indigo-600 flex items-center justify-center transition group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-indigo-600 tracking-tight">{totalStudents}</div>
+          <div className="mt-2 text-2xl sm:text-3xl font-black text-indigo-600 tracking-tight group-hover:scale-105 transition-transform origin-left">{totalStudents}</div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
             Enrolled Total
           </div>
-        </div>
+        </Link>
 
         {/* Card 4: Upcoming Live Classes */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition hover:border-rose-400/40 hover:shadow-sm group">
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-rose-50/50 pointer-events-none group-hover:scale-125 transition-transform" />
+        <Link
+          href="/trainer/live-classes"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-rose-400/50 hover:shadow-md group block cursor-pointer"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-rose-50/60 pointer-events-none group-hover:scale-125 transition-transform" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400">Live Classes</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100/80 text-rose-600 flex items-center justify-center transition group-hover:scale-110">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400 group-hover:text-rose-600 transition">Live Classes</span>
+            <div className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100/80 text-rose-600 flex items-center justify-center transition group-hover:scale-110 group-hover:bg-rose-600 group-hover:text-white">
               <Video className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-rose-600 tracking-tight">{upcomingLiveClasses.length}</div>
+          <div className="mt-2 text-2xl sm:text-3xl font-black text-rose-600 tracking-tight group-hover:scale-105 transition-transform origin-left">{upcomingLiveClasses.length}</div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            Upcoming
+            <span className={`w-1.5 h-1.5 rounded-full ${upcomingLiveClasses.length > 0 ? "bg-rose-500 animate-ping" : "bg-slate-400"}`} />
+            {upcomingLiveClasses.length > 0 ? "Live / Scheduled" : "None Today"}
           </div>
-        </div>
+        </Link>
 
         {/* Card 5: Pending Grading */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition hover:border-amber-400/40 hover:shadow-sm group">
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-amber-50/50 pointer-events-none group-hover:scale-125 transition-transform" />
+        <Link
+          href="/trainer/assignments"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-amber-400/50 hover:shadow-md group block cursor-pointer"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-amber-50/60 pointer-events-none group-hover:scale-125 transition-transform" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400">Pending Review</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100/80 text-amber-600 flex items-center justify-center transition group-hover:scale-110">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400 group-hover:text-amber-600 transition">Pending Review</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 border border-amber-100/80 text-amber-600 flex items-center justify-center transition group-hover:scale-110 group-hover:bg-amber-600 group-hover:text-white">
               <FileCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-amber-600 tracking-tight">{pendingGradingCount}</div>
+          <div className="mt-2 text-2xl sm:text-3xl font-black text-amber-600 tracking-tight group-hover:scale-105 transition-transform origin-left">{pendingGradingCount}</div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className={`w-1.5 h-1.5 rounded-full ${pendingGradingCount > 0 ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`} />
             {assignmentEvalRate}% Done
           </div>
-        </div>
+        </Link>
 
         {/* Card 6: Active Quizzes */}
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition hover:border-emerald-400/40 hover:shadow-sm group">
-          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-emerald-50/50 pointer-events-none group-hover:scale-125 transition-transform" />
+        <Link
+          href="/trainer/quizzes"
+          className="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-200 hover:-translate-y-1 hover:border-emerald-400/50 hover:shadow-md group block cursor-pointer"
+        >
+          <div className="absolute -right-3 -bottom-3 w-16 h-16 rounded-full bg-emerald-50/60 pointer-events-none group-hover:scale-125 transition-transform" />
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400">Quizzes</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center transition group-hover:scale-110">
+            <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-slate-400 group-hover:text-emerald-600 transition">Quizzes</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center transition group-hover:scale-110 group-hover:bg-emerald-600 group-hover:text-white">
               <HelpCircle className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-2 text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight">{quizzes.length}</div>
+          <div className="mt-2 text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight group-hover:scale-105 transition-transform origin-left">{quizzes.length}</div>
           <div className="mt-1 flex items-center gap-1.5 text-[11px] font-mono text-slate-500">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            {quizPassRate}% Pass
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            {quizPassRate}% Pass Rate
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* 3. Interactive Multi-Parameter Analytics Component (Bars & Donut Charts) */}
