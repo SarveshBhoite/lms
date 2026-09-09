@@ -65,9 +65,13 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row antialiased">
+    <div className="min-h-screen portal-bg-mesh text-slate-900 flex flex-col md:flex-row antialiased relative selection:bg-purple-500 selection:text-white">
+      {/* Subtle JVM Theme Ambient Glows */}
+      <div className="fixed top-0 right-0 w-[450px] h-[450px] bg-purple-200/15 rounded-full blur-[90px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-64 w-[500px] h-[500px] bg-indigo-200/15 rounded-full blur-[100px] pointer-events-none z-0" />
+
       {/* Mobile Top Header */}
-      <div className="md:hidden h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-xs">
+      <div className="md:hidden h-16 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-2.5">
           <img src="/jvm_logo-bg.png" alt="JVM Institute" className="h-8 w-auto object-contain" />
           <span className="font-extrabold text-slate-900 text-sm tracking-tight">Trainer Studio</span>
@@ -140,7 +144,7 @@ export default function TrainerLayout({ children }: { children: React.ReactNode 
       </aside>
 
       {/* Main Faculty Content Surface */}
-      <main className="flex-1 min-w-0 flex flex-col bg-slate-50 overflow-x-hidden">{children}</main>
+      <main className="flex-1 min-w-0 flex flex-col relative z-10 overflow-x-hidden">{children}</main>
     </div>
   );
 }
