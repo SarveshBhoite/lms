@@ -195,6 +195,7 @@ model Course {
   batches        Batch[]
   certificates   Certificate[]
   liveClasses    LiveClass[]
+  resources      Resource[]
 
   @@index([trainerId])
   @@index([status])
@@ -244,7 +245,9 @@ model Lesson {
 
 model Resource {
   id         String   @id @default(cuid())
-  lessonId   String
+  courseId   String?
+  batchId    String?
+  lessonId   String?
   title      String
   fileType   String
   fileSize   Int      // in bytes
@@ -254,8 +257,12 @@ model Resource {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  course     Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch      Batch?   @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  lesson     Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
+  @@index([courseId])
+  @@index([batchId])
   @@index([lessonId])
 }
 
@@ -500,6 +507,7 @@ model Batch {
   trainers    BatchTrainer[]
   liveClasses LiveClass[]
   enrollments Enrollment[]
+  resources   Resource[]
 
   @@index([courseId])
   @@index([status])

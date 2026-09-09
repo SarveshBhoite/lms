@@ -104,6 +104,13 @@ export default async function TrainerCourseDetailPage({ params }: { params: Prom
           },
         },
       },
+      resources: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          batch: { select: { id: true, name: true } },
+          lesson: { select: { id: true, title: true } },
+        },
+      },
     },
   });
 

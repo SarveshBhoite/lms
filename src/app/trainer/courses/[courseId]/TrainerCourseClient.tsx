@@ -42,12 +42,16 @@ import {
 
 interface ResourceItem {
   id: string;
-  lessonId: string;
+  courseId?: string | null;
+  batchId?: string | null;
+  lessonId?: string | null;
   title: string;
   fileType: string;
   fileSize: number;
   fileUrl: string;
   isPublic: boolean;
+  batch?: { id: string; name: string } | null;
+  lesson?: { id: string; title: string } | null;
 }
 
 interface LessonItem {
@@ -176,6 +180,7 @@ export interface CourseDetailData {
   quizzes?: QuizItem[];
   assignments?: AssignmentItem[];
   liveClasses?: LiveClassItem[];
+  resources?: ResourceItem[];
 }
 
 export type TabKey =
@@ -393,10 +398,12 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
   // Content Statistics
   const totalModules = course.modules.length;
   const totalLessons = course.modules.reduce((acc, m) => acc + m.lessons.length, 0);
-  const totalResources = course.modules.reduce(
+  const lessonResourcesCount = course.modules.reduce(
     (acc, m) => acc + m.lessons.reduce((lAcc, l) => lAcc + l.resources.length, 0),
     0
   );
+  const courseLevelResourcesCount = course.resources?.length || 0;
+  const totalResources = lessonResourcesCount + courseLevelResourcesCount;
   const totalQuizzes = course.quizzes?.length || 0;
   const totalAssignments = course.assignments?.length || 0;
   const totalLiveClasses = course.liveClasses?.length || 0;
@@ -1508,14 +1515,51 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
           <div className="p-6 rounded-3xl border border-slate-200/90 bg-white shadow-xs space-y-4">
             {totalResources > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Course-level General Resources */}
+                {course.resources?.map((res) => (
+                  <div key={res.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between shadow-xs hover:border-purple-300 transition">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-50 text-[#7C248C] border border-purple-200 font-bold">
+                          {res.fileType.split("/")[1]?.toUpperCase() || res.fileType || "FILE"}
+                        </span>
+                        <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 font-mono px-2 py-0.5 rounded font-bold">
+                          {res.batch ? `Batch: ${res.batch.name}` : "Course-Wide"}
+                        </span>
+                      </div>
+                      <h3 className="font-bold text-slate-900 text-xs line-clamp-1">{res.title}</h3>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                      <a
+                        href={res.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-bold text-[#7C248C] hover:text-purple-900 flex items-center gap-1"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download Asset
+                      </a>
+
+                      <button
+                        onClick={() => setDeletingTarget({ type: "resource", id: res.id, title: res.title })}
+                        className="p-1 rounded-lg bg-white border border-slate-200 hover:bg-rose-50 text-slate-600 hover:text-rose-600"
+                        title="Delete Resource"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Lesson-specific Resources */}
                 {course.modules.flatMap((m) =>
                   m.lessons.flatMap((l) =>
                     l.resources.map((res) => (
-                      <div key={res.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between shadow-xs">
+                      <div key={res.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 flex flex-col justify-between shadow-xs hover:border-purple-300 transition">
                         <div className="space-y-2">
                           <div className="flex justify-between items-center">
                             <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-50 text-[#7C248C] border border-purple-200 font-bold">
-                              {res.fileType.split("/")[1]?.toUpperCase() || "FILE"}
+                              {res.fileType.split("/")[1]?.toUpperCase() || res.fileType || "FILE"}
                             </span>
                             <span className="text-[10px] text-slate-500 font-mono">
                               Lesson: {l.title}

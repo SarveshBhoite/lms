@@ -14,16 +14,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cou
     }
 
     const body = await req.json();
-    const { lessonId, title, fileType = "PDF", fileSize = 1024, fileUrl, isPublic = true } = body;
+    const { lessonId, batchId, title, fileType = "PDF", fileSize = 1024, fileUrl, isPublic = true } = body;
 
-    if (!lessonId || !title || !fileUrl) {
-      throw new Error("Lesson ID, title, and file/URL are required");
+    if (!title || !fileUrl) {
+      throw new Error("Resource title and file URL are required");
     }
 
     const resourceRecord = await prisma.$transaction(async (tx) => {
       const res = await tx.resource.create({
         data: {
-          lessonId,
+          courseId,
+          batchId: batchId || null,
+          lessonId: lessonId || null,
           title,
           fileType,
           fileSize: Number(fileSize) || 1024,
@@ -37,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ cou
           userId: session.userId,
           action: "RESOURCE_CREATED",
           resource: `Resource:${res.id}`,
-          details: { title: res.title, lessonId, courseId },
+          details: { title: res.title, lessonId: lessonId || null, batchId: batchId || null, courseId },
         },
       });
 
