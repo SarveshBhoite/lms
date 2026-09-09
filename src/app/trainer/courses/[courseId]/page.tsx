@@ -70,6 +70,40 @@ export default async function TrainerCourseDetailPage({ params }: { params: Prom
           _count: { select: { students: true } },
         },
       },
+      quizzes: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: { select: { questions: true, quizAttempts: true } },
+          lesson: { select: { id: true, title: true } },
+        },
+      },
+      assignments: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: { select: { submissions: true } },
+          lesson: { select: { id: true, title: true } },
+        },
+      },
+      liveClasses: {
+        orderBy: { scheduledDate: "desc" },
+        include: {
+          batch: {
+            select: {
+              id: true,
+              name: true,
+              _count: { select: { students: true } },
+            },
+          },
+          trainer: { select: { id: true, name: true } },
+          attendances: {
+            select: {
+              id: true,
+              status: true,
+              userId: true,
+            },
+          },
+        },
+      },
     },
   });
 

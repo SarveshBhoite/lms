@@ -20,7 +20,18 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
         modules: {
           include: {
             lessons: {
-              include: { resources: true },
+              include: {
+                resources: true,
+                quiz: {
+                  include: {
+                    questions: {
+                      orderBy: { orderIndex: "asc" },
+                      include: { options: { orderBy: { orderIndex: "asc" } } },
+                    },
+                  },
+                },
+                assignment: true,
+              },
               orderBy: { orderIndex: "asc" },
             },
           },
@@ -46,6 +57,41 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cour
         batches: {
           include: {
             students: { select: { userId: true } },
+            _count: { select: { students: true } },
+          },
+        },
+        quizzes: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: { select: { questions: true, quizAttempts: true } },
+            lesson: { select: { id: true, title: true } },
+          },
+        },
+        assignments: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: { select: { submissions: true } },
+            lesson: { select: { id: true, title: true } },
+          },
+        },
+        liveClasses: {
+          orderBy: { scheduledDate: "desc" },
+          include: {
+            batch: {
+              select: {
+                id: true,
+                name: true,
+                _count: { select: { students: true } },
+              },
+            },
+            trainer: { select: { id: true, name: true } },
+            attendances: {
+              select: {
+                id: true,
+                status: true,
+                userId: true,
+              },
+            },
           },
         },
       },
