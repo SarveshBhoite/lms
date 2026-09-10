@@ -60,6 +60,11 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             batch: { select: { id: true, name: true, startDate: true, endDate: true } },
           },
         },
+        studentBatches: {
+          include: {
+            batch: { select: { id: true, name: true, startDate: true, endDate: true, courseId: true } },
+          },
+        },
         courseProgresses: {
           include: { course: { select: { id: true, title: true } } },
         },
