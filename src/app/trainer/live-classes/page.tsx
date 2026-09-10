@@ -156,18 +156,29 @@ export default function TrainerLiveClassesPage() {
   useEffect(() => {
     fetchLiveClasses();
     fetchGoogleStatus();
+
+    const params = new URLSearchParams(window.location.search);
+    const urlBatchId = params.get("batchId");
+    const urlCourseId = params.get("courseId");
+
     fetch("/api/trainer/batches")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data)) {
           setBatches(data.data);
           if (data.data.length > 0) {
+            const targetBatch = (urlBatchId && data.data.find((b: any) => b.id === urlBatchId)) || data.data[0];
             setForm((prev) => ({
               ...prev,
-              batchId: data.data[0].id,
-              courseId: data.data[0].course.id,
-              selectedBatchIds: [data.data[0].id],
+              batchId: targetBatch.id,
+              courseId: targetBatch.course.id,
+              selectedBatchIds: [targetBatch.id],
             }));
+
+            // If arrived from batch creation or batch cockpit to schedule class, open modal
+            if (urlBatchId) {
+              setIsScheduleModalOpen(true);
+            }
           }
         }
       });

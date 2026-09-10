@@ -49,13 +49,19 @@ export default function TrainerCreateQuizPage() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlCourseId = params.get("courseId");
+
     fetch("/api/trainer/courses")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.data)) {
           setCourses(data.data);
           if (data.data.length > 0) {
-            setForm((prev) => ({ ...prev, courseId: data.data[0].id }));
+            const initialId = (urlCourseId && data.data.some((c: CourseItem) => c.id === urlCourseId))
+              ? urlCourseId
+              : data.data[0].id;
+            setForm((prev) => ({ ...prev, courseId: initialId }));
           }
         }
       })
