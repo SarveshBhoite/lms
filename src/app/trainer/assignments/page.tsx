@@ -68,8 +68,8 @@ export default async function TrainerAssignmentsPage() {
       },
     },
     orderBy: [
-      { deadline: "asc" },
       { createdAt: "desc" },
+      { deadline: "desc" },
     ],
   });
 

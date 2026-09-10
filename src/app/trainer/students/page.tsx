@@ -84,7 +84,7 @@ export default async function TrainerStudentsPage() {
       },
       attendances: { select: { status: true } },
     },
-    orderBy: { name: "asc" },
+    orderBy: { createdAt: "desc" },
   });
 
   const students: StudentListItem[] = rawStudents.map((s) => ({

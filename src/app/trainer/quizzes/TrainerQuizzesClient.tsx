@@ -76,7 +76,7 @@ export default function TrainerQuizzesClient({
     const matchesStatus = selectedStatus === "ALL" || q.status === selectedStatus;
 
     return matchesSearch && matchesCourse && matchesStatus;
-  });
+  }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleDelete = async (quizId: string, title: string) => {
     if (!confirm(`Are you sure you want to permanently delete the quiz "${title}" and all its recorded attempts?`)) {

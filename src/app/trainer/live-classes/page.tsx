@@ -318,7 +318,7 @@ export default function TrainerLiveClassesPage() {
     if (classTypeFilter === "GENERAL" && lc.courseId) return false;
 
     return matchSearch && matchBatch && matchStatus && matchDate;
-  });
+  }).sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime());
 
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">

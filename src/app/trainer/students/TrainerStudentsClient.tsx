@@ -135,7 +135,7 @@ export default function TrainerStudentsClient({
         s.enrollments.some((e) => e.batch?.name === selectedBatch);
 
       return matchSearch && matchStatus && matchCourse && matchBatch;
-    });
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [students, searchQuery, statusFilter, selectedCourse, selectedBatch]);
 
   return (

@@ -31,7 +31,10 @@ export async function GET(req: NextRequest) {
         trainer: { select: { id: true, name: true, email: true } },
         attendances: { select: { id: true, userId: true, status: true, isApproved: true, joinClickTime: true, excuseReason: true } },
       },
-      orderBy: { scheduledDate: "asc" },
+      orderBy: [
+        { scheduledDate: "desc" },
+        { createdAt: "desc" },
+      ],
     });
 
     return NextResponse.json({ success: true, data: liveClasses });
