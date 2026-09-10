@@ -24,8 +24,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "JVM | Enterprise Academic Intelligence & Learning Platform",
-  description: "Next-generation Learning Management System for educational institutes, trainers, and students.",
+  title: "JVM LMS • Next-Gen Learning Management System",
+  description: "JVM LMS - Empowering Excellence Through Advanced Digital Education. Interactive coursework, live sessions, quizzes, assignments, and verifiable certifications.",
 };
 
 export default function RootLayout({

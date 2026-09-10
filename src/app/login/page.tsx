@@ -90,10 +90,10 @@ export default function LoginPage() {
           <img src="/jvm_logo-bg.png" alt="JVM Institute Logo" className="h-14 w-auto object-contain drop-shadow-sm" />
         </Link>
         <h2 className="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-          Learning Portal
+          JVM <span className="jvm-gradient-text">LMS</span> Portal
         </h2>
         <p className="mt-1.5 text-xs text-slate-500 font-medium">
-          Sign in with your institutional credentials to continue
+          Sign in to your JVM LMS account to continue learning
         </p>
       </div>
 
