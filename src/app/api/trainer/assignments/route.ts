@@ -3,6 +3,19 @@ import { AssignmentCreateSchema, AssignmentEvaluationSchema } from "@/validation
 import { AssignmentService } from "@/services/assignment.service";
 import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 
+export async function GET() {
+  try {
+    const session = await requireTrainerOrAdmin();
+    const assignments = await AssignmentService.getTrainerAssignments(
+      session.userId,
+      session.role === "ADMIN"
+    );
+    return NextResponse.json({ success: true, data: assignments });
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const session = await requireTrainerOrAdmin();
