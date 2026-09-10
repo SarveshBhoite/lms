@@ -20,7 +20,14 @@ export async function GET(req: NextRequest) {
           },
       include: {
         course: { select: { id: true, title: true } },
-        batch: { select: { id: true, name: true, course: { select: { title: true } } } },
+        batch: {
+          select: {
+            id: true,
+            name: true,
+            course: { select: { title: true } },
+            students: { select: { id: true } },
+          },
+        },
         trainer: { select: { id: true, name: true, email: true } },
         attendances: { select: { id: true, userId: true, status: true, isApproved: true, joinClickTime: true, excuseReason: true } },
       },

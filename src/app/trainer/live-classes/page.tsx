@@ -22,6 +22,9 @@ import {
   BookOpen,
   CheckSquare,
   Check,
+  Radio,
+  Users,
+  Calendar,
 } from "lucide-react";
 
 interface LiveClassItem {
@@ -40,7 +43,12 @@ interface LiveClassItem {
   recordingUrl?: string | null;
   status: "SCHEDULED" | "LIVE" | "COMPLETED" | "CANCELLED";
   course?: { id: string; title: string } | null;
-  batch: { id: string; name: string; course: { title: string } };
+  batch: {
+    id: string;
+    name: string;
+    course: { title: string };
+    students?: { id: string }[];
+  };
   trainer: { id: string; name: string; email: string };
   attendances: { id: string; userId: string; status: string; isApproved: boolean }[];
 }
@@ -328,21 +336,38 @@ export default function TrainerLiveClassesPage() {
         </div>
       )}
 
-      {/* Top Banner with Google Connect Button beside Schedule Class */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-white p-8 rounded-3xl border border-slate-200 shadow-xs">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
-            <Video className="w-7 h-7 text-[#1E2B88]" /> Live Interactive Classes Studio
-          </h1>
-          <p className="text-slate-600 text-sm mt-1">
-            Schedule live classes for cohorts, manage Google Meet / Custom links, and track timestamped attendance.
-          </p>
+      {/* Compact Studio Header Banner (~10% vh) */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-r from-white via-purple-50/40 to-indigo-50/30 px-6 py-5 sm:px-8 sm:py-6 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 rounded-full bg-gradient-to-br from-purple-400/10 to-pink-500/10 blur-xl pointer-events-none" />
+
+        <div className="flex items-center gap-4 relative z-10 min-w-0">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1E2B88] to-[#7C248C] border border-white/40 shrink-0 shadow-sm flex items-center justify-center text-white">
+            <Video className="w-7 h-7" />
+          </div>
+
+          <div className="space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-[#7C248C] text-[10px] font-mono font-bold uppercase tracking-wider">
+                <Sparkles className="w-3 h-3 text-[#7C248C]" /> Live Broadcast Studio
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-mono font-bold uppercase">
+                Cohorts & Courses
+              </span>
+            </div>
+
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+              Live Interactive Classes Studio
+            </h1>
+            <p className="text-slate-500 text-xs font-mono">
+              Schedule cohort sessions, broadcast via Google Meet, and monitor real-time student attendance turnout.
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
           {/* Google Connect Button or Connected Pill */}
           {googleStatus?.isConnected ? (
-            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white border border-emerald-200 shadow-xs text-xs">
+            <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white border border-emerald-200 shadow-2xs text-xs">
               <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-[11px] uppercase">
                 {googleStatus.email?.[0] || "G"}
               </div>
@@ -371,10 +396,10 @@ export default function TrainerLiveClassesPage() {
           ) : (
             <a
               href={googleStatus?.authUrl || "/api/trainer/google-account"}
-              className="px-4 py-3 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 text-slate-800 font-bold text-xs flex items-center gap-2 shadow-xs transition hover:scale-[1.02] cursor-pointer"
+              className="px-4 py-2.5 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 text-slate-800 font-bold text-xs flex items-center gap-2 shadow-2xs transition hover:scale-[1.02] cursor-pointer"
             >
               <GoogleIcon className="w-4 h-4" />
-              <span>Connect Google Account</span>
+              <span>Connect Google</span>
             </a>
           )}
 
@@ -384,12 +409,91 @@ export default function TrainerLiveClassesPage() {
               setStep(1);
               setIsScheduleModalOpen(true);
             }}
-            className="px-6 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition shrink-0 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition shrink-0 hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             <Plus className="w-4 h-4" /> Schedule Live Class
           </button>
         </div>
       </div>
+
+      {/* 5 High-Impact KPI Metric Cards */}
+      {(() => {
+        // Calculate average attendance across completed sessions with enrolled students
+        const completedSessionsWithStudents = classes.filter(
+          (c) => (c.batch?.students?.length || 0) > 0 && (c.status === "COMPLETED" || c.status === "LIVE")
+        );
+        let avgAttendancePercent = 0;
+        if (completedSessionsWithStudents.length > 0) {
+          const totalPercentages = completedSessionsWithStudents.reduce((sum, c) => {
+            const studentCount = c.batch?.students?.length || 1;
+            const attendedCount = c.attendances?.filter((a) => a.status === "PRESENT" || a.status === "LATE").length || 0;
+            return sum + Math.min(100, Math.round((attendedCount / studentCount) * 100));
+          }, 0);
+          avgAttendancePercent = Math.round(totalPercentages / completedSessionsWithStudents.length);
+        }
+
+        return (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5 text-[#1E2B88]" /> Total Sessions
+              </span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900">{classes.length}</span>
+                <span className="text-[11px] font-mono text-slate-400">Scheduled</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Radio className="w-3.5 h-3.5 text-rose-600 animate-pulse" /> Live Now
+              </span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-rose-600">
+                  {classes.filter((c) => c.status === "LIVE").length}
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">Broadcasting</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#7C248C]" /> Upcoming
+              </span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-slate-900">
+                  {classes.filter((c) => c.status === "SCHEDULED").length}
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">Queued</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Completed
+              </span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-emerald-700">
+                  {classes.filter((c) => c.status === "COMPLETED").length}
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">Archived</span>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between col-span-2 sm:col-span-1">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-[#7C248C]" /> Avg Attendance %
+              </span>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl font-black text-[#7C248C]">
+                  {avgAttendancePercent > 0 ? `${avgAttendancePercent}%` : "—"}
+                </span>
+                <span className="text-[11px] font-mono text-slate-400">Turnout</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Filters Bar */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4">
@@ -460,19 +564,61 @@ export default function TrainerLiveClassesPage() {
         </div>
       </div>
 
-      {/* Grid of Classes */}
-      {filteredClasses.length > 0 ? (
+      {/* Classes Content: Skeleton Loader vs Real Grid vs Empty State */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5 flex flex-col justify-between"
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="w-20 h-5 bg-slate-100 rounded-full" />
+                  <div className="w-24 h-5 bg-slate-100 rounded-full" />
+                </div>
+                <div className="space-y-2">
+                  <div className="w-1/3 h-3 bg-slate-100 rounded-md" />
+                  <div className="w-3/4 h-5 bg-slate-100 rounded-md" />
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2.5">
+                  <div className="flex justify-between">
+                    <div className="w-12 h-3 bg-slate-200 rounded" />
+                    <div className="w-20 h-3 bg-slate-200 rounded" />
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="w-16 h-3 bg-slate-200 rounded" />
+                    <div className="w-16 h-3 bg-slate-200 rounded" />
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-slate-100">
+                    <div className="w-14 h-3 bg-slate-200 rounded" />
+                    <div className="w-12 h-3 bg-slate-200 rounded" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="h-12 rounded-xl bg-slate-100" />
+                  <div className="h-12 rounded-xl bg-slate-100" />
+                </div>
+              </div>
+              <div className="pt-2">
+                <div className="w-full h-11 rounded-2xl bg-slate-100" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredClasses.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredClasses.map((lc) => {
             const approvedAttCount = lc.attendances?.filter((a) => a.isApproved).length || 0;
             const pendingAttCount = lc.attendances?.filter((a) => !a.isApproved).length || 0;
             const isCourseClass = Boolean(lc.courseId || lc.course);
             const batchCount = lc.batchIds && lc.batchIds.length > 0 ? lc.batchIds.length : 1;
+            const isCompleted = lc.status === "COMPLETED";
 
             return (
               <div
                 key={lc.id}
-                className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5 flex flex-col justify-between"
+                className="glass-card p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-5 flex flex-col justify-between hover:shadow-md transition duration-200"
               >
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -480,7 +626,7 @@ export default function TrainerLiveClassesPage() {
                       className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
                         lc.status === "LIVE"
                           ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
-                          : lc.status === "COMPLETED"
+                          : isCompleted
                           ? "bg-slate-100 text-slate-700 border-slate-300"
                           : "bg-purple-50 text-[#7C248C] border-purple-200"
                       }`}
@@ -552,9 +698,21 @@ export default function TrainerLiveClassesPage() {
                 <div className="pt-2">
                   <Link
                     href={`/trainer/live-classes/${lc.id}`}
-                    className="w-full py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center justify-center gap-2 transition shadow-md shadow-purple-900/20 hover:scale-[1.01] active:scale-[0.99]"
+                    className={`w-full py-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition ${
+                      isCompleted
+                        ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 shadow-2xs"
+                        : "jvm-gradient-bg jvm-gradient-hover text-white shadow-md shadow-purple-900/20 hover:scale-[1.01] active:scale-[0.99]"
+                    }`}
                   >
-                    <CheckSquare className="w-3.5 h-3.5" /> Manage & Verify Attendance
+                    {isCompleted ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Review Session & Attendance
+                      </>
+                    ) : (
+                      <>
+                        <CheckSquare className="w-3.5 h-3.5" /> Manage & Verify Attendance
+                      </>
+                    )}
                   </Link>
                 </div>
               </div>

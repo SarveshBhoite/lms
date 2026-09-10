@@ -20,6 +20,14 @@ import {
   Calendar,
   Save,
   Upload,
+  Sparkles,
+  Layers,
+  Radio,
+  FileVideo,
+  ShieldCheck,
+  Check,
+  AlertCircle,
+  Award,
 } from "lucide-react";
 
 interface StudentMember {
@@ -240,6 +248,13 @@ export default function LiveClassDetailClient({
     }
   };
 
+  // KPI Metrics Calculation
+  const totalEnrolled = liveClass.batch.students.length;
+  const verifiedAttendanceCount = liveClass.attendances.filter((a) => a.isApproved).length;
+  const presentCount = liveClass.attendances.filter((a) => a.status === "PRESENT" || a.status === "LATE").length;
+  const pendingReviewCount = liveClass.attendances.filter((a) => !a.isApproved).length;
+  const attendanceRate = totalEnrolled > 0 ? Math.round((presentCount / totalEnrolled) * 100) : 0;
+
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
       {/* Toast Notification */}
@@ -260,148 +275,298 @@ export default function LiveClassDetailClient({
       <div className="flex items-center justify-between border-b border-slate-200 pb-4">
         <Link
           href="/trainer/live-classes"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-cyan-600 transition"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#7C248C] transition"
         >
           <ChevronLeft className="w-4 h-4" /> Back to Live Classes Studio
         </Link>
       </div>
 
-      {/* Class Banner */}
-      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs space-y-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span
-              className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
-                liveClass.status === "LIVE"
-                  ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
-                  : liveClass.status === "COMPLETED"
-                  ? "bg-slate-100 text-slate-700 border-slate-300"
-                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
-              }`}
-            >
-              {liveClass.status}
-            </span>
-            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 font-mono">
-              Batch: {liveClass.batch.name}
-            </span>
+      {/* Compact Studio Header Banner (~10% vh) */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-r from-white via-purple-50/40 to-indigo-50/30 px-6 py-5 sm:px-8 sm:py-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-48 h-48 rounded-full bg-gradient-to-br from-purple-400/10 to-pink-500/10 blur-xl pointer-events-none" />
+
+        <div className="flex items-center gap-4 relative z-10 min-w-0">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-[#1E2B88] to-[#7C248C] border border-white/40 shrink-0 shadow-sm flex items-center justify-center text-white">
+            <Video className="w-7 h-7" />
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">{liveClass.title}</h1>
-          <p className="text-xs text-slate-600 font-mono">
-            Course: <strong className="text-slate-900">{liveClass.batch.course.title}</strong> • Date: {new Date(liveClass.scheduledDate).toLocaleDateString()}
-          </p>
+          <div className="space-y-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 text-[#7C248C] text-[10px] font-mono font-bold uppercase tracking-wider">
+                <Sparkles className="w-3 h-3 text-[#7C248C]" /> Live Interactive Cockpit
+              </span>
+              <span
+                className={`text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                  liveClass.status === "LIVE"
+                    ? "bg-rose-50 text-rose-700 border-rose-200 animate-pulse"
+                    : liveClass.status === "COMPLETED"
+                    ? "bg-slate-100 text-slate-700 border-slate-300"
+                    : "bg-purple-50 text-[#7C248C] border-purple-200"
+                }`}
+              >
+                {liveClass.status}
+              </span>
+              <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200 font-mono">
+                Batch: {liveClass.batch.name}
+              </span>
+            </div>
+
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">{liveClass.title}</h1>
+            <p className="text-slate-500 text-xs font-mono flex items-center gap-2 flex-wrap">
+              <span>Course: <strong className="text-slate-800">{liveClass.batch.course.title}</strong></span>
+              <span>•</span>
+              <span>Date: {new Date(liveClass.scheduledDate).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}</span>
+              <span>•</span>
+              <span>Time: {new Date(liveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(liveClass.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-end md:self-auto">
-          <a
-            href={liveClass.meetUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="px-5 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center gap-2 transition"
-          >
-            <Video className="w-4 h-4" /> Launch Meet <ExternalLink className="w-3.5 h-3.5" />
-          </a>
+        <div className="flex items-center gap-2.5 flex-wrap relative z-10 shrink-0 self-end md:self-auto">
+          {liveClass.status === "COMPLETED" ? (
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-slate-100 text-slate-600 font-mono text-xs font-bold border border-slate-200 shadow-2xs">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Session Completed</span>
+            </div>
+          ) : (
+            <>
+              <a
+                href={liveClass.meetUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-5 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Video className="w-4 h-4" /> Launch Meet <ExternalLink className="w-3.5 h-3.5" />
+              </a>
 
-          <button
-            onClick={() => setIsEditModalOpen(true)}
-            className="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
-          >
-            <Edit2 className="w-4 h-4 inline mr-1" /> Edit / Reschedule
-          </button>
+              <button
+                onClick={() => setIsEditModalOpen(true)}
+                className="px-4 py-3 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 text-slate-700 hover:text-[#7C248C] font-bold text-xs transition shadow-2xs hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              >
+                <Edit2 className="w-4 h-4 inline mr-1" /> Edit / Reschedule
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 5 KPI Metric Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-[#1E2B88]" /> Cohort Enrolled
+          </span>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#1E2B88]">{totalEnrolled}</span>
+            <span className="text-[11px] font-mono text-slate-400">Students</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <Radio className="w-3.5 h-3.5 text-rose-600" /> Attended / Present
+          </span>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-rose-600">{presentCount}</span>
+            <span className="text-[11px] font-mono text-slate-400">Students</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <Award className="w-3.5 h-3.5 text-emerald-600" /> Attendance %
+          </span>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-emerald-700">{attendanceRate}%</span>
+            <span className="text-[11px] font-mono text-slate-400">Turnout</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Absent / Unlogged
+          </span>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-amber-600">{Math.max(0, totalEnrolled - presentCount)}</span>
+            <span className="text-[11px] font-mono text-slate-400">Students</span>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between col-span-2 sm:col-span-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#7C248C]" /> Verified / Approved
+          </span>
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-2xl font-black text-[#7C248C]">{verifiedAttendanceCount}</span>
+            <span className="text-[11px] font-mono text-slate-400">Approved</span>
+          </div>
         </div>
       </div>
 
       {/* 4 Section Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-1">
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-1 scrollbar-none">
         <button
           onClick={() => setActiveTab("overview")}
-          className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "overview"
-              ? "border-cyan-600 text-cyan-700 bg-cyan-50/50"
+              ? "border-[#1E2B88] text-[#1E2B88] bg-indigo-50/50"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <BookOpen className="w-4 h-4" /> Overview & Status
+          <BookOpen className="w-4 h-4 text-[#1E2B88]" /> Overview & Status
         </button>
 
         <button
           onClick={() => setActiveTab("students")}
-          className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "students"
-              ? "border-cyan-600 text-cyan-700 bg-cyan-50/50"
+              ? "border-cyan-600 text-cyan-800 bg-cyan-50/50"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <Users className="w-4 h-4" /> Batch Students ({liveClass.batch.students.length})
+          <Users className="w-4 h-4 text-cyan-600" /> Batch Students ({liveClass.batch.students.length})
         </button>
 
         <button
           onClick={() => setActiveTab("attendance")}
-          className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "attendance"
-              ? "border-cyan-600 text-cyan-700 bg-cyan-50/50"
+              ? "border-emerald-600 text-emerald-800 bg-emerald-50/50"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <CheckSquare className="w-4 h-4" /> Attendance Roster ({liveClass.attendances.length} marked)
+          <CheckSquare className="w-4 h-4 text-emerald-600" /> Attendance Roster ({liveClass.attendances.length} marked)
         </button>
 
         <button
           onClick={() => setActiveTab("recording")}
-          className={`px-5 py-3 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap ${
+          className={`px-4 py-2.5 rounded-t-2xl font-bold text-xs transition flex items-center gap-2 border-b-2 whitespace-nowrap cursor-pointer ${
             activeTab === "recording"
-              ? "border-cyan-600 text-cyan-700 bg-cyan-50/50"
+              ? "border-[#7C248C] text-[#7C248C] bg-purple-50/50"
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <Video className="w-4 h-4" /> Recording Link
+          <Video className="w-4 h-4 text-[#7C248C]" /> Recording Archive {liveClass.recordingUrl ? "✓" : ""}
         </button>
       </div>
 
       {/* ---------------- SECTION 1: OVERVIEW ---------------- */}
       {activeTab === "overview" && (
         <div className="space-y-6">
-          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
-            <h2 className="text-lg font-bold text-slate-900">Class Details & Status Management</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-700 font-mono">
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                <div className="text-slate-500">SCHEDULED START TIME</div>
-                <div className="text-sm font-bold text-slate-900">
-                  {new Date(liveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({new Date(liveClass.scheduledDate).toLocaleDateString()})
-                </div>
-                <div className="text-[11px] text-slate-400 font-sans">
-                  * Session remains live until you click "Mark COMPLETED".
-                </div>
-                <div className="text-slate-500 pt-2">DESCRIPTION</div>
-                <p className="text-slate-700 text-xs leading-relaxed">{liveClass.description || "No session description provided."}</p>
+          <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+              <div>
+                <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-[#1E2B88]" /> Session Schedule & Real-Time Status Controls
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Monitor runtime session parameters, manage completion workflows, and review automated audit timestamps.
+                </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
-                <div className="text-slate-500">STATUS CONTROLS</div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {liveClass.status !== "COMPLETED" && (
-                    <button
-                      onClick={() => handleStatusChange("COMPLETED")}
-                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-1.5"
-                    >
-                      <CheckCircle2 className="w-3.5 h-3.5" /> Mark COMPLETED
-                    </button>
-                  )}
-                  {liveClass.status !== "CANCELLED" && (
-                    <button
-                      onClick={() => handleStatusChange("CANCELLED")}
-                      className="px-3.5 py-2 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs transition"
-                    >
-                      Cancel Session
-                    </button>
-                  )}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold px-3 py-1.5 rounded-xl bg-purple-50 text-[#7C248C] border border-purple-200">
+                  Late Window: {liveClass.lateCutoffMinutes || 10} Mins
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-slate-700">
+              <div className="p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-4">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider font-mono">
+                  <Clock className="w-4 h-4 text-[#1E2B88]" /> Timing & Logistics
                 </div>
-                {liveClass.status !== "COMPLETED" && (
-                  <p className="text-[11px] text-slate-500 italic mt-1">
-                    * The session link is automatically active for students during scheduled hours. Click "Mark COMPLETED" when you finish the class to unlock attendance verification.
+
+                <div className="space-y-2.5 font-mono text-xs">
+                  <div className="flex justify-between items-center py-1.5 border-b border-slate-200/60">
+                    <span className="text-slate-500">Scheduled Date:</span>
+                    <strong className="text-slate-900 font-bold">
+                      {new Date(liveClass.scheduledDate).toLocaleDateString(undefined, {
+                        weekday: "short",
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center py-1.5 border-b border-slate-200/60">
+                    <span className="text-slate-500">Start Time:</span>
+                    <strong className="text-slate-900 font-bold">
+                      {new Date(liveClass.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center py-1.5 border-b border-slate-200/60">
+                    <span className="text-slate-500">End Time:</span>
+                    <strong className="text-slate-900 font-bold">
+                      {new Date(liveClass.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </strong>
+                  </div>
+                  <div className="flex justify-between items-center py-1.5">
+                    <span className="text-slate-500">Session Room State:</span>
+                    <strong className={`font-bold ${liveClass.status === "LIVE" ? "text-rose-600" : liveClass.status === "COMPLETED" ? "text-slate-600" : "text-emerald-600"}`}>
+                      {liveClass.status === "LIVE" ? "Active Live Stream" : liveClass.status === "COMPLETED" ? "Closed / Archived" : "Room Prepped (Scheduled)"}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <span className="text-[11px] font-bold text-slate-500 block mb-1 uppercase font-mono">Session Topic / Description</span>
+                  <div className="p-3.5 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs leading-relaxed">
+                    {liveClass.description || "No session description provided for this live class."}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80 space-y-4 flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-slate-900 font-bold text-xs uppercase tracking-wider font-mono">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Lifecycle Status Transitions
+                  </div>
+                  <p className="text-slate-600 text-xs leading-relaxed">
+                    The live room link is automatically active for enrolled cohort students. When you have finished broadcasting, mark the class as <strong>COMPLETED</strong> to freeze join timestamps and unlock verified attendance approval.
                   </p>
-                )}
+
+                  <div className="flex flex-wrap gap-2.5 pt-2">
+                    {liveClass.status !== "COMPLETED" && (
+                      <button
+                        onClick={() => handleStatusChange("COMPLETED")}
+                        disabled={actionLoading}
+                        className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition flex items-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+                      >
+                        {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                        Mark Session as COMPLETED
+                      </button>
+                    )}
+                    {liveClass.status !== "CANCELLED" && liveClass.status !== "COMPLETED" && (
+                      <button
+                        onClick={() => {
+                          if (confirm("Are you sure you want to cancel this live session?")) {
+                            handleStatusChange("CANCELLED");
+                          }
+                        }}
+                        disabled={actionLoading}
+                        className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 hover:bg-rose-50 hover:border-rose-300 hover:text-rose-700 text-slate-700 font-bold text-xs transition cursor-pointer disabled:opacity-50"
+                      >
+                        Cancel Session
+                      </button>
+                    )}
+                    {liveClass.status === "COMPLETED" && (
+                      <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs space-y-1 w-full">
+                        <div className="font-bold flex items-center gap-1.5">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Session Successfully Concluded
+                        </div>
+                        <p className="text-[11px] text-emerald-700">
+                          Attendance timestamps are locked. You can now verify, override, and approve all student attendance records in the <strong>Attendance Roster</strong> tab.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-purple-50/60 border border-purple-200 text-[#7C248C] text-[11px] font-mono flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 shrink-0 text-[#7C248C]" />
+                  <span>Google Meet ID & Calendar event stay synchronized with batch cohorts.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -410,39 +575,64 @@ export default function LiveClassDetailClient({
 
       {/* ---------------- SECTION 2: STUDENTS ---------------- */}
       {activeTab === "students" && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-          <h2 className="text-lg font-bold text-slate-900">Batch Cohort Students ({liveClass.batch.students.length})</h2>
+        <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <Users className="w-5 h-5 text-cyan-600" /> Batch Cohort Students ({liveClass.batch.students.length})
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Students authorized to attend this live session from cohort batch <strong>{liveClass.batch.name}</strong>.
+              </p>
+            </div>
+
+            <span className="text-xs font-mono font-bold px-3 py-1 rounded-full bg-cyan-50 text-cyan-800 border border-cyan-200">
+              {liveClass.batch.course.title}
+            </span>
+          </div>
 
           {liveClass.batch.students.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {liveClass.batch.students.map((bs) => (
-                <div key={bs.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-slate-900 text-sm">{bs.user.name}</div>
-                    <div className="text-xs text-slate-500 font-mono">{bs.user.email}</div>
+                <div
+                  key={bs.id}
+                  className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs hover:shadow-xs hover:border-purple-200 transition duration-150 flex items-center justify-between gap-3"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E2B88]/10 to-[#7C248C]/20 border border-purple-100 flex items-center justify-center font-black text-[#7C248C] text-sm shrink-0">
+                      {bs.user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-bold text-slate-900 text-xs truncate">{bs.user.name}</div>
+                      <div className="text-[11px] text-slate-400 font-mono truncate">{bs.user.email}</div>
+                    </div>
                   </div>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200 font-bold">
-                    Batch Member
+
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200 font-bold shrink-0">
+                    Enrolled
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center text-xs text-slate-500">No students enrolled in this batch.</div>
+            <div className="p-12 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-200 space-y-2">
+              <Users className="w-8 h-8 mx-auto text-slate-400" />
+              <p>No active students enrolled in this batch cohort.</p>
+            </div>
           )}
         </div>
       )}
 
       {/* ---------------- SECTION 3: ATTENDANCE ---------------- */}
       {activeTab === "attendance" && (
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-6">
+        <div className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                 <CheckSquare className="w-5 h-5 text-emerald-600" /> Attendance Roster & Check-In Verification
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Students who click "Join Google Meet" are timestamped automatically.
+                Students who click "Join Google Meet" are timestamped automatically. Review join clicks, evaluate excuses, and approve records.
               </p>
             </div>
 
@@ -470,7 +660,7 @@ export default function LiveClassDetailClient({
                     }
                   }}
                   disabled={actionLoading}
-                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+                  className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition cursor-pointer disabled:opacity-50"
                 >
                   {actionLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
                   ✓ Approve All Check-Ins
@@ -480,7 +670,7 @@ export default function LiveClassDetailClient({
                   type="button"
                   onClick={handleSaveAttendance}
                   disabled={actionLoading}
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs transition"
+                  className="px-4 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-purple-900/20 transition cursor-pointer disabled:opacity-50"
                 >
                   <Save className="w-3.5 h-3.5" /> Save Overrides
                 </button>
@@ -494,9 +684,9 @@ export default function LiveClassDetailClient({
           </div>
 
           {liveClass.batch.students.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-semibold font-mono">
+                <thead className="bg-slate-50/80 border-b border-slate-200 text-slate-600 uppercase font-bold font-mono">
                   <tr>
                     <th className="p-4">Student</th>
                     <th className="p-4">Join Click Time</th>
@@ -505,14 +695,14 @@ export default function LiveClassDetailClient({
                     <th className="p-4">Actions / Excuse</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100 text-slate-700 bg-white">
                   {liveClass.batch.students.map((bs) => {
                     const existingAtt = liveClass.attendances.find((a) => a.userId === bs.userId);
                     const currentStatus = attendanceState[bs.userId] || existingAtt?.status || "ABSENT";
                     const isApproved = existingAtt?.isApproved || false;
 
                     return (
-                      <tr key={bs.id} className="hover:bg-slate-50 transition">
+                      <tr key={bs.id} className="hover:bg-purple-50/20 transition">
                         <td className="p-4">
                           <div className="font-bold text-slate-900">{bs.user.name}</div>
                           <div className="text-[11px] font-mono text-slate-400">{bs.user.email}</div>
@@ -541,7 +731,7 @@ export default function LiveClassDetailClient({
                                       [bs.userId]: st,
                                     }))
                                   }
-                                  className={`px-2.5 py-1 rounded-lg font-bold text-[10px] transition ${
+                                  className={`px-2.5 py-1 rounded-lg font-bold text-[10px] transition cursor-pointer ${
                                     currentStatus === st
                                       ? st === "PRESENT"
                                         ? "bg-emerald-600 text-white shadow-xs"
@@ -576,20 +766,20 @@ export default function LiveClassDetailClient({
 
                         <td className="p-4">
                           {isApproved ? (
-                            <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                              ✓ Verified
+                            <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Verified
                             </span>
                           ) : (
-                            <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-amber-50 text-amber-700 border border-amber-200">
-                              ⏳ Pending Class End
+                            <span className="px-2.5 py-1 rounded-full font-mono font-bold text-[10px] bg-amber-50 text-amber-700 border border-amber-200 inline-flex items-center gap-1">
+                              <Clock className="w-3 h-3 text-amber-600" /> Pending Approval
                             </span>
                           )}
                         </td>
 
                         <td className="p-4">
                           {existingAtt?.excuseReason ? (
-                            <div className="p-2 rounded-xl bg-blue-50 border border-blue-100 text-[11px] text-blue-900 space-y-0.5 max-w-xs">
-                              <span className="font-bold block text-[10px] text-blue-700 uppercase">Absence Reason:</span>
+                            <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-100 text-[11px] text-blue-900 space-y-1 max-w-xs">
+                              <span className="font-bold block text-[10px] text-blue-700 uppercase font-mono">Absence Reason:</span>
                               <p className="line-clamp-2">{existingAtt.excuseReason}</p>
                             </div>
                           ) : !isApproved && existingAtt && liveClass.status === "COMPLETED" ? (
@@ -612,12 +802,12 @@ export default function LiveClassDetailClient({
                                   setActionLoading(false);
                                 }
                               }}
-                              className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C248C] font-bold text-[10px] transition"
+                              className="px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 border border-purple-200 text-[#7C248C] font-bold text-[10px] transition cursor-pointer"
                             >
                               Approve Check-In
                             </button>
                           ) : (
-                            <span className="text-slate-400 font-mono text-[10px]">-</span>
+                            <span className="text-slate-400 font-mono text-[10px]">—</span>
                           )}
                         </td>
                       </tr>
@@ -627,28 +817,30 @@ export default function LiveClassDetailClient({
               </table>
             </div>
           ) : (
-            <div className="p-8 text-center text-xs text-slate-500">No students enrolled in batch to mark attendance.</div>
+            <div className="p-12 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+              No students enrolled in this batch to mark attendance.
+            </div>
           )}
         </div>
       )}
 
       {/* ---------------- SECTION 4: RECORDING ---------------- */}
       {activeTab === "recording" && (
-        <form onSubmit={handleSaveRecording} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xs space-y-6">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-              <Video className="w-5 h-5 text-cyan-600" /> Class Session Recording File or Link
+        <form onSubmit={handleSaveRecording} className="bg-white p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+          <div className="border-b border-slate-100 pb-4">
+            <h2 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <FileVideo className="w-5 h-5 text-[#7C248C]" /> Class Session Recording File or Link
             </h2>
             <p className="text-xs text-slate-500 mt-1">
-              Upload a recorded video session file directly from your computer or paste an external URL (Google Drive / YouTube).
+              Upload a recorded video session file directly from your computer or paste an external streaming URL (Google Drive / YouTube).
             </p>
           </div>
 
           {/* Direct File Upload Box */}
-          <div className="p-5 rounded-2xl bg-cyan-50/60 border border-dashed border-cyan-300 space-y-3">
+          <div className="p-6 rounded-2xl bg-purple-50/40 border border-dashed border-purple-200 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center text-white shrink-0">
-                <Upload className="w-5 h-5" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1E2B88] to-[#7C248C] flex items-center justify-center text-white shrink-0 shadow-sm">
+                <Upload className="w-6 h-6" />
               </div>
               <div>
                 <h3 className="text-xs font-bold text-slate-900">Upload Video Recording File from Device</h3>
@@ -657,7 +849,7 @@ export default function LiveClassDetailClient({
             </div>
 
             <div className="flex items-center gap-3 pt-1">
-              <label className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer transition inline-flex items-center gap-2">
+              <label className="px-5 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs cursor-pointer transition inline-flex items-center gap-2 shadow-sm shadow-purple-900/20">
                 {uploadingRecording ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {uploadingRecording ? "Uploading Recording..." : "Choose Video File"}
                 <input
@@ -687,30 +879,30 @@ export default function LiveClassDetailClient({
                 />
               </label>
               {recordingUrlInput && (
-                <span className="text-xs font-mono text-cyan-700 font-bold truncate">
-                  Uploaded Path: {recordingUrlInput}
+                <span className="text-xs font-mono text-[#7C248C] font-bold truncate">
+                  Uploaded File: {recordingUrlInput}
                 </span>
               )}
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Recording File URL / Path</label>
+            <label className="text-xs font-bold text-slate-700 font-mono uppercase tracking-wider block">Recording File URL or Path</label>
             <input
               type="text"
               required
-              placeholder="/uploads/recordings/... or https://..."
+              placeholder="/uploads/recordings/... or https://drive.google.com/..."
               value={recordingUrlInput}
               onChange={(e) => setRecordingUrlInput(e.target.value)}
-              className="w-full px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-cyan-500 shadow-xs font-mono"
+              className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white shadow-xs font-mono transition"
             />
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
               disabled={actionLoading || uploadingRecording}
-              className="px-6 py-3 rounded-2xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-md shadow-cyan-600/20 flex items-center gap-2 transition disabled:opacity-50"
+              className="px-6 py-3 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition disabled:opacity-50 cursor-pointer"
             >
               {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} Publish Recording & Notify Students
             </button>
@@ -718,18 +910,21 @@ export default function LiveClassDetailClient({
         </form>
       )}
 
-      {/* Edit Modal */}
+      {/* Edit / Reschedule Modal */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <form onSubmit={handleEditSubmit} className="bg-white p-6 rounded-3xl border border-slate-200 max-w-lg w-full space-y-4 shadow-xl">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base">Edit / Reschedule Live Class</h3>
-              <button type="button" onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-700">
+          <form onSubmit={handleEditSubmit} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 max-w-lg w-full space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-4">
+              <div>
+                <h3 className="font-bold text-slate-900 text-base">Edit / Reschedule Live Class</h3>
+                <p className="text-slate-500 text-xs mt-0.5">Adjust timing, status, or meet links for this session.</p>
+              </div>
+              <button type="button" onClick={() => setIsEditModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-4 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">Class Title *</label>
                 <input
@@ -737,7 +932,7 @@ export default function LiveClassDetailClient({
                   required
                   value={editForm.title}
                   onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
                 />
               </div>
 
@@ -749,7 +944,7 @@ export default function LiveClassDetailClient({
                     required
                     value={editForm.scheduledDate}
                     onChange={(e) => setEditForm({ ...editForm, scheduledDate: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
                   />
                 </div>
 
@@ -758,7 +953,7 @@ export default function LiveClassDetailClient({
                   <select
                     value={editForm.status}
                     onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
                   >
                     <option value="SCHEDULED">SCHEDULED</option>
                     <option value="LIVE">LIVE</option>
@@ -776,7 +971,7 @@ export default function LiveClassDetailClient({
                     required
                     value={editForm.startTime}
                     onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
                   />
                 </div>
                 <div>
@@ -786,7 +981,7 @@ export default function LiveClassDetailClient({
                     required
                     value={editForm.endTime}
                     onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
                   />
                 </div>
               </div>
@@ -798,16 +993,24 @@ export default function LiveClassDetailClient({
                   required
                   value={editForm.meetUrl}
                   onChange={(e) => setEditForm({ ...editForm, meetUrl: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none shadow-xs"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
                 />
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => setIsEditModalOpen(false)} className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs">
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+              >
                 Cancel
               </button>
-              <button type="submit" disabled={actionLoading} className="px-5 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-2 shadow-xs">
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="px-5 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs flex items-center gap-2 shadow-md shadow-purple-900/20 transition cursor-pointer disabled:opacity-50"
+              >
                 {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />} Save & Notify
               </button>
             </div>
