@@ -36,6 +36,7 @@ import {
   Link2,
   MessageSquare,
 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 interface NoteItem {
   id: string;
@@ -434,7 +435,7 @@ export default function StudentProfileClient({
               )}
               <span>•</span>
               <span>
-                Registered: {new Date(student.createdAt).toLocaleDateString()}
+                Registered: {formatDate(student.createdAt)}
               </span>
             </div>
           </div>
@@ -447,7 +448,7 @@ export default function StudentProfileClient({
           </div>
           {student.lastLoginAt && (
             <div className="text-[10px] font-mono text-slate-500">
-              Last Login: {new Date(student.lastLoginAt).toLocaleString()}
+              Last Login: {formatDate(student.lastLoginAt, { includeTime: true })}
             </div>
           )}
         </div>
@@ -608,7 +609,7 @@ export default function StudentProfileClient({
                         Cohort Batch: {en.batch?.name || "Open Enrollment (No Batch)"}
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between">
-                        <span>Enrolled: {new Date(en.enrolledAt).toLocaleDateString()}</span>
+                        <span>Enrolled: {formatDate(en.enrolledAt)}</span>
                         <span className="font-bold text-slate-600 uppercase">Status: {en.status}</span>
                       </div>
                     </div>
@@ -730,7 +731,7 @@ export default function StudentProfileClient({
                       </div>
                     </div>
                     <span className="text-[10px] font-mono text-slate-500">
-                      {new Date(lp.lastWatchedAt).toLocaleDateString()}
+                      {formatDate(lp.lastWatchedAt)}
                     </span>
                   </div>
                 ))}
@@ -771,7 +772,7 @@ export default function StudentProfileClient({
                     <tr key={qa.id} className="hover:bg-slate-50/70 transition">
                       <td className="p-3.5 font-bold text-slate-900">{qa.quiz.title}</td>
                       <td className="p-3.5 font-mono text-slate-500">
-                        {new Date(qa.startedAt).toLocaleDateString()}
+                        {formatDate(qa.startedAt)}
                       </td>
                       <td className="p-3.5 font-bold font-mono text-slate-900">{qa.score.toFixed(1)}%</td>
                       <td className="p-3.5 font-mono text-slate-500">{qa.quiz.passingMarks}%</td>
@@ -842,7 +843,7 @@ export default function StudentProfileClient({
                         </a>
                       </td>
                       <td className="p-3.5 font-mono text-slate-500">
-                        {new Date(sub.submittedAt).toLocaleDateString()}
+                        {formatDate(sub.submittedAt)}
                       </td>
                       <td className="p-3.5">
                         <span className="px-2.5 py-0.5 rounded-full font-bold text-[10px] bg-slate-100 text-slate-700 border border-slate-200 font-mono">
@@ -916,7 +917,7 @@ export default function StudentProfileClient({
                         {att.liveClass.batch.name}
                       </td>
                       <td className="p-3.5 font-mono text-slate-500">
-                        {new Date(att.liveClass.scheduledDate).toLocaleDateString()}
+                        {formatDate(att.liveClass.scheduledDate)}
                       </td>
                       <td className="p-3.5 text-right">
                         <span
@@ -963,7 +964,7 @@ export default function StudentProfileClient({
                       {cert.certificateNumber}
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono">
-                      Issued: {new Date(cert.issueDate).toLocaleDateString()}
+                      Issued: {formatDate(cert.issueDate)}
                     </span>
                   </div>
                   <div className="font-bold text-slate-900 text-sm">{cert.course.title}</div>
@@ -1011,7 +1012,7 @@ export default function StudentProfileClient({
                       Faculty: {note.trainer.name} ({note.trainer.email})
                     </span>
                     <span className="text-slate-400">
-                      {new Date(note.createdAt).toLocaleString()}
+                      {formatDate(note.createdAt, { includeTime: true })}
                     </span>
                   </div>
                   <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">

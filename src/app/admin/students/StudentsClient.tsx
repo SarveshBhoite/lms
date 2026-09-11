@@ -33,6 +33,7 @@ import {
   TrendingUp,
   ArrowRight,
 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 interface Student {
   id: string;
@@ -581,7 +582,7 @@ export default function StudentsClient({
                                 {st.name}
                               </Link>
                               <span className="text-[10px] text-slate-400 font-mono">
-                                ID: {st.id.slice(-6)} • Joined {new Date(st.createdAt).toLocaleDateString()}
+                                ID: {st.id.slice(-6)} • Joined {formatDate(st.createdAt)}
                               </span>
                             </div>
                           </div>
@@ -753,7 +754,7 @@ export default function StudentsClient({
                         {st.isActive ? "ACTIVE" : "DEACTIVATED"}
                       </button>
                       <span className="text-[10px] font-mono text-slate-400">
-                        Joined: {new Date(st.createdAt).toLocaleDateString()}
+                        Joined: {formatDate(st.createdAt)}
                       </span>
                     </div>
 
