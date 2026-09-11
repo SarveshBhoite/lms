@@ -1,22 +1,7 @@
-import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import {
-  Users,
-  GraduationCap,
-  BookOpen,
-  Layers,
-  UserCheck,
-  Zap,
-  TrendingUp,
-  Plus,
-  ArrowRight,
-  Sparkles,
-  Activity,
-  UserPlus,
-  Clock,
-} from "lucide-react";
 import { redirect } from "next/navigation";
+import AdminDashboardClient from "./AdminDashboardClient";
 
 export default async function AdminDashboardPage() {
   const session = await getSession();
@@ -24,299 +9,395 @@ export default async function AdminDashboardPage() {
     redirect("/login");
   }
 
-  // Real DB aggregations and metrics
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  // 1. Compute 6-month intervals for monthly enrollment and user growth trends
+  const monthIntervals: { start: Date; end: Date; label: string }[] = [];
+  for (let i = 5; i >= 0; i--) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+    const label = start.toLocaleDateString("en-US", { month: "short" });
+    monthIntervals.push({ start, end, label });
+  }
+
+  // 2. Comprehensive parallel queries for system-wide intelligence
   const [
+    // Students
     totalStudents,
     activeStudents,
+    studentsWithVerifiedEmail,
+    studentsEnrolledInBatches,
+
+    // Trainers
     totalTrainers,
+    activeTrainers,
+
+    // Courses & Content
     totalCourses,
+    publishedCourses,
+    draftCourses,
+    archivedCourses,
+    totalModules,
+    totalLessons,
+    coursesByLevel,
+
+    // Batches
     totalBatches,
-    activeBatches,
-    recentActivities,
-    recentStudents,
+    ongoingBatches,
+    upcomingBatches,
+    completedBatches,
+
+    // Live Classes & Attendance
+    totalLiveClasses,
+    totalAttendances,
+    attendancePresent,
+    attendanceLate,
+    attendanceAbsent,
+    attendanceExcused,
+
+    // Assignments & Submissions
+    totalAssignments,
+    totalSubmissions,
+    pendingSubmissions,
+    evaluatedSubmissions,
+    resubmissionRequests,
+
+    // Quizzes & Attempts
+    totalQuizzes,
+    totalQuizAttempts,
+    passedQuizAttempts,
+    avgQuizScoreRaw,
+
+    // Certificates
+    totalCertificates,
+    activeCertificates,
+
+    // Timeline Data (6-month enrollments)
+    month1Enrollments,
+    month2Enrollments,
+    month3Enrollments,
+    month4Enrollments,
+    month5Enrollments,
+    month6Enrollments,
+
+    // Top Courses
+    topCoursesRaw,
+
+    // Faculty Roster with workload
+    facultyWorkloadRaw,
+
+    // Upcoming Live Classes
+    upcomingClassesRaw,
+
+    // Recent Student Admissions
+    recentStudentsRaw,
+
+    // Recent System Activity Logs
+    recentActivitiesRaw,
   ] = await Promise.all([
+    // Student Counts
     prisma.user.count({ where: { role: "STUDENT" } }),
     prisma.user.count({ where: { role: "STUDENT", isActive: true } }),
+    prisma.user.count({ where: { role: "STUDENT", isEmailVerified: true } }),
+    prisma.batchStudent.groupBy({ by: ["userId"] }).then((res) => res.length),
+
+    // Faculty Counts
     prisma.user.count({ where: { role: "TRAINER" } }),
+    prisma.user.count({ where: { role: "TRAINER", isActive: true } }),
+
+    // Courses & Content
     prisma.course.count(),
-    prisma.batch.count(),
-    prisma.batch.count({
-      where: { status: { in: ["ONGOING", "UPCOMING"] } },
+    prisma.course.count({ where: { status: "PUBLISHED" } }),
+    prisma.course.count({ where: { status: "DRAFT" } }),
+    prisma.course.count({ where: { status: "ARCHIVED" } }),
+    prisma.courseModule.count(),
+    prisma.lesson.count(),
+    prisma.course.groupBy({
+      by: ["level"],
+      _count: { id: true },
     }),
-    prisma.activityLog.findMany({
+
+    // Batches
+    prisma.batch.count(),
+    prisma.batch.count({ where: { status: "ONGOING" } }),
+    prisma.batch.count({ where: { status: "UPCOMING" } }),
+    prisma.batch.count({ where: { status: "COMPLETED" } }),
+
+    // Live Classes & Attendance
+    prisma.liveClass.count(),
+    prisma.attendance.count(),
+    prisma.attendance.count({ where: { status: "PRESENT" } }),
+    prisma.attendance.count({ where: { status: "LATE" } }),
+    prisma.attendance.count({ where: { status: "ABSENT" } }),
+    prisma.attendance.count({ where: { status: "EXCUSED" } }),
+
+    // Assignments
+    prisma.assignment.count(),
+    prisma.assignmentSubmission.count(),
+    prisma.assignmentSubmission.count({ where: { status: "SUBMITTED" } }),
+    prisma.assignmentSubmission.count({ where: { status: "EVALUATED" } }),
+    prisma.assignmentSubmission.count({ where: { status: "RESUBMISSION_REQUESTED" } }),
+
+    // Quizzes
+    prisma.quiz.count(),
+    prisma.quizAttempt.count(),
+    prisma.quizAttempt.count({ where: { isPassed: true } }),
+    prisma.quizAttempt.aggregate({ _avg: { score: true } }),
+
+    // Certificates
+    prisma.certificate.count(),
+    prisma.certificate.count({ where: { qrCodeUrl: { not: null } } }),
+
+    // 6 Months Enrollment Trends
+    prisma.enrollment.count({ where: { enrolledAt: { gte: monthIntervals[0].start, lt: monthIntervals[0].end } } }),
+    prisma.enrollment.count({ where: { enrolledAt: { gte: monthIntervals[1].start, lt: monthIntervals[1].end } } }),
+    prisma.enrollment.count({ where: { enrolledAt: { gte: monthIntervals[2].start, lt: monthIntervals[2].end } } }),
+    prisma.enrollment.count({ where: { enrolledAt: { gte: monthIntervals[3].start, lt: monthIntervals[3].end } } }),
+    prisma.enrollment.count({ where: { enrolledAt: { gte: monthIntervals[4].start, lt: monthIntervals[4].end } } }),
+    prisma.enrollment.count({ where: { enrolledAt: { gte: monthIntervals[5].start, lt: monthIntervals[5].end } } }),
+
+    // Top 5 Courses by Enrollments and Batches
+    prisma.course.findMany({
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        level: true,
+        status: true,
+        _count: { select: { enrollments: true, batches: true } },
+      },
+      orderBy: { enrollments: { _count: "desc" } },
+    }),
+
+    // Faculty workload
+    prisma.user.findMany({
+      where: { role: "TRAINER" },
       take: 6,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isActive: true,
+        profile: { select: { designation: true, avatarUrl: true } },
+        _count: {
+          select: {
+            coursesCreated: true,
+            trainerBatches: true,
+            liveClassesTaught: true,
+          },
+        },
+      },
       orderBy: { createdAt: "desc" },
+    }),
+
+    // Upcoming Live Classes
+    prisma.liveClass.findMany({
+      where: {
+        status: { in: ["SCHEDULED", "LIVE"] },
+      },
+      take: 4,
+      orderBy: { scheduledDate: "asc" },
       include: {
-        user: { select: { name: true, email: true, role: true } },
+        course: { select: { id: true, title: true } },
+        batch: { select: { id: true, name: true } },
+        trainer: { select: { id: true, name: true } },
       },
     }),
+
+    // Recent Students
     prisma.user.findMany({
       where: { role: "STUDENT" },
-      include: {
-        profile: true,
-        enrollments: { include: { course: { select: { title: true } } } },
-      },
+      take: 6,
       orderBy: { createdAt: "desc" },
-      take: 5,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        isActive: true,
+        createdAt: true,
+        profile: { select: { avatarUrl: true, phone: true } },
+        enrollments: {
+          take: 1,
+          select: {
+            course: { select: { title: true } },
+            batch: { select: { name: true } },
+          },
+        },
+      },
+    }),
+
+    // Recent System Activity Logs
+    prisma.activityLog.findMany({
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, name: true, email: true, role: true } },
+      },
     }),
   ]);
 
+  // Format 6-month trend array
+  const monthlyCounts = [
+    month1Enrollments,
+    month2Enrollments,
+    month3Enrollments,
+    month4Enrollments,
+    month5Enrollments,
+    month6Enrollments,
+  ];
+
+  const enrollmentTrend = monthIntervals.map((m, idx) => ({
+    label: m.label,
+    count: monthlyCounts[idx] || 0,
+  }));
+
+  // Overall attendance turnout calculation
+  const totalAttended = attendancePresent + attendanceLate;
+  const attendanceTurnoutPct = totalAttendances > 0 ? Math.round((totalAttended / totalAttendances) * 100) : 0;
+
+  // Quiz pass rate calculation
+  const quizPassRatePct = totalQuizAttempts > 0 ? Math.round((passedQuizAttempts / totalQuizAttempts) * 100) : 0;
+  const avgQuizScore = Math.round(avgQuizScoreRaw._avg.score || 0);
+
+  // Assignment evaluated rate
+  const assignmentEvaluatedPct = totalSubmissions > 0 ? Math.round((evaluatedSubmissions / totalSubmissions) * 100) : 0;
+
+  // Course Level counts map
+  const levelCounts: Record<string, number> = {
+    BEGINNER: 0,
+    INTERMEDIATE: 0,
+    ADVANCED: 0,
+  };
+  coursesByLevel.forEach((c) => {
+    if (c.level && levelCounts[c.level] !== undefined) {
+      levelCounts[c.level] = c._count.id;
+    }
+  });
+
+  const payload = {
+    admin: {
+      id: session.userId,
+      name: session.name,
+      email: session.email,
+    },
+    metrics: {
+      students: {
+        total: totalStudents,
+        active: activeStudents,
+        inactive: totalStudents - activeStudents,
+        activeRatePct: totalStudents > 0 ? Math.round((activeStudents / totalStudents) * 100) : 0,
+        enrolledInBatches: studentsEnrolledInBatches,
+        verifiedEmail: studentsWithVerifiedEmail,
+      },
+      trainers: {
+        total: totalTrainers,
+        active: activeTrainers,
+      },
+      courses: {
+        total: totalCourses,
+        published: publishedCourses,
+        draft: draftCourses,
+        archived: archivedCourses,
+        modules: totalModules,
+        lessons: totalLessons,
+        levelCounts,
+      },
+      batches: {
+        total: totalBatches,
+        ongoing: ongoingBatches,
+        upcoming: upcomingBatches,
+        completed: completedBatches,
+      },
+      liveClasses: {
+        total: totalLiveClasses,
+        turnoutPct: attendanceTurnoutPct,
+        attendance: {
+          total: totalAttendances,
+          present: attendancePresent,
+          late: attendanceLate,
+          absent: attendanceAbsent,
+          excused: attendanceExcused,
+        },
+      },
+      assignments: {
+        total: totalAssignments,
+        submissions: totalSubmissions,
+        pending: pendingSubmissions,
+        evaluated: evaluatedSubmissions,
+        resubmission: resubmissionRequests,
+        evaluatedPct: assignmentEvaluatedPct,
+      },
+      quizzes: {
+        total: totalQuizzes,
+        attempts: totalQuizAttempts,
+        passed: passedQuizAttempts,
+        passRatePct: quizPassRatePct,
+        avgScore: avgQuizScore,
+      },
+      certificates: {
+        total: totalCertificates,
+        active: activeCertificates,
+      },
+    },
+    trends: {
+      enrollments: enrollmentTrend,
+    },
+    topCourses: topCoursesRaw.map((c) => ({
+      id: c.id,
+      title: c.title,
+      level: c.level,
+      status: c.status,
+      enrollmentCount: c._count.enrollments,
+      batchCount: c._count.batches,
+    })),
+    facultyWorkload: facultyWorkloadRaw.map((f) => ({
+      id: f.id,
+      name: f.name,
+      email: f.email,
+      isActive: f.isActive,
+      designation: f.profile?.designation || "Faculty Instructor",
+      avatarUrl: f.profile?.avatarUrl,
+      coursesCount: f._count.coursesCreated,
+      batchesCount: f._count.trainerBatches,
+      liveClassesCount: f._count.liveClassesTaught,
+    })),
+    upcomingClasses: upcomingClassesRaw.map((lc) => ({
+      id: lc.id,
+      title: lc.title,
+      scheduledDate: lc.scheduledDate.toISOString(),
+      startTime: lc.startTime,
+      status: lc.status,
+      courseTitle: lc.course?.title || "Special Session",
+      batchName: lc.batch?.name || "Open Cohort",
+      trainerName: lc.trainer.name,
+    })),
+    recentStudents: recentStudentsRaw.map((st) => ({
+      id: st.id,
+      name: st.name,
+      email: st.email,
+      isActive: st.isActive,
+      avatarUrl: st.profile?.avatarUrl,
+      phone: st.profile?.phone,
+      createdAt: st.createdAt.toISOString(),
+      courseTitle: st.enrollments[0]?.course?.title || "Not Enrolled",
+      batchName: st.enrollments[0]?.batch?.name || "Self-Paced",
+    })),
+    recentActivities: recentActivitiesRaw.map((log) => ({
+      id: log.id,
+      action: log.action,
+      resource: log.resource,
+      details: log.details,
+      createdAt: log.createdAt.toISOString(),
+      userName: log.user?.name || "System Automated",
+      userRole: log.user?.role || "SYSTEM",
+    })),
+  };
+
   return (
-    <div className="p-6 sm:p-10 space-y-10 max-w-7xl w-full mx-auto">
-      {/* Top Banner */}
-      <div className="glass-panel p-8 rounded-3xl border border-slate-200/80 bg-gradient-to-r from-purple-50/70 via-indigo-50/50 to-slate-50 relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-xs">
-        <div className="space-y-2 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-100 border border-purple-200 text-[#7C248C] text-xs font-bold font-mono uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-[#7C248C]" /> Super Admin Control Center
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Welcome back, {session.name} 👋
-          </h1>
-          <p className="text-slate-600 text-sm max-w-2xl">
-            Real-time synchronization across JVM Institute analytics, student enrollments, faculty operations, and course programs.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 relative z-10 shrink-0">
-          <Link
-            href="/admin/students?action=new"
-            className="px-5 py-2.5 rounded-2xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <UserPlus className="w-4 h-4" /> Add Student
-          </Link>
-          <Link
-            href="/admin/students"
-            className="px-5 py-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 shadow-xs transition"
-          >
-            All Students
-          </Link>
-        </div>
-      </div>
-
-      {/* 6 Key System Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-        <div className="glass-card p-5 rounded-2xl space-y-1 border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Students</span>
-            <Users className="w-4 h-4 text-indigo-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-slate-900">{totalStudents}</div>
-          <div className="text-[11px] text-indigo-600 flex items-center gap-1 font-semibold">
-            <TrendingUp className="w-3 h-3" /> Registered
-          </div>
-        </div>
-
-        <div className="glass-card p-5 rounded-2xl space-y-1 border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Active Students</span>
-            <UserCheck className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600">{activeStudents}</div>
-          <div className="text-[11px] text-emerald-600 font-semibold">Active Accounts</div>
-        </div>
-
-        <div className="glass-card p-5 rounded-2xl space-y-1 border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Trainers</span>
-            <GraduationCap className="w-4 h-4 text-amber-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-amber-600">{totalTrainers}</div>
-          <div className="text-[11px] text-slate-500 font-medium">Faculty Members</div>
-        </div>
-
-        <div className="glass-card p-5 rounded-2xl space-y-1 border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Courses</span>
-            <BookOpen className="w-4 h-4 text-violet-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-violet-600">{totalCourses}</div>
-          <div className="text-[11px] text-slate-500 font-medium">Published & Draft</div>
-        </div>
-
-        <div className="glass-card p-5 rounded-2xl space-y-1 border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Batches</span>
-            <Layers className="w-4 h-4 text-cyan-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-cyan-600">{totalBatches}</div>
-          <div className="text-[11px] text-slate-500 font-medium">All Cohorts</div>
-        </div>
-
-        <div className="glass-card p-5 rounded-2xl space-y-1 border border-slate-200 bg-white shadow-xs">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Active Batches</span>
-            <Zap className="w-4 h-4 text-rose-600" />
-          </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-rose-600">{activeBatches}</div>
-          <div className="text-[11px] text-slate-500 font-medium">Ongoing & Upcoming</div>
-        </div>
-      </div>
-
-      {/* Quick Actions Bar */}
-      <div className="glass-panel p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-amber-500" /> Quick Administrative Actions
-          </h2>
-          <span className="text-xs text-slate-500">Fast shortcuts</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <Link
-            href="/admin/students?action=new"
-            className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80 hover:bg-purple-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
-          >
-            <div className="p-2.5 rounded-xl jvm-gradient-bg text-white group-hover:scale-110 transition-transform shadow-xs">
-              <UserPlus className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Add Student</span>
-            <span className="text-[10px] text-slate-500">Register new account</span>
-          </Link>
-
-          <Link
-            href="/admin/trainers"
-            className="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/80 hover:bg-amber-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
-          >
-            <div className="p-2.5 rounded-xl bg-amber-600 text-white group-hover:scale-110 transition-transform shadow-xs">
-              <GraduationCap className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Add Trainer</span>
-            <span className="text-[10px] text-slate-500">Trainer module</span>
-          </Link>
-
-          <Link
-            href="/admin/courses"
-            className="p-4 rounded-2xl bg-blue-50/60 border border-blue-200/80 hover:bg-blue-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
-          >
-            <div className="p-2.5 rounded-xl bg-[#1E2B88] text-white group-hover:scale-110 transition-transform shadow-xs">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Create Course</span>
-            <span className="text-[10px] text-slate-500">Course catalog</span>
-          </Link>
-
-          <Link
-            href="/admin/batches"
-            className="p-4 rounded-2xl bg-cyan-50/60 border border-cyan-200/80 hover:bg-cyan-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
-          >
-            <div className="p-2.5 rounded-xl bg-cyan-600 text-white group-hover:scale-110 transition-transform shadow-xs">
-              <Layers className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Create Batch</span>
-            <span className="text-[10px] text-slate-500">Batches module</span>
-          </Link>
-
-          <Link
-            href="/admin/enrollments"
-            className="p-4 rounded-2xl bg-purple-50/60 border border-purple-200/80 hover:bg-purple-100/80 transition flex flex-col items-center text-center space-y-2 group shadow-xs"
-          >
-            <div className="p-2.5 rounded-xl bg-[#7C248C] text-white group-hover:scale-110 transition-transform shadow-xs">
-              <Users className="w-5 h-5" />
-            </div>
-            <span className="text-xs font-bold text-slate-900">Enroll Student</span>
-            <span className="text-[10px] text-slate-500">Enrollments section</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Grid: Recent Activities & Recent Students */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activities Section */}
-        <div className="glass-panel p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-rose-600" /> Recent System Activities
-            </h2>
-            <span className="text-xs text-slate-500 font-mono">Live Audit Logs</span>
-          </div>
-
-          <div className="space-y-2.5">
-            {recentActivities.length > 0 ? (
-              recentActivities.map((log) => (
-                <div
-                  key={log.id}
-                  className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start justify-between gap-3 text-xs"
-                >
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-slate-900">
-                        {log.user?.name || "System"}
-                      </span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200 uppercase">
-                        {log.action}
-                      </span>
-                    </div>
-                    <p className="text-slate-500 text-[11px] truncate">
-                      Resource: <span className="font-mono text-slate-700">{log.resource}</span>
-                    </p>
-                  </div>
-
-                  <div className="text-[10px] text-slate-400 font-mono shrink-0 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-slate-400" />
-                    {new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-slate-200">
-                No recent activity logs recorded yet.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Students Roster */}
-        <div className="glass-panel p-6 rounded-3xl border border-slate-200 bg-white shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" /> Recently Registered Students
-            </h2>
-            <Link
-              href="/admin/students"
-              className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1"
-            >
-              View Roster <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-
-          <div className="space-y-2.5">
-            {recentStudents.map((st) => (
-              <div
-                key={st.id}
-                className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-3 text-xs"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-100 border border-indigo-200 flex items-center justify-center font-bold text-indigo-700 shrink-0">
-                    {st.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-bold text-slate-900 truncate">{st.name}</div>
-                    <div className="text-[11px] text-slate-500 font-mono truncate">{st.email}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      st.isActive !== false
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-rose-50 text-rose-700 border border-rose-200"
-                    }`}
-                  >
-                    {st.isActive !== false ? "Active" : "Deactivated"}
-                  </span>
-                  <Link
-                    href={`/admin/students/${st.id}`}
-                    className="p-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 transition font-semibold"
-                  >
-                    View
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    <div className="p-6 sm:p-8 lg:p-10 space-y-8 max-w-7xl w-full mx-auto">
+      <AdminDashboardClient data={payload} />
     </div>
   );
 }

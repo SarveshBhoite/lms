@@ -61,9 +61,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col md:flex-row">
+    <div className="min-h-screen h-screen portal-bg-mesh flex flex-col md:flex-row selection:bg-purple-500 selection:text-white relative overflow-hidden">
+      {/* Gentle ambient background glows */}
+      <div className="fixed top-0 right-0 w-[450px] h-[450px] bg-purple-200/15 rounded-full blur-[90px] pointer-events-none z-0" />
+      <div className="fixed bottom-0 left-64 w-[500px] h-[500px] bg-indigo-200/15 rounded-full blur-[100px] pointer-events-none z-0" />
+
       {/* Mobile Top Nav */}
-      <div className="md:hidden h-16 border-b border-slate-200 bg-white/95 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-xs">
+      <div className="md:hidden h-16 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 flex items-center justify-between sticky top-0 z-50 shadow-xs">
         <div className="flex items-center gap-2.5">
           <img src="/jvm_logo-bg.png" alt="JVM Institute" className="h-8 w-auto object-contain" />
           <span className="font-extrabold text-slate-900 text-sm tracking-tight">Admin Console</span>
@@ -78,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white border-r border-slate-200/90 flex flex-col transition-transform duration-300 shadow-xs ${
+        className={`fixed md:sticky top-0 left-0 z-40 h-screen w-64 bg-white/95 backdrop-blur-md border-r border-slate-200/90 flex flex-col justify-between shrink-0 transition-transform duration-300 shadow-xs ${
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         }`}
       >
@@ -139,8 +143,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 min-w-0 flex flex-col bg-slate-50">{children}</main>
+      {/* Main Content Area - Independently Scrollable */}
+      <main className="flex-1 h-[calc(100vh-4rem)] md:h-screen overflow-y-auto relative z-10">{children}</main>
     </div>
   );
 }
