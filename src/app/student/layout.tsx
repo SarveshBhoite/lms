@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import StudentDrawerLayout from "./StudentDrawerLayout";
 
+import DeactivatedAccountScreen from "@/components/student/DeactivatedAccountScreen";
+
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
@@ -13,11 +15,16 @@ export default async function StudentLayout({ children }: { children: React.Reac
   // Verify student isActive
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { isActive: true, name: true, email: true, profile: { select: { avatarUrl: true } } },
+    select: { isActive: true, name: true, email: true, role: true, profile: { select: { avatarUrl: true } } },
   });
 
-  if (!user || !user.isActive) {
+  if (!user) {
     redirect("/login");
+  }
+
+  // If student account is deactivated, show complete full-screen override blocking portal access
+  if (!user.isActive) {
+    return <DeactivatedAccountScreen userName={user.name} userEmail={user.email} />;
   }
 
   // Query student's enrolled courses and batches for accurate badge counts

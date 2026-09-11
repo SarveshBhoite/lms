@@ -15,91 +15,128 @@ export default async function StudentProfilePage({
 
   const { id } = await params;
 
-  const student = await prisma.user.findFirst({
-    where: { id, role: "STUDENT" },
-    include: {
-      profile: true,
-      enrollments: {
-        include: {
-          course: {
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              level: true,
-              durationHours: true,
+  const [student, notes, courses, batches] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id, role: "STUDENT" },
+      include: {
+        profile: true,
+        enrollments: {
+          include: {
+            course: {
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                level: true,
+                durationHours: true,
+              },
+            },
+            batch: {
+              select: {
+                id: true,
+                name: true,
+                startDate: true,
+                endDate: true,
+                status: true,
+              },
             },
           },
-          batch: {
-            select: {
-              id: true,
-              name: true,
-              startDate: true,
-              endDate: true,
-              status: true,
-            },
-          },
+          orderBy: { enrolledAt: "desc" },
         },
-        orderBy: { enrolledAt: "desc" },
-      },
-      studentBatches: {
-        include: {
-          batch: {
-            include: {
-              course: { select: { title: true } },
-            },
-          },
-        },
-      },
-      courseProgresses: {
-        include: {
-          course: { select: { id: true, title: true } },
-        },
-      },
-      quizAttempts: {
-        include: {
-          quiz: {
-            select: {
-              title: true,
-              course: { select: { title: true } },
+        studentBatches: {
+          include: {
+            batch: {
+              include: {
+                course: { select: { title: true } },
+              },
             },
           },
         },
-        orderBy: { startedAt: "desc" },
-      },
-      assignmentSubmissions: {
-        include: {
-          assignment: {
-            select: {
-              title: true,
-              totalMarks: true,
-              course: { select: { title: true } },
-            },
-          },
-          feedback: true,
-        },
-        orderBy: { submittedAt: "desc" },
-      },
-      attendances: {
-        include: {
-          liveClass: {
-            select: {
-              title: true,
-              scheduledDate: true,
-              batch: { select: { name: true } },
-            },
+        courseProgresses: {
+          include: {
+            course: { select: { id: true, title: true } },
           },
         },
-        orderBy: { recordedAt: "desc" },
-      },
-      certificates: {
-        include: {
-          course: { select: { title: true } },
+        lessonProgresses: {
+          include: {
+            lesson: {
+              select: {
+                id: true,
+                title: true,
+                contentType: true,
+                module: { select: { title: true } },
+              },
+            },
+          },
+          orderBy: { lastWatchedAt: "desc" },
         },
-        orderBy: { issueDate: "desc" },
+        quizAttempts: {
+          include: {
+            quiz: {
+              select: {
+                title: true,
+                passingMarks: true,
+                timeLimitMinutes: true,
+                course: { select: { title: true } },
+              },
+            },
+          },
+          orderBy: { startedAt: "desc" },
+        },
+        assignmentSubmissions: {
+          include: {
+            assignment: {
+              select: {
+                title: true,
+                totalMarks: true,
+                deadline: true,
+                course: { select: { title: true } },
+              },
+            },
+            feedback: {
+              include: {
+                trainer: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { submittedAt: "desc" },
+        },
+        attendances: {
+          include: {
+            liveClass: {
+              select: {
+                title: true,
+                scheduledDate: true,
+                batch: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: { recordedAt: "desc" },
+        },
+        certificates: {
+          include: {
+            course: { select: { title: true } },
+          },
+          orderBy: { issueDate: "desc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.trainerNote.findMany({
+      where: { studentId: id },
+      include: {
+        trainer: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }).catch(() => []),
+    prisma.course.findMany({
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+    prisma.batch.findMany({
+      select: { id: true, name: true, courseId: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   if (!student) {
     notFound();
@@ -171,12 +208,26 @@ export default async function StudentProfilePage({
         scheduledDate: at.liveClass.scheduledDate.toISOString(),
       },
     })),
+    lessonProgresses: (student.lessonProgresses || []).map((lp) => ({
+      ...lp,
+      lastWatchedAt: lp.lastWatchedAt ? lp.lastWatchedAt.toISOString() : new Date().toISOString(),
+    })),
     certificates: student.certificates.map((c) => ({
       ...c,
       issueDate: c.issueDate.toISOString(),
       createdAt: c.createdAt.toISOString(),
     })),
+    studentNotes: (notes || []).map((n) => ({
+      ...n,
+      createdAt: n.createdAt.toISOString(),
+    })),
   };
 
-  return <StudentProfileClient student={serializedStudent as any} />;
+  return (
+    <StudentProfileClient
+      student={serializedStudent as any}
+      courses={courses}
+      batches={batches}
+    />
+  );
 }

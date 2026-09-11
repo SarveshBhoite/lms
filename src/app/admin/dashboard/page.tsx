@@ -197,7 +197,7 @@ export default async function AdminDashboardPage() {
       id: lc.id,
       title: lc.title,
       scheduledDate: lc.scheduledDate.toISOString(),
-      startTime: lc.startTime,
+      startTime: lc.startTime instanceof Date ? lc.startTime.toISOString() : String(lc.startTime),
       status: lc.status,
       courseTitle: lc.course?.title || "Special Session",
       batchName: lc.batch?.name || "Open Cohort",

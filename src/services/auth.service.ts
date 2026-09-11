@@ -83,7 +83,9 @@ export class AuthService {
       throw new Error("Invalid email or password.");
     }
 
-    if (user.isActive === false) {
+    // Note: If a student account is deactivated, we still create their session so they get routed to their portal
+    // where a dedicated full-screen "Account Deactivated" override screen is displayed, preventing all access.
+    if (user.isActive === false && user.role !== "STUDENT") {
       throw new Error("Your account has been deactivated. Please contact an administrator.");
     }
 
