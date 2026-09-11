@@ -26,7 +26,21 @@ export default async function AdminStudentsPage() {
             batch: { select: { id: true, name: true } },
           },
         },
-        courseProgresses: true,
+        courseProgresses: {
+          select: { progressPercent: true },
+        },
+        quizAttempts: {
+          select: { score: true },
+        },
+        assignmentSubmissions: {
+          select: {
+            feedback: { select: { marksAwarded: true } },
+            assignment: { select: { totalMarks: true } },
+          },
+        },
+        attendances: {
+          select: { status: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -62,11 +76,10 @@ export default async function AdminStudentsPage() {
       ...sb,
       joinedAt: sb.joinedAt.toISOString(),
     })),
-    courseProgresses: st.courseProgresses.map((cp) => ({
-      ...cp,
-      completedAt: cp.completedAt ? cp.completedAt.toISOString() : null,
-      updatedAt: cp.updatedAt.toISOString(),
-    })),
+    courseProgresses: st.courseProgresses || [],
+    quizAttempts: st.quizAttempts || [],
+    assignmentSubmissions: st.assignmentSubmissions || [],
+    attendances: st.attendances || [],
   }));
 
   return (

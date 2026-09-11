@@ -59,7 +59,21 @@ export async function GET(req: NextRequest) {
             batch: { select: { id: true, name: true } },
           },
         },
-        courseProgresses: true,
+        courseProgresses: {
+          select: { progressPercent: true },
+        },
+        quizAttempts: {
+          select: { score: true },
+        },
+        assignmentSubmissions: {
+          select: {
+            feedback: { select: { marksAwarded: true } },
+            assignment: { select: { totalMarks: true } },
+          },
+        },
+        attendances: {
+          select: { status: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

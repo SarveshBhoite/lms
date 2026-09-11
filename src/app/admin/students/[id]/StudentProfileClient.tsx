@@ -305,7 +305,7 @@ export default function StudentProfileClient({
   const lastAccessedLesson = student.lessonProgresses[0];
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+    <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div
