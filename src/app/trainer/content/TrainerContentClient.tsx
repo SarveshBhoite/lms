@@ -36,6 +36,7 @@ import {
   ShieldCheck,
   Building2,
 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 export interface ResourceData {
   id: string;
@@ -50,6 +51,10 @@ export interface ResourceData {
   course?: {
     id: string;
     title: string;
+    trainer?: {
+      id: string;
+      name: string;
+    } | null;
   } | null;
   batch?: {
     id: string;
@@ -64,6 +69,10 @@ export interface ResourceData {
       course: {
         id: string;
         title: string;
+        trainer?: {
+          id: string;
+          name: string;
+        } | null;
       };
     };
   } | null;
@@ -87,180 +96,7 @@ export interface CourseOption {
   }[];
 }
 
-interface CustomSelectOption {
-  value: string;
-  label: string;
-  sublabel?: string;
-  badge?: string;
-  icon?: React.ReactNode;
-}
 
-function CustomSelect({
-  label,
-  required,
-  value,
-  onChange,
-  options,
-  placeholder = "Select an option...",
-  searchable = false,
-  disabled = false,
-  emptyMessage = "No items available",
-}: {
-  label?: string;
-  required?: boolean;
-  value: string;
-  onChange: (val: string) => void;
-  options: CustomSelectOption[];
-  placeholder?: string;
-  searchable?: boolean;
-  disabled?: boolean;
-  emptyMessage?: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const selectedOption = options.find((o) => o.value === value);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return options;
-    return options.filter(
-      (o) =>
-        o.label.toLowerCase().includes(search.toLowerCase()) ||
-        (o.sublabel && o.sublabel.toLowerCase().includes(search.toLowerCase()))
-    );
-  }, [options, search]);
-
-  return (
-    <div className="space-y-1.5 relative" ref={dropdownRef}>
-      {label && (
-        <label className="block text-xs font-bold text-slate-700 tracking-wide">
-          {label} {required && <span className="text-rose-500">*</span>}
-        </label>
-      )}
-
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        className={`w-full px-3.5 py-2.5 rounded-2xl border text-left flex items-center justify-between gap-2 transition-all duration-150 ${
-          disabled
-            ? "bg-slate-100/70 border-slate-200 text-slate-400 cursor-not-allowed"
-            : isOpen
-            ? "bg-white border-[#7C248C] shadow-sm ring-2 ring-purple-100"
-            : "bg-slate-50/80 hover:bg-white border-slate-200/90 hover:border-slate-300 text-slate-900"
-        }`}
-      >
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          {selectedOption?.icon && <div className="shrink-0">{selectedOption.icon}</div>}
-          <div className="truncate">
-            {selectedOption ? (
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-xs text-slate-900 truncate">{selectedOption.label}</span>
-                {selectedOption.badge && (
-                  <span className="px-1.5 py-0.2 rounded bg-purple-50 text-[#7C248C] text-[10px] font-mono font-bold border border-purple-200 shrink-0">
-                    {selectedOption.badge}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <span className="text-xs text-slate-400 font-medium">{placeholder}</span>
-            )}
-            {selectedOption?.sublabel && (
-              <span className="block text-[10px] text-slate-400 font-mono truncate">
-                {selectedOption.sublabel}
-              </span>
-            )}
-          </div>
-        </div>
-
-        <ChevronDown
-          className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-            isOpen ? "rotate-180 text-[#7C248C]" : ""
-          }`}
-        />
-      </button>
-
-      {/* Dropdown Menu Popup */}
-      {isOpen && !disabled && (
-        <div className="absolute z-50 mt-1.5 w-full rounded-2xl bg-white border border-slate-200/90 shadow-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-100">
-          {searchable && (
-            <div className="p-2 border-b border-slate-100 bg-slate-50/50">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Type to filter..."
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-white rounded-xl border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-[#7C248C]"
-                  autoFocus
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="max-h-56 overflow-y-auto p-1.5 space-y-0.5">
-            {filtered.length > 0 ? (
-              filtered.map((opt) => {
-                const isSelected = opt.value === value;
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(opt.value);
-                      setIsOpen(false);
-                      setSearch("");
-                    }}
-                    className={`w-full px-3 py-2 rounded-xl text-left flex items-center justify-between gap-2.5 transition-all text-xs ${
-                      isSelected
-                        ? "bg-purple-50 text-[#7C248C] font-black"
-                        : "hover:bg-slate-50 text-slate-700 hover:text-slate-900 font-medium"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      {opt.icon && <div className="shrink-0">{opt.icon}</div>}
-                      <div className="truncate">
-                        <div className="flex items-center gap-2">
-                          <span className="truncate">{opt.label}</span>
-                          {opt.badge && (
-                            <span className="px-1.5 py-0.2 rounded bg-purple-50 text-[#7C248C] text-[10px] font-mono font-bold border border-purple-200 shrink-0">
-                              {opt.badge}
-                            </span>
-                          )}
-                        </div>
-                        {opt.sublabel && (
-                          <span className="block text-[10px] text-slate-400 font-mono truncate">
-                            {opt.sublabel}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {isSelected && <Check className="w-4 h-4 text-[#7C248C] shrink-0" />}
-                  </button>
-                );
-              })
-            ) : (
-              <div className="py-4 text-center text-slate-400 text-xs">{emptyMessage}</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default function TrainerContentClient({
   initialCourses,
@@ -278,24 +114,9 @@ export default function TrainerContentClient({
   const [selectedScopeFilter, setSelectedScopeFilter] = useState<"ALL" | "GENERAL" | "LESSON">("ALL");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Upload Modal State
-  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [uploadScope, setUploadScope] = useState<"GENERAL" | "LESSON">("GENERAL");
-
-  const [selectedCourseId, setSelectedCourseId] = useState(courses[0]?.id || "");
-  const [selectedBatchId, setSelectedBatchId] = useState("");
-  const [selectedModuleId, setSelectedModuleId] = useState(courses[0]?.modules[0]?.id || "");
-  const [selectedLessonId, setSelectedLessonId] = useState(courses[0]?.modules[0]?.lessons[0]?.id || "");
-
-  const [uploadLoading, setUploadLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [resourceTitle, setResourceTitle] = useState("");
-  const [uploadedUrl, setUploadedUrl] = useState("");
-  const [uploadedType, setUploadedType] = useState("PDF");
-  const [uploadedSize, setUploadedSize] = useState(1024 * 1024);
-
   // Delete Target Modal
   const [deletingResource, setDeletingResource] = useState<ResourceData | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Toast Notification
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -304,11 +125,6 @@ export default function TrainerContentClient({
     setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
   };
-
-  const selectedCourse = courses.find((c) => c.id === selectedCourseId);
-  const selectedModule = selectedCourse?.modules.find((m) => m.id === selectedModuleId);
-  const availableLessons = selectedModule?.lessons || [];
-  const availableBatches = selectedCourse?.batches || [];
 
   // Metrics Calculations
   const totalAssetsCount = resources.length;
@@ -329,19 +145,21 @@ export default function TrainerContentClient({
   ).length;
   const otherCount = totalAssetsCount - (pdfCount + codeCount + videoCount);
 
-  // Filtered Assets
+  // Filtered Assets across the whole system
   const filteredResources = useMemo(() => {
     return resources.filter((r) => {
       const courseTitle = r.course?.title || r.lesson?.module.course.title || "";
       const courseId = r.courseId || r.course?.id || r.lesson?.module.course.id || "";
       const lessonTitle = r.lesson?.title || "";
       const batchName = r.batch?.name || "";
+      const trainerName = r.course?.trainer?.name || r.lesson?.module.course.trainer?.name || "";
 
       const matchSearch =
         r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         lessonTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         courseTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         batchName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        trainerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.fileType.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchCourse = !selectedCourseFilter || courseId === selectedCourseFilter;
@@ -368,138 +186,6 @@ export default function TrainerContentClient({
       return matchSearch && matchCourse && matchType && matchScope;
     });
   }, [resources, searchQuery, selectedCourseFilter, selectedTypeFilter, selectedScopeFilter]);
-
-  // Handle local file upload via /api/upload
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadLoading(true);
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("category", "resources");
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Failed to upload file from device");
-      }
-
-      setResourceTitle(file.name);
-      setUploadedUrl(json.data.url);
-      setUploadedType(json.data.fileType || "PDF");
-      setUploadedSize(json.data.fileSize || file.size);
-      showToast("success", `File "${file.name}" uploaded successfully!`);
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to upload file");
-    } finally {
-      setUploadLoading(false);
-    }
-  };
-
-  // Create Resource Link in database
-  const handleCreateResource = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCourseId) {
-      showToast("error", "Please select a target course.");
-      return;
-    }
-
-    if (uploadScope === "LESSON" && !selectedLessonId) {
-      showToast("error", "Please select an assigned lesson to attach this resource.");
-      return;
-    }
-
-    if (!uploadedUrl) {
-      showToast("error", "Please upload a file or specify a valid file URL.");
-      return;
-    }
-
-    if (!resourceTitle.trim()) {
-      showToast("error", "Please enter a valid resource title.");
-      return;
-    }
-
-    setActionLoading(true);
-    try {
-      const res = await fetch(`/api/trainer/courses/${selectedCourseId}/resources`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: resourceTitle,
-          fileType: uploadedType,
-          fileSize: uploadedSize,
-          fileUrl: uploadedUrl,
-          batchId: selectedBatchId || null,
-          lessonId: uploadScope === "LESSON" ? selectedLessonId : null,
-          isPublic: true,
-        }),
-      });
-
-      const json = await res.json();
-      if (!res.ok || !json.success) {
-        throw new Error(json.error || "Failed to attach learning resource");
-      }
-
-      const newRecord: ResourceData = {
-        id: json.data.id,
-        courseId: selectedCourseId,
-        batchId: selectedBatchId || null,
-        lessonId: uploadScope === "LESSON" ? selectedLessonId : null,
-        title: json.data.title,
-        fileType: json.data.fileType,
-        fileSize: json.data.fileSize,
-        fileUrl: json.data.fileUrl,
-        createdAt: json.data.createdAt || new Date().toISOString(),
-        course: {
-          id: selectedCourseId,
-          title: selectedCourse?.title || "Course",
-        },
-        batch: selectedBatchId
-          ? {
-              id: selectedBatchId,
-              name: availableBatches.find((b) => b.id === selectedBatchId)?.name || "Assigned Batch",
-            }
-          : null,
-        lesson:
-          uploadScope === "LESSON" && selectedLessonId
-            ? {
-                id: selectedLessonId,
-                title: availableLessons.find((l) => l.id === selectedLessonId)?.title || "Assigned Lesson",
-                module: {
-                  id: selectedModuleId,
-                  title: selectedModule?.title || "Module",
-                  course: {
-                    id: selectedCourseId,
-                    title: selectedCourse?.title || "Course",
-                  },
-                },
-              }
-            : null,
-      };
-
-      setResources((prev) => [newRecord, ...prev]);
-      showToast(
-        "success",
-        `Resource "${resourceTitle}" successfully ${
-          uploadScope === "GENERAL" ? "added as general course resource" : "linked to lesson"
-        }!`
-      );
-      setIsUploadModalOpen(false);
-      setResourceTitle("");
-      setUploadedUrl("");
-      setSelectedBatchId("");
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to link resource");
-    } finally {
-      setActionLoading(false);
-    }
-  };
 
   // Delete Resource
   const handleDeleteConfirm = async () => {
@@ -557,60 +243,7 @@ export default function TrainerContentClient({
     return <File className="w-4 h-4 text-purple-600" />;
   };
 
-  // Preparation for Custom Select Dropdown Options
-  const courseSelectOptions: CustomSelectOption[] = useMemo(() => {
-    return courses.map((c) => ({
-      value: c.id,
-      label: c.title,
-      sublabel: `${c.modules.length} Modules • ${c.batches.length} Batches`,
-      icon: <GraduationCap className="w-4 h-4 text-[#7C248C]" />,
-    }));
-  }, [courses]);
 
-  const batchSelectOptions: CustomSelectOption[] = useMemo(() => {
-    const defaultOpt: CustomSelectOption = {
-      value: "",
-      label: "All Batches (Universal Course Access)",
-      sublabel: "Available to all enrolled cohorts and students in this course",
-      icon: <Globe className="w-4 h-4 text-slate-400" />,
-    };
-    const batchOpts: CustomSelectOption[] = availableBatches.map((b) => ({
-      value: b.id,
-      label: b.name,
-      badge: b.status,
-      sublabel: `Cohort restricted access`,
-      icon: <Users2 className="w-4 h-4 text-[#7C248C]" />,
-    }));
-    return [defaultOpt, ...batchOpts];
-  }, [availableBatches]);
-
-  const moduleSelectOptions: CustomSelectOption[] = useMemo(() => {
-    if (!selectedCourse?.modules) return [];
-    return selectedCourse.modules.map((m) => ({
-      value: m.id,
-      label: m.title,
-      sublabel: `${m.lessons.length} lessons available`,
-      icon: <Layers className="w-4 h-4 text-[#7C248C]" />,
-    }));
-  }, [selectedCourse]);
-
-  const lessonSelectOptions: CustomSelectOption[] = useMemo(() => {
-    return availableLessons.map((l) => ({
-      value: l.id,
-      label: l.title,
-      icon: <BookOpen className="w-4 h-4 text-indigo-600" />,
-    }));
-  }, [availableLessons]);
-
-  const fileTypeOptions: CustomSelectOption[] = [
-    { value: "PDF", label: "PDF Document (.pdf)", icon: <FileText className="w-4 h-4 text-rose-600" /> },
-    { value: "VIDEO", label: "Video Lecture (.mp4, .mkv)", icon: <Video className="w-4 h-4 text-cyan-600" /> },
-    { value: "CODE", label: "Source Code Archive (.zip, .tar)", icon: <FileCode className="w-4 h-4 text-indigo-600" /> },
-    { value: "DOC", label: "Word Document (.docx, .doc)", icon: <FileText className="w-4 h-4 text-blue-600" /> },
-    { value: "PPT", label: "Presentation (.pptx, .ppt)", icon: <Presentation className="w-4 h-4 text-amber-600" /> },
-    { value: "DATASET", label: "Dataset (.csv, .xlsx, .json)", icon: <Database className="w-4 h-4 text-emerald-600" /> },
-    { value: "FILE", label: "Other Asset", icon: <File className="w-4 h-4 text-purple-600" /> },
-  ];
 
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
@@ -649,12 +282,10 @@ export default function TrainerContentClient({
         </div>
 
         <div className="flex items-center gap-3 shrink-0 relative z-10">
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="px-5 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 flex items-center gap-2 transition hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" /> Upload Asset
-          </button>
+          <span className="px-4 py-2 rounded-xl bg-purple-100/80 border border-purple-200 text-[#7C248C] text-xs font-mono font-bold flex items-center gap-2 shadow-xs">
+            <ShieldCheck className="w-4 h-4 text-[#7C248C]" />
+            <span>Universal Repository (Read-Only)</span>
+          </span>
         </div>
       </div>
 
@@ -819,12 +450,19 @@ export default function TrainerContentClient({
                           <Users2 className="w-3 h-3" /> {res.batch.name}
                         </span>
                       )}
+
+                      {/* Faculty Attribution */}
+                      {(res.course?.trainer?.name || res.lesson?.module.course.trainer?.name) && (
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[10px] font-mono font-bold border border-slate-200 shrink-0 flex items-center gap-1">
+                          <GraduationCap className="w-3 h-3 text-[#7C248C]" /> Faculty: {res.course?.trainer?.name || res.lesson?.module.course.trainer?.name}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400">
                       <span>{sizeStr}</span>
                       <span>•</span>
-                      <span>Uploaded {new Date(res.createdAt).toLocaleDateString()}</span>
+                      <span>Uploaded {formatDate(res.createdAt)}</span>
                     </div>
                   </div>
                 </div>
@@ -891,7 +529,7 @@ export default function TrainerContentClient({
           <p className="text-xs text-slate-500 max-w-md mx-auto">
             {searchQuery || selectedCourseFilter || selectedTypeFilter !== "ALL" || selectedScopeFilter !== "ALL"
               ? "Try adjusting your search criteria or reset filters to view all learning assets."
-              : "No learning materials or files uploaded yet. Click 'Upload Asset' to add general course resources or attach files to lessons."}
+              : "No learning materials or files found in the platform repository."}
           </p>
           {(searchQuery || selectedCourseFilter || selectedTypeFilter !== "ALL" || selectedScopeFilter !== "ALL") && (
             <button
@@ -909,212 +547,7 @@ export default function TrainerContentClient({
         </div>
       )}
 
-      {/* 5. Custom Styled Elegant Upload Learning Resource Modal */}
-      {isUploadModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-xl p-6 sm:p-8 rounded-3xl border border-slate-200 space-y-6 shadow-2xl animate-in zoom-in-95 max-h-[92vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-purple-50 border border-purple-100 flex items-center justify-center text-[#7C248C]">
-                  <Upload className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-slate-900 tracking-tight">Upload Learning Resource</h2>
-                  <p className="text-xs text-slate-500 font-mono">Store course materials or attach files to specific lessons</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsUploadModalOpen(false)}
-                className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <form onSubmit={handleCreateResource} className="space-y-4 text-xs">
-              {/* Resource Scope Switcher (General Course Resource vs Lesson-Specific) */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700">Resource Attachment Scope</label>
-                <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 border border-slate-200">
-                  <button
-                    type="button"
-                    onClick={() => setUploadScope("GENERAL")}
-                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
-                      uploadScope === "GENERAL"
-                        ? "bg-white text-[#7C248C] shadow-sm font-black"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <Globe className="w-4 h-4" />
-                    <span>General Resource</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUploadScope("LESSON")}
-                    className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition ${
-                      uploadScope === "LESSON"
-                        ? "bg-white text-[#1E2B88] shadow-sm font-black"
-                        : "text-slate-600 hover:text-slate-900"
-                    }`}
-                  >
-                    <BookOpen className="w-4 h-4" />
-                    <span>Lesson-Specific</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-slate-500 px-1">
-                  {uploadScope === "GENERAL"
-                    ? "✨ General resources are linked to the entire course and can optionally be restricted to specific student batches."
-                    : "📖 Lesson-specific resources appear inside a designated course module and lesson."}
-                </p>
-              </div>
-
-              {/* 1. Target Course Custom Dropdown */}
-              <CustomSelect
-                label="Target Course"
-                required
-                searchable
-                value={selectedCourseId}
-                onChange={(cId) => {
-                  setSelectedCourseId(cId);
-                  const c = courses.find((x) => x.id === cId);
-                  setSelectedBatchId("");
-                  setSelectedModuleId(c?.modules[0]?.id || "");
-                  setSelectedLessonId(c?.modules[0]?.lessons[0]?.id || "");
-                }}
-                options={courseSelectOptions}
-                placeholder="Select course..."
-              />
-
-              {/* 2. If GENERAL SCOPE: Optional Batch Custom Dropdown */}
-              {uploadScope === "GENERAL" && (
-                <CustomSelect
-                  label="Target Batch Restriction (Optional)"
-                  searchable
-                  value={selectedBatchId}
-                  onChange={(bId) => setSelectedBatchId(bId)}
-                  options={batchSelectOptions}
-                  placeholder="Select batch or leave universal..."
-                />
-              )}
-
-              {/* 3. If LESSON SCOPE: Module & Lesson Custom Dropdowns */}
-              {uploadScope === "LESSON" && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <CustomSelect
-                    label="Course Module"
-                    required
-                    value={selectedModuleId}
-                    onChange={(mId) => {
-                      setSelectedModuleId(mId);
-                      const m = selectedCourse?.modules.find((x) => x.id === mId);
-                      setSelectedLessonId(m?.lessons[0]?.id || "");
-                    }}
-                    options={moduleSelectOptions}
-                    placeholder="Select module..."
-                  />
-
-                  <CustomSelect
-                    label="Assigned Lesson"
-                    required
-                    value={selectedLessonId}
-                    onChange={(lId) => setSelectedLessonId(lId)}
-                    options={lessonSelectOptions}
-                    placeholder="Select lesson..."
-                    emptyMessage="No lessons in this module"
-                  />
-                </div>
-              )}
-
-              {/* File Upload Box */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <label className="font-bold text-slate-700 block">Select File from Device</label>
-
-                <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-200 hover:border-[#7C248C] rounded-2xl bg-slate-50 hover:bg-purple-50/50 cursor-pointer transition">
-                  {uploadLoading ? (
-                    <>
-                      <Loader2 className="w-8 h-8 text-[#7C248C] animate-spin" />
-                      <span className="text-xs font-bold text-slate-700 mt-2">Uploading asset from device...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-[#7C248C]" />
-                      <span className="text-xs font-bold text-slate-800 mt-2">
-                        Click to select PDF, Video, Code ZIP, Document, or Dataset
-                      </span>
-                      <span className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        Uploaded directly to JVM Institute secure media repository
-                      </span>
-                    </>
-                  )}
-                  <input type="file" disabled={uploadLoading} onChange={handleFileUpload} className="hidden" />
-                </label>
-
-                {uploadedUrl && (
-                  <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-[11px] font-mono flex items-center justify-between">
-                    <span className="truncate pr-2">✓ Uploaded: {resourceTitle} ({(uploadedSize / 1024).toFixed(1)} KB)</span>
-                    <span className="text-emerald-700 font-bold uppercase text-[10px] shrink-0">{uploadedType}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Asset Type Selector */}
-              <CustomSelect
-                label="Resource Type Category"
-                value={uploadedType}
-                onChange={(val) => setUploadedType(val)}
-                options={fileTypeOptions}
-                placeholder="Select category..."
-              />
-
-              {/* Resource Title */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Display Asset Title *</label>
-                <input
-                  type="text"
-                  required
-                  value={resourceTitle}
-                  onChange={(e) => setResourceTitle(e.target.value)}
-                  placeholder="e.g. Full Syllabus & Course Handbook.pdf"
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white font-medium transition"
-                />
-              </div>
-
-              {/* Resource Direct URL / Path */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">Direct Resource Path / URL *</label>
-                <input
-                  type="text"
-                  required
-                  value={uploadedUrl}
-                  onChange={(e) => setUploadedUrl(e.target.value)}
-                  placeholder="/uploads/resources/... or https://..."
-                  className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] focus:bg-white font-mono text-xs transition"
-                />
-              </div>
-
-              {/* Modal Actions */}
-              <div className="pt-3 border-t border-slate-100 flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsUploadModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs hover:bg-slate-200 transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading || uploadLoading || !uploadedUrl}
-                  className="px-5 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold text-xs shadow-md shadow-purple-900/20 disabled:opacity-50 flex items-center gap-1.5 transition"
-                >
-                  {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  <span>Confirm & Save Asset</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* 6. Delete Confirmation Modal */}
       {deletingResource && (

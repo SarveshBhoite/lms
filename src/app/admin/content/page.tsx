@@ -31,6 +31,24 @@ export default async function AdminContentLibraryPage() {
     }),
     prisma.resource.findMany({
       include: {
+        course: {
+          select: {
+            id: true,
+            title: true,
+            trainer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+        batch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         lesson: {
           select: {
             id: true,
@@ -43,6 +61,12 @@ export default async function AdminContentLibraryPage() {
                   select: {
                     id: true,
                     title: true,
+                    trainer: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
                   },
                 },
               },

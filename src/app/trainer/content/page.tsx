@@ -12,19 +12,19 @@ export default async function TrainerContentLibraryPage() {
   const trainerId = session.userId;
   const isAdmin = session.role === "ADMIN";
 
+  // System-wide content library: show all resources uploaded across all trainers, courses, and lessons
   const [courses, resources] = await Promise.all([
     prisma.course.findMany({
-      where: isAdmin
-        ? {}
-        : {
-            OR: [
-              { trainerId },
-              { batches: { some: { trainers: { some: { trainerId } } } } },
-            ],
-          },
       select: {
         id: true,
         title: true,
+        trainer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         batches: {
           select: {
             id: true,
@@ -48,42 +48,17 @@ export default async function TrainerContentLibraryPage() {
       orderBy: { title: "asc" },
     }),
     prisma.resource.findMany({
-      where: isAdmin
-        ? {}
-        : {
-            OR: [
-              {
-                lesson: {
-                  module: {
-                    course: {
-                      OR: [
-                        { trainerId },
-                        { batches: { some: { trainers: { some: { trainerId } } } } },
-                      ],
-                    },
-                  },
-                },
-              },
-              {
-                course: {
-                  OR: [
-                    { trainerId },
-                    { batches: { some: { trainers: { some: { trainerId } } } } },
-                  ],
-                },
-              },
-              {
-                batch: {
-                  trainers: { some: { trainerId } },
-                },
-              },
-            ],
-          },
       include: {
         course: {
           select: {
             id: true,
             title: true,
+            trainer: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
         },
         batch: {
@@ -104,6 +79,12 @@ export default async function TrainerContentLibraryPage() {
                   select: {
                     id: true,
                     title: true,
+                    trainer: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
                   },
                 },
               },
