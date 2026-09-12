@@ -6,9 +6,6 @@ const nextConfig: NextConfig = {
     // Vercel build runs before local client generation in some CI environments
     ignoreBuildErrors: true,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   logging: {
     fetches: {
       fullUrl: false,
