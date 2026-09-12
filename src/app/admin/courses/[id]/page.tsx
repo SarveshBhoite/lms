@@ -59,6 +59,10 @@ export default async function AdminCourseDetailPage({
                 email: true,
                 isActive: true,
                 profile: { select: { phone: true, avatarUrl: true } },
+                courseProgresses: {
+                  where: { courseId: id },
+                  select: { progressPercent: true, completedLessonsCount: true, isCompleted: true },
+                },
               },
             },
             batch: { select: { id: true, name: true } },
@@ -70,11 +74,56 @@ export default async function AdminCourseDetailPage({
             _count: { select: { students: true } },
           },
         },
+        quizzes: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: { select: { questions: true, quizAttempts: true } },
+            lesson: { select: { id: true, title: true } },
+          },
+        },
+        assignments: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: { select: { submissions: true } },
+            lesson: { select: { id: true, title: true } },
+          },
+        },
+        liveClasses: {
+          orderBy: { scheduledDate: "desc" },
+          include: {
+            batch: {
+              select: {
+                id: true,
+                name: true,
+                _count: { select: { students: true } },
+              },
+            },
+            trainer: { select: { id: true, name: true } },
+            attendances: {
+              select: {
+                id: true,
+                status: true,
+                userId: true,
+              },
+            },
+          },
+        },
+        resources: {
+          orderBy: { createdAt: "desc" },
+          include: {
+            batch: { select: { id: true, name: true } },
+            lesson: { select: { id: true, title: true } },
+          },
+        },
         _count: {
           select: {
             modules: true,
             enrollments: true,
             batches: true,
+            quizzes: true,
+            assignments: true,
+            liveClasses: true,
+            resources: true,
           },
         },
       },
@@ -144,6 +193,30 @@ export default async function AdminCourseDetailPage({
       endDate: b.endDate.toISOString(),
       createdAt: b.createdAt.toISOString(),
       updatedAt: b.updatedAt.toISOString(),
+    })),
+    quizzes: (course.quizzes || []).map((q) => ({
+      ...q,
+      createdAt: q.createdAt.toISOString(),
+      updatedAt: q.updatedAt.toISOString(),
+    })),
+    assignments: (course.assignments || []).map((a) => ({
+      ...a,
+      createdAt: a.createdAt.toISOString(),
+      updatedAt: a.updatedAt.toISOString(),
+      deadline: a.deadline ? a.deadline.toISOString() : null,
+    })),
+    liveClasses: (course.liveClasses || []).map((lc) => ({
+      ...lc,
+      scheduledDate: lc.scheduledDate.toISOString(),
+      startTime: lc.startTime.toISOString(),
+      endTime: lc.endTime.toISOString(),
+      createdAt: lc.createdAt.toISOString(),
+      updatedAt: lc.updatedAt.toISOString(),
+    })),
+    resources: (course.resources || []).map((r) => ({
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
     })),
   };
 

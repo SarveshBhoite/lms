@@ -45,6 +45,10 @@ export async function GET(
                 email: true,
                 isActive: true,
                 profile: { select: { phone: true, avatarUrl: true } },
+                courseProgresses: {
+                  where: { courseId: id },
+                  select: { progressPercent: true, completedLessonsCount: true, isCompleted: true },
+                },
               },
             },
             batch: { select: { id: true, name: true } },

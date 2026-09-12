@@ -546,6 +546,55 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
         </div>
       </div>
 
+      {/* Stats Summary Bar (Top 5 Studio KPI Metrics on Header) */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Layers className="w-3.5 h-3.5 text-[#7C248C]" /> Curriculum
+          </div>
+          <div className="text-2xl font-black text-slate-900">
+            {totalModules} <span className="text-xs text-slate-400 font-normal">Modules</span>
+          </div>
+          <div className="text-[11px] text-[#7C248C] font-mono font-semibold">{totalLessons} Total Lessons</div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-[#1E2B88]" /> Enrolled Learners
+          </div>
+          <div className="text-2xl font-black text-[#1E2B88]">
+            {course.enrollments.length} <span className="text-xs text-slate-400 font-normal">Learners</span>
+          </div>
+          <div className="text-[11px] text-indigo-600 font-mono font-semibold">{course.batches.length} Cohorts Assigned</div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-pink-600" /> Avg Completion
+          </div>
+          <div className="text-2xl font-black text-pink-600">{avgProgress.toFixed(1)}%</div>
+          <div className="text-[11px] text-pink-700 font-mono font-semibold">{completedLearners} Finished Course</div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <HelpCircle className="w-3.5 h-3.5 text-amber-600" /> Assessments
+          </div>
+          <div className="text-2xl font-black text-amber-600">{totalQuizzes + totalAssignments}</div>
+          <div className="text-[11px] text-amber-700 font-mono font-semibold">
+            {totalQuizzes} Quizzes • {totalAssignments} Tasks
+          </div>
+        </div>
+
+        <div className="p-5 rounded-3xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Video className="w-3.5 h-3.5 text-emerald-600" /> Live Sessions
+          </div>
+          <div className="text-2xl font-black text-emerald-600">{totalLiveClasses}</div>
+          <div className="text-[11px] text-emerald-700 font-mono font-semibold">Cohort Interactive</div>
+        </div>
+      </div>
+
       {/* 8 Comprehensive Tabs Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-1 scrollbar-none">
         <button
@@ -578,7 +627,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <HelpCircle className="w-4 h-4" /> Assessments ({totalQuizzes})
+          <HelpCircle className="w-4 h-4" /> Quizzes ({totalQuizzes})
         </button>
 
         <button
@@ -589,7 +638,7 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
               : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <FileCheck className="w-4 h-4" /> Projects & Tasks ({totalAssignments})
+          <FileCheck className="w-4 h-4" /> Assignments ({totalAssignments})
         </button>
 
         <button
@@ -640,39 +689,6 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
       {/* ---------------- TAB 1: OVERVIEW & COCKPIT ---------------- */}
       {activeTab === "overview" && (
         <div className="space-y-8">
-          {/* Top 5 KPI Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Curriculum</div>
-              <div className="text-2xl font-black text-slate-900">{totalModules} <span className="text-xs text-slate-400 font-normal">Modules</span></div>
-              <div className="text-[11px] text-[#7C248C] font-mono font-semibold">{totalLessons} Total Lessons</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Enrolled</div>
-              <div className="text-2xl font-black text-[#1E2B88]">{course.enrollments.length} <span className="text-xs text-slate-400 font-normal">Learners</span></div>
-              <div className="text-[11px] text-indigo-600 font-mono font-semibold">{course.batches.length} Cohorts Assigned</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Avg Completion</div>
-              <div className="text-2xl font-black text-pink-600">{avgProgress.toFixed(1)}%</div>
-              <div className="text-[11px] text-pink-700 font-mono font-semibold">{completedLearners} Finished Course</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Assessments</div>
-              <div className="text-2xl font-black text-amber-600">{totalQuizzes + totalAssignments}</div>
-              <div className="text-[11px] text-amber-700 font-mono font-semibold">{totalQuizzes} Quizzes • {totalAssignments} Tasks</div>
-            </div>
-
-            <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Live Sessions</div>
-              <div className="text-2xl font-black text-emerald-600">{totalLiveClasses}</div>
-              <div className="text-[11px] text-emerald-700 font-mono font-semibold">Cohort Interactive</div>
-            </div>
-          </div>
-
           {/* Quick Syllabus & Progress Split */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left: Syllabus Structure */}
@@ -992,13 +1008,13 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
         </div>
       )}
 
-      {/* ---------------- TAB 3: ASSESSMENTS & QUIZZES ---------------- */}
+      {/* ---------------- TAB 3: QUIZZES ---------------- */}
       {activeTab === "quizzes" && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <HelpCircle className="w-5 h-5 text-[#7C248C]" /> Assessments & Quizzes ({totalQuizzes})
+                <HelpCircle className="w-5 h-5 text-[#7C248C]" /> Quizzes ({totalQuizzes})
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Evaluations, tests, and quizzes linked to this course container.
@@ -1071,13 +1087,13 @@ export default function TrainerCourseClient({ initialCourse }: { initialCourse: 
         </div>
       )}
 
-      {/* ---------------- TAB 4: ASSIGNMENTS & PROJECTS ---------------- */}
+      {/* ---------------- TAB 4: ASSIGNMENTS ---------------- */}
       {activeTab === "assignments" && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                <FileCheck className="w-5 h-5 text-[#7C248C]" /> Practical Tasks & Projects ({totalAssignments})
+                <FileCheck className="w-5 h-5 text-[#7C248C]" /> Assignments ({totalAssignments})
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 Coding assignments, case studies, and practical projects assigned under this course.
