@@ -1,15 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldAlert, Mail, LogOut, Lock, AlertTriangle, HelpCircle, Phone, ArrowRight } from "lucide-react";
+import { ShieldAlert, Mail, LogOut, Lock, AlertTriangle, HelpCircle, Phone } from "lucide-react";
 
 export default function DeactivatedAccountScreen({
   userName,
   userEmail,
+  role = "STUDENT",
 }: {
   userName: string;
   userEmail: string;
+  role?: "STUDENT" | "TRAINER" | "USER";
 }) {
+  const isTrainer = role === "TRAINER";
+
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 sm:p-6 portal-bg-mesh selection:bg-purple-500 selection:text-white relative overflow-hidden">
       {/* JVM Institute Gentle Ambient Mesh Glows */}
@@ -19,7 +23,6 @@ export default function DeactivatedAccountScreen({
 
       {/* Main Container Card */}
       <div className="relative z-10 max-w-lg w-full bg-white/95 backdrop-blur-xl border border-purple-100 rounded-3xl p-7 sm:p-10 shadow-xl shadow-purple-950/5 text-center space-y-6 animate-in fade-in zoom-in duration-200">
-        
         {/* Brand Header */}
         <div className="flex flex-col items-center justify-center space-y-2">
           <Link href="/" className="inline-block transition hover:opacity-90">
@@ -30,7 +33,8 @@ export default function DeactivatedAccountScreen({
             />
           </Link>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold font-mono uppercase tracking-wider">
-            <Lock className="w-3.5 h-3.5 text-rose-600" /> Account Access Suspended
+            <Lock className="w-3.5 h-3.5 text-rose-600" />{" "}
+            {isTrainer ? "Faculty Portal Suspended" : "Account Access Suspended"}
           </div>
         </div>
 
@@ -47,7 +51,7 @@ export default function DeactivatedAccountScreen({
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-md mx-auto">
               Hello <strong className="text-slate-900">{userName}</strong> (
               <span className="font-mono text-slate-500">{userEmail}</span>
-              ), your student account has been marked as deactivated in the JVM LMS registry.
+              ), your {isTrainer ? "faculty/trainer" : "student"} account has been marked as deactivated in the JVM LMS registry.
             </p>
           </div>
         </div>
@@ -56,11 +60,13 @@ export default function DeactivatedAccountScreen({
         <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 text-left space-y-3">
           <div className="flex items-center gap-2 text-slate-800 font-bold text-xs">
             <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-            <span>What does this mean for your learning?</span>
+            <span>What does this mean for your account?</span>
           </div>
 
           <p className="text-xs text-slate-600 leading-relaxed">
-            Your enrolled courses, live classroom sessions, recorded lectures, quizzes, and digital certificates are currently paused. You will not be able to navigate portal tools until an administrator reactivates your account.
+            {isTrainer
+              ? "Your assigned courses, cohort batches, live classroom hosting tools, and assignment evaluation privileges are currently paused. You will not be able to access the faculty dashboard until an administrator reactivates your account."
+              : "Your enrolled courses, live classroom sessions, recorded lectures, quizzes, and digital certificates are currently paused. You will not be able to navigate portal tools until an administrator reactivates your account."}
           </p>
 
           <div className="pt-3 border-t border-slate-200/80 space-y-2">
@@ -68,7 +74,7 @@ export default function DeactivatedAccountScreen({
               <HelpCircle className="w-3.5 h-3.5 text-[#7C248C] shrink-0" />
               <span>Need this resolved? Contact Administration:</span>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
               <a
                 href="mailto:jmgrouponline@gmail.com"
@@ -104,7 +110,7 @@ export default function DeactivatedAccountScreen({
           <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400 font-mono">
             <span>JVM Institute</span>
             <span>&bull;</span>
-            <span>Student Portal Governance</span>
+            <span>{isTrainer ? "Faculty Portal Governance" : "Student Portal Governance"}</span>
           </div>
         </div>
       </div>

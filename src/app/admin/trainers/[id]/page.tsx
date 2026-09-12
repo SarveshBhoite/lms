@@ -15,53 +15,88 @@ export default async function TrainerProfilePage({
 
   const { id } = await params;
 
-  const trainer = await prisma.user.findFirst({
-    where: { id, role: "TRAINER" },
-    include: {
-      profile: true,
-      coursesCreated: {
-        include: {
-          modules: { select: { id: true } },
-          enrollments: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                  profile: { select: { phone: true, avatarUrl: true } },
-                },
-              },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      trainerBatches: {
-        include: {
-          batch: {
-            include: {
-              course: { select: { id: true, title: true } },
-              students: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      name: true,
-                      email: true,
-                      profile: { select: { phone: true, avatarUrl: true } },
-                    },
+  const [trainer, courses, batches, liveClassesTaught, evaluatedAssignmentsCount, authoredNotes] = await Promise.all([
+    prisma.user.findFirst({
+      where: { id, role: "TRAINER" },
+      include: {
+        profile: true,
+        coursesCreated: {
+          include: {
+            modules: { select: { id: true, title: true } },
+            enrollments: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profile: { select: { phone: true, avatarUrl: true } },
                   },
                 },
               },
-              liveClasses: true,
             },
           },
+          orderBy: { createdAt: "desc" },
         },
-        orderBy: { assignedAt: "desc" },
+        trainerBatches: {
+          include: {
+            batch: {
+              include: {
+                course: { select: { id: true, title: true } },
+                students: {
+                  include: {
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        profile: { select: { phone: true, avatarUrl: true } },
+                      },
+                    },
+                  },
+                },
+                liveClasses: true,
+              },
+            },
+          },
+          orderBy: { assignedAt: "desc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.course.findMany({
+      select: { id: true, title: true },
+      orderBy: { title: "asc" },
+    }),
+    prisma.batch.findMany({
+      select: { id: true, name: true, courseId: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.liveClass.findMany({
+      where: {
+        OR: [
+          { trainerId: id },
+          { batch: { trainers: { some: { trainerId: id } } } },
+        ],
+      },
+      include: {
+        batch: { select: { id: true, name: true } },
+        attendances: { select: { id: true, status: true } },
+      },
+      orderBy: { scheduledDate: "desc" },
+      take: 50,
+    }),
+    prisma.assignmentFeedback.count({
+      where: { trainerId: id },
+    }),
+    prisma.trainerNote.findMany({
+      where: { trainerId: id },
+      include: {
+        student: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+  ]);
 
   if (!trainer) {
     notFound();
@@ -114,5 +149,32 @@ export default async function TrainerProfilePage({
     })),
   };
 
-  return <TrainerProfileClient trainer={serializedTrainer as any} />;
+  const serializedLiveClasses = liveClassesTaught.map((lc) => ({
+    id: lc.id,
+    title: lc.title,
+    scheduledDate: lc.scheduledDate.toISOString(),
+    status: lc.status,
+    meetingUrl: lc.meetUrl,
+    batchName: lc.batch.name,
+    totalAttendance: lc.attendances.length,
+    presentCount: lc.attendances.filter((a) => a.status === "PRESENT" || a.status === "LATE").length,
+  }));
+
+  const serializedAuthoredNotes = authoredNotes.map((n) => ({
+    id: n.id,
+    content: n.content,
+    createdAt: n.createdAt.toISOString(),
+    student: n.student,
+  }));
+
+  return (
+    <TrainerProfileClient
+      trainer={serializedTrainer as any}
+      courses={courses}
+      batches={batches}
+      liveClasses={serializedLiveClasses}
+      evaluatedAssignmentsCount={evaluatedAssignmentsCount}
+      authoredNotes={serializedAuthoredNotes}
+    />
+  );
 }

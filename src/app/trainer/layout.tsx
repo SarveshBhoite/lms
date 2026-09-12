@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import TrainerDrawerLayout from "./TrainerDrawerLayout";
 
+import DeactivatedAccountScreen from "@/components/student/DeactivatedAccountScreen";
+
 export default async function TrainerLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
@@ -25,8 +27,19 @@ export default async function TrainerLayout({ children }: { children: React.Reac
     },
   });
 
-  if (!user || !user.isActive) {
+  if (!user) {
     redirect("/login");
+  }
+
+  // If trainer account is deactivated by admin, override screen
+  if (!user.isActive) {
+    return (
+      <DeactivatedAccountScreen
+        userName={user.name}
+        userEmail={user.email}
+        role="TRAINER"
+      />
+    );
   }
 
   const now = new Date();
