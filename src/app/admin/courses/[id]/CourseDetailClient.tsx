@@ -235,6 +235,21 @@ export default function CourseDetailClient({
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
+  // Edit Course Modal State
+  const [isEditCourseModalOpen, setIsEditCourseModalOpen] = useState(false);
+  const [courseFormData, setCourseFormData] = useState({
+    title: initialCourse.title,
+    thumbnailUrl: initialCourse.thumbnailUrl || "",
+    description: initialCourse.description,
+    durationHours: initialCourse.durationHours,
+    level: initialCourse.level,
+    trainerId: initialCourse.trainerId,
+    status: initialCourse.status,
+    objectives: initialCourse.objectives && initialCourse.objectives.length > 0 ? [...initialCourse.objectives] : [""],
+    prerequisites: initialCourse.prerequisites && initialCourse.prerequisites.length > 0 ? [...initialCourse.prerequisites] : [""],
+  });
+  const [courseUploadLoading, setCourseUploadLoading] = useState(false);
+
   // Enrollment Modal States inside Course
   const [isEnrollModalOpen, setIsEnrollModalOpen] = useState(false);
   const [isBulkEnrollModalOpen, setIsBulkEnrollModalOpen] = useState(false);
@@ -320,6 +335,84 @@ export default function CourseDetailClient({
       showToast("error", err.message || "Failed to update status");
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  // Edit Course Details Submit
+  const handleEditCourseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      const sanitizedObjectives = courseFormData.objectives.map((s) => s.trim()).filter(Boolean);
+      const sanitizedPrerequisites = courseFormData.prerequisites.map((s) => s.trim()).filter(Boolean);
+
+      const res = await fetch(`/api/admin/courses/${course.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: courseFormData.title,
+          thumbnailUrl: courseFormData.thumbnailUrl || null,
+          description: courseFormData.description,
+          durationHours: Number(courseFormData.durationHours),
+          level: courseFormData.level,
+          trainerId: courseFormData.trainerId,
+          status: courseFormData.status,
+          objectives: sanitizedObjectives,
+          prerequisites: sanitizedPrerequisites,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update course");
+      }
+
+      showToast("success", `Course details updated successfully!`);
+      setIsEditCourseModalOpen(false);
+      refreshCourse();
+      router.refresh();
+    } catch (err: any) {
+      showToast("error", err.message || "Failed to update course");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleImageUploadForCourse = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("error", "Please select a valid image file (PNG, JPG, WEBP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("error", "Image size exceeds 5MB limit.");
+      return;
+    }
+
+    setCourseUploadLoading(true);
+    try {
+      const data = new FormData();
+      data.append("file", file);
+
+      const res = await fetch("/api/upload/image", {
+        method: "POST",
+        body: data,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to upload image to Cloudinary");
+      }
+
+      setCourseFormData((prev) => ({ ...prev, thumbnailUrl: json.url }));
+      showToast("success", "Thumbnail uploaded to Cloudinary successfully!");
+    } catch (err: any) {
+      console.error(err);
+      showToast("error", err.message || "Failed to upload image");
+    } finally {
+      setCourseUploadLoading(false);
     }
   };
 
@@ -727,6 +820,26 @@ export default function CourseDetailClient({
         </Link>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setCourseFormData({
+                title: course.title,
+                thumbnailUrl: course.thumbnailUrl || "",
+                description: course.description,
+                durationHours: course.durationHours,
+                level: course.level,
+                trainerId: course.trainerId,
+                status: course.status,
+                objectives: course.objectives && course.objectives.length > 0 ? [...course.objectives] : [""],
+                prerequisites: course.prerequisites && course.prerequisites.length > 0 ? [...course.prerequisites] : [""],
+              });
+              setIsEditCourseModalOpen(true);
+            }}
+            className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-purple-50 hover:text-[#7C248C] hover:border-purple-200 text-slate-700 font-bold text-xs transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+          >
+            <Edit2 className="w-3.5 h-3.5" /> Edit Course Details
+          </button>
+
           {course.status === "PUBLISHED" ? (
             <button
               onClick={() => handleStatusToggle("UNPUBLISHED")}
@@ -1205,7 +1318,29 @@ export default function CourseDetailClient({
             {/* Right: Course Metadata & Instructor Card */}
             <div className="space-y-6">
               <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-xs space-y-5">
-                <h3 className="text-lg font-black text-slate-900">Course Metadata</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-black text-slate-900">Course Metadata</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCourseFormData({
+                        title: course.title,
+                        thumbnailUrl: course.thumbnailUrl || "",
+                        description: course.description,
+                        durationHours: course.durationHours,
+                        level: course.level,
+                        trainerId: course.trainerId,
+                        status: course.status,
+                        objectives: course.objectives && course.objectives.length > 0 ? [...course.objectives] : [""],
+                        prerequisites: course.prerequisites && course.prerequisites.length > 0 ? [...course.prerequisites] : [""],
+                      });
+                      setIsEditCourseModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-xl transition cursor-pointer"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                </div>
 
                 <div className="space-y-3 text-xs">
                   <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
@@ -2635,6 +2770,309 @@ export default function CourseDetailClient({
                 Delete Resource
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Course Details Modal */}
+      {isEditCourseModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl p-6 sm:p-8 rounded-3xl border border-slate-200 space-y-6 shadow-2xl my-8 max-h-[90vh] overflow-y-auto animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-100 text-[#7C248C] flex items-center justify-center">
+                  <Edit2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-lg">Edit Course Details</h3>
+                  <p className="text-xs text-slate-500">Update course metadata, faculty assignment, objectives & prerequisites</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditCourseModalOpen(false)}
+                className="p-2 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-900 transition cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditCourseSubmit} className="space-y-4 text-xs">
+              {/* Title */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Course Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={courseFormData.title}
+                  onChange={(e) => setCourseFormData({ ...courseFormData, title: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
+                />
+              </div>
+
+              {/* Thumbnail Upload */}
+              <div className="space-y-2">
+                <label className="font-bold text-slate-700">Course Thumbnail</label>
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-4 rounded-2xl border border-slate-200 bg-slate-50/50">
+                  {courseFormData.thumbnailUrl ? (
+                    <div className="relative w-28 h-20 rounded-2xl overflow-hidden border border-slate-200 group shrink-0 shadow-xs">
+                      <img
+                        src={courseFormData.thumbnailUrl}
+                        alt="Thumbnail preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setCourseFormData({ ...courseFormData, thumbnailUrl: "" })}
+                        className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition text-[10px] font-bold cursor-pointer"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-28 h-20 rounded-2xl border-2 border-dashed border-slate-200 shrink-0 flex flex-col items-center justify-center text-slate-400 bg-slate-50">
+                      <ImageIcon className="w-6 h-6 stroke-1" />
+                      <span className="text-[9px] mt-0.5">No image</span>
+                    </div>
+                  )}
+
+                  <div className="flex-1 space-y-2 w-full">
+                    <label className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 hover:border-purple-300 bg-white text-slate-700 font-bold text-xs cursor-pointer transition shadow-xs hover:bg-purple-50/50">
+                      {courseUploadLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 text-[#7C248C] animate-spin" />
+                          <span>Uploading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 text-[#7C248C]" />
+                          <span>Upload Image from Device</span>
+                        </>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        disabled={courseUploadLoading}
+                        onChange={handleImageUploadForCourse}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <input
+                      type="url"
+                      placeholder="Or paste image URL directly..."
+                      value={courseFormData.thumbnailUrl}
+                      onChange={(e) => setCourseFormData({ ...courseFormData, thumbnailUrl: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-[11px] focus:outline-none focus:border-[#7C248C]"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Trainer, Level, Duration */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Assigned Trainer *</label>
+                  <select
+                    required
+                    value={courseFormData.trainerId}
+                    onChange={(e) => setCourseFormData({ ...courseFormData, trainerId: e.target.value })}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                  >
+                    {trainers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} ({t.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Difficulty Level *</label>
+                  <select
+                    value={courseFormData.level}
+                    onChange={(e) =>
+                      setCourseFormData({
+                        ...courseFormData,
+                        level: e.target.value as any,
+                      })
+                    }
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                  >
+                    <option value="BEGINNER">Beginner</option>
+                    <option value="INTERMEDIATE">Intermediate</option>
+                    <option value="ADVANCED">Advanced</option>
+                    <option value="ALL_LEVELS">All Levels</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="font-bold text-slate-700">Duration (Hours) *</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    required
+                    value={courseFormData.durationHours}
+                    onChange={(e) =>
+                      setCourseFormData({ ...courseFormData, durationHours: Number(e.target.value) })
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Course Status *</label>
+                <select
+                  value={courseFormData.status}
+                  onChange={(e) =>
+                    setCourseFormData({ ...courseFormData, status: e.target.value as any })
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                >
+                  <option value="DRAFT">Draft (Invisible to students)</option>
+                  <option value="PUBLISHED">Published (Available for enrollment)</option>
+                  <option value="UNPUBLISHED">Unpublished (Hidden from student catalog)</option>
+                </select>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1">
+                <label className="font-bold text-slate-700">Full Description *</label>
+                <textarea
+                  rows={3}
+                  required
+                  value={courseFormData.description}
+                  onChange={(e) => setCourseFormData({ ...courseFormData, description: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C]"
+                />
+              </div>
+
+              {/* Learning Objectives with Add button */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 text-xs">
+                    Course Learning Objectives
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCourseFormData((prev) => ({ ...prev, objectives: [...prev.objectives, ""] }))
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Objective
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {courseFormData.objectives.map((obj, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-purple-100 text-[#7C248C] text-[10px] font-bold font-mono flex items-center justify-center shrink-0">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Master modern web development with Next.js"
+                        value={obj}
+                        onChange={(e) => {
+                          const updated = [...courseFormData.objectives];
+                          updated[index] = e.target.value;
+                          setCourseFormData((prev) => ({ ...prev, objectives: updated }));
+                        }}
+                        className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
+                      />
+                      {courseFormData.objectives.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = courseFormData.objectives.filter((_, i) => i !== index);
+                            setCourseFormData((prev) => ({ ...prev, objectives: updated }));
+                          }}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
+                          title="Remove objective"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Prerequisites with Add button */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 text-xs">
+                    Course Prerequisites
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCourseFormData((prev) => ({ ...prev, prerequisites: [...prev.prerequisites, ""] }))
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Prerequisite
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {courseFormData.prerequisites.map((pre, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold font-mono flex items-center justify-center shrink-0">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Basic JavaScript & HTML knowledge"
+                        value={pre}
+                        onChange={(e) => {
+                          const updated = [...courseFormData.prerequisites];
+                          updated[index] = e.target.value;
+                          setCourseFormData((prev) => ({ ...prev, prerequisites: updated }));
+                        }}
+                        className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
+                      />
+                      {courseFormData.prerequisites.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = courseFormData.prerequisites.filter((_, i) => i !== index);
+                            setCourseFormData((prev) => ({ ...prev, prerequisites: updated }));
+                          }}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
+                          title="Remove prerequisite"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditCourseModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:text-slate-900 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2.5 rounded-xl jvm-gradient-bg jvm-gradient-hover text-white font-bold shadow-md shadow-purple-900/20 flex items-center gap-2 disabled:opacity-50 cursor-pointer transition hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {actionLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  Save Course Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

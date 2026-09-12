@@ -101,8 +101,8 @@ export default function CoursesClient({
     level: "BEGINNER" as "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "ALL_LEVELS",
     trainerId: trainers[0]?.id || "",
     status: "DRAFT" as "DRAFT" | "PUBLISHED" | "UNPUBLISHED",
-    objectivesText: "",
-    prerequisitesText: "",
+    objectives: [""] as string[],
+    prerequisites: [""] as string[],
   });
   const [uploadLoading, setUploadLoading] = useState(false);
 
@@ -185,14 +185,8 @@ export default function CoursesClient({
     e.preventDefault();
     setActionLoading(true);
     try {
-      const objectives = formData.objectivesText
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const prerequisites = formData.prerequisitesText
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const objectives = formData.objectives.map((s) => s.trim()).filter(Boolean);
+      const prerequisites = formData.prerequisites.map((s) => s.trim()).filter(Boolean);
 
       const res = await fetch("/api/admin/courses", {
         method: "POST",
@@ -233,14 +227,8 @@ export default function CoursesClient({
 
     setActionLoading(true);
     try {
-      const objectives = formData.objectivesText
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const prerequisites = formData.prerequisitesText
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
+      const objectives = formData.objectives.map((s) => s.trim()).filter(Boolean);
+      const prerequisites = formData.prerequisites.map((s) => s.trim()).filter(Boolean);
 
       const res = await fetch(`/api/admin/courses/${editingCourse.id}`, {
         method: "PATCH",
@@ -329,8 +317,8 @@ export default function CoursesClient({
       level: course.level,
       trainerId: course.trainerId,
       status: course.status,
-      objectivesText: course.objectives.join("\n"),
-      prerequisitesText: course.prerequisites.join("\n"),
+      objectives: course.objectives && course.objectives.length > 0 ? [...course.objectives] : [""],
+      prerequisites: course.prerequisites && course.prerequisites.length > 0 ? [...course.prerequisites] : [""],
     });
   };
 
@@ -343,8 +331,8 @@ export default function CoursesClient({
       level: "BEGINNER",
       trainerId: trainers[0]?.id || "",
       status: "DRAFT",
-      objectivesText: "",
-      prerequisitesText: "",
+      objectives: [""],
+      prerequisites: [""],
     });
   };
 
@@ -1009,36 +997,108 @@ export default function CoursesClient({
                 />
               </div>
 
-              {/* Objectives (Line separated) */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">
-                  Course Learning Objectives (One per line)
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Understand Next.js App Router&#10;Master Prisma ORM queries&#10;Build production APIs"
-                  value={formData.objectivesText}
-                  onChange={(e) =>
-                    setFormData({ ...formData, objectivesText: e.target.value })
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] font-mono text-[11px]"
-                />
+              {/* Objectives (Sentence-by-sentence with Add button) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 text-xs">
+                    Course Learning Objectives
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, objectives: [...prev.objectives, ""] }))
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Objective
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {formData.objectives.map((obj, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-purple-100 text-[#7C248C] text-[10px] font-bold font-mono flex items-center justify-center shrink-0">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Master modern web development with Next.js"
+                        value={obj}
+                        onChange={(e) => {
+                          const updated = [...formData.objectives];
+                          updated[index] = e.target.value;
+                          setFormData((prev) => ({ ...prev, objectives: updated }));
+                        }}
+                        className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
+                      />
+                      {formData.objectives.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = formData.objectives.filter((_, i) => i !== index);
+                            setFormData((prev) => ({ ...prev, objectives: updated }));
+                          }}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
+                          title="Remove objective"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
-              {/* Prerequisites (Line separated) */}
-              <div className="space-y-1">
-                <label className="font-bold text-slate-700">
-                  Prerequisites (One per line)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Basic JavaScript knowledge&#10;HTML & CSS familiarity"
-                  value={formData.prerequisitesText}
-                  onChange={(e) =>
-                    setFormData({ ...formData, prerequisitesText: e.target.value })
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:outline-none focus:border-[#7C248C] font-mono text-[11px]"
-                />
+              {/* Prerequisites (Sentence-by-sentence with Add button) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-700 text-xs">
+                    Course Prerequisites
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, prerequisites: [...prev.prerequisites, ""] }))
+                    }
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Prerequisite
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {formData.prerequisites.map((pre, index) => (
+                    <div key={index} className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold font-mono flex items-center justify-center shrink-0">
+                        {index + 1}
+                      </span>
+                      <input
+                        type="text"
+                        placeholder="e.g. Basic JavaScript & HTML knowledge"
+                        value={pre}
+                        onChange={(e) => {
+                          const updated = [...formData.prerequisites];
+                          updated[index] = e.target.value;
+                          setFormData((prev) => ({ ...prev, prerequisites: updated }));
+                        }}
+                        className="flex-1 px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
+                      />
+                      {formData.prerequisites.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = formData.prerequisites.filter((_, i) => i !== index);
+                            setFormData((prev) => ({ ...prev, prerequisites: updated }));
+                          }}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition shrink-0 cursor-pointer"
+                          title="Remove prerequisite"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Submit Buttons */}

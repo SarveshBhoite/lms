@@ -13,6 +13,8 @@ import {
   BookOpen,
   Upload,
   Image as ImageIcon,
+  Plus,
+  Trash2,
 } from "lucide-react";
 
 export default function TrainerCourseCreatePage() {
@@ -22,8 +24,13 @@ export default function TrainerCourseCreatePage() {
   const [durationHours, setDurationHours] = useState(30);
   const [level, setLevel] = useState("BEGINNER");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
-  const [objectives, setObjectives] = useState("Build production-ready applications, Master core concepts");
-  const [prerequisites, setPrerequisites] = useState("Basic programming fundamentals");
+  const [objectives, setObjectives] = useState<string[]>([
+    "Build production-ready applications",
+    "Master core concepts",
+  ]);
+  const [prerequisites, setPrerequisites] = useState<string[]>([
+    "Basic programming fundamentals",
+  ]);
   const [loading, setLoading] = useState(false);
   const [uploadLoading, setUploadLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,8 +90,8 @@ export default function TrainerCourseCreatePage() {
           durationHours: Number(durationHours),
           level,
           thumbnailUrl: thumbnailUrl || undefined,
-          objectives: objectives.split(",").map((s) => s.trim()).filter(Boolean),
-          prerequisites: prerequisites.split(",").map((s) => s.trim()).filter(Boolean),
+          objectives: objectives.map((s) => s.trim()).filter(Boolean),
+          prerequisites: prerequisites.map((s) => s.trim()).filter(Boolean),
         }),
       });
 
@@ -246,24 +253,98 @@ export default function TrainerCourseCreatePage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Learning Objectives (comma separated)</label>
-            <input
-              type="text"
-              value={objectives}
-              onChange={(e) => setObjectives(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
-            />
+          {/* Learning Objectives with Add button */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Learning Objectives
+              </label>
+              <button
+                type="button"
+                onClick={() => setObjectives((prev) => [...prev, ""])}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-xl transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Objective
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {objectives.map((obj, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-xl bg-purple-100 text-[#7C248C] text-[10px] font-bold font-mono flex items-center justify-center shrink-0">
+                    {idx + 1}
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="e.g. Master core concepts and design patterns"
+                    value={obj}
+                    onChange={(e) => {
+                      const updated = [...objectives];
+                      updated[idx] = e.target.value;
+                      setObjectives(updated);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
+                  />
+                  {objectives.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setObjectives((prev) => prev.filter((_, i) => i !== idx))}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition shrink-0 cursor-pointer"
+                      title="Remove objective"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Prerequisites (comma separated)</label>
-            <input
-              type="text"
-              value={prerequisites}
-              onChange={(e) => setPrerequisites(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
-            />
+          {/* Prerequisites with Add button */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
+                Course Prerequisites
+              </label>
+              <button
+                type="button"
+                onClick={() => setPrerequisites((prev) => [...prev, ""])}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#7C248C] hover:text-purple-800 bg-purple-50 hover:bg-purple-100 px-2.5 py-1 rounded-xl transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Prerequisite
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              {prerequisites.map((pre, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <span className="w-6 h-6 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold font-mono flex items-center justify-center shrink-0">
+                    {idx + 1}
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="e.g. Basic programming fundamentals"
+                    value={pre}
+                    onChange={(e) => {
+                      const updated = [...prerequisites];
+                      updated[idx] = e.target.value;
+                      setPrerequisites(updated);
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] focus:bg-white transition"
+                  />
+                  {prerequisites.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setPrerequisites((prev) => prev.filter((_, i) => i !== idx))}
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition shrink-0 cursor-pointer"
+                      title="Remove prerequisite"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
