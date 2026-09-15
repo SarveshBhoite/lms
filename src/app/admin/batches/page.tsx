@@ -13,7 +13,13 @@ export default async function AdminBatchesPage() {
     prisma.batch.findMany({
       include: {
         course: {
-          select: { id: true, title: true, level: true, thumbnailUrl: true },
+          select: {
+            id: true,
+            title: true,
+            level: true,
+            thumbnailUrl: true,
+            _count: { select: { modules: true, resources: true } },
+          },
         },
         trainers: {
           include: {
@@ -48,6 +54,7 @@ export default async function AdminBatchesPage() {
             students: true,
             trainers: true,
             liveClasses: true,
+            resources: true,
           },
         },
       },
@@ -112,6 +119,7 @@ export default async function AdminBatchesPage() {
     totalStudents: b._count.students,
     totalTrainers: b._count.trainers,
     totalLiveClasses: b._count.liveClasses,
+    totalResources: b._count.resources,
   }));
 
   return (

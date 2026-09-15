@@ -23,6 +23,26 @@ export async function GET(
             thumbnailUrl: true,
             level: true,
             durationHours: true,
+            modules: {
+              orderBy: { orderIndex: "asc" },
+              select: {
+                id: true,
+                title: true,
+                description: true,
+                orderIndex: true,
+                lessons: {
+                  orderBy: { orderIndex: "asc" },
+                  select: {
+                    id: true,
+                    title: true,
+                    contentType: true,
+                    durationMinutes: true,
+                    orderIndex: true,
+                    isFreePreview: true,
+                  },
+                },
+              },
+            },
           },
         },
         trainers: {
@@ -64,11 +84,23 @@ export async function GET(
             _count: { select: { attendances: true } },
           },
         },
+        resources: {
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            fileType: true,
+            fileSize: true,
+            fileUrl: true,
+            createdAt: true,
+          },
+        },
         _count: {
           select: {
             students: true,
             trainers: true,
             liveClasses: true,
+            resources: true,
           },
         },
       },
