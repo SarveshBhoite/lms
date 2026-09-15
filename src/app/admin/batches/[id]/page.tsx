@@ -28,6 +28,17 @@ export default async function AdminBatchDetailPage({
             thumbnailUrl: true,
             level: true,
             durationHours: true,
+            resources: {
+              orderBy: { createdAt: "desc" },
+              select: {
+                id: true,
+                title: true,
+                fileType: true,
+                fileSize: true,
+                fileUrl: true,
+                createdAt: true,
+              },
+            },
             modules: {
               orderBy: { orderIndex: "asc" },
               select: {
@@ -44,6 +55,16 @@ export default async function AdminBatchDetailPage({
                     durationMinutes: true,
                     orderIndex: true,
                     isFreePreview: true,
+                    resources: {
+                      select: {
+                        id: true,
+                        title: true,
+                        fileType: true,
+                        fileSize: true,
+                        fileUrl: true,
+                        createdAt: true,
+                      },
+                    },
                   },
                 },
               },
@@ -171,17 +192,56 @@ export default async function AdminBatchDetailPage({
         leftTime: att.leftTime ? att.leftTime.toISOString() : null,
       })),
     })),
-    resources: batch.resources.map((r) => ({
-      ...r,
-      createdAt: r.createdAt.toISOString(),
-    })),
   };
 
-  return (
-    <BatchDetailClient
-      initialBatch={serializedBatch as any}
-      availableTrainers={availableTrainers as any}
-      availableStudents={availableStudents as any}
-    />
-  );
-}
+  // Collect all resources: direct batch resources + course resources + module lesson resources
+  const allResourcesMap = new Map<string, any>();
+
+    // 1. Direct batch resources
+    batch.resources?.forEach((r) => {
+      allResourcesMap.set(r.id, {
+        ...r,
+        createdAt: r.createdAt.toISOString(),
+        origin: "Batch Cohort Specific",
+      });
+    });
+
+    // 2. Course curriculum resources
+    batch.course.resources?.forEach((r) => {
+      if (!allResourcesMap.has(r.id)) {
+        allResourcesMap.set(r.id, {
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+          origin: "Course Level Material",
+        });
+      }
+    });
+
+    // 3. Lesson resources
+    batch.course.modules?.forEach((m) => {
+      m.lessons?.forEach((l) => {
+        l.resources?.forEach((r) => {
+          if (!allResourcesMap.has(r.id)) {
+            allResourcesMap.set(r.id, {
+              ...r,
+              createdAt: r.createdAt.toISOString(),
+              origin: `Lesson: ${l.title}`,
+            });
+          }
+        });
+      });
+    });
+
+    const consolidatedResources = Array.from(allResourcesMap.values());
+
+    return (
+      <BatchDetailClient
+        initialBatch={{
+          ...serializedBatch,
+          resources: consolidatedResources,
+        } as any}
+        availableTrainers={availableTrainers as any}
+        availableStudents={availableStudents as any}
+      />
+    );
+  }

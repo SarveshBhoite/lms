@@ -125,6 +125,7 @@ interface BatchResourceItem {
   fileSize: number;
   fileUrl: string;
   createdAt: string;
+  origin?: string;
 }
 
 interface BatchDetail {
@@ -550,9 +551,6 @@ export default function BatchDetailClient({
           }`}
         >
           <Video className="w-4 h-4" /> Live Classes ({batch.liveClasses.length})
-          <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
-            Read-Only
-          </span>
         </button>
 
         <button
@@ -564,9 +562,6 @@ export default function BatchDetailClient({
           }`}
         >
           <CheckSquare className="w-4 h-4" /> Attendance Analytics
-          <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">
-            Read-Only
-          </span>
         </button>
 
         <button
@@ -806,15 +801,37 @@ export default function BatchDetailClient({
                   </div>
 
                   <div className="pt-3 border-t border-slate-100 space-y-2">
-                    {/* Google Meet Link Preview */}
-                    <a
-                      href={lc.meetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition"
-                    >
-                      <Video className="w-4 h-4" /> Open Meet Session <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                    {/* Google Meet Link: Only show active Join button if class is LIVE or SCHEDULED and not in the past */}
+                    {(() => {
+                      const isPast = new Date(lc.endTime).getTime() < Date.now();
+                      const isOver = lc.status === "COMPLETED" || lc.status === "CANCELLED" || (lc.status === "SCHEDULED" && isPast);
+
+                      if (isOver) {
+                        return (
+                          <div className="w-full py-2.5 rounded-xl bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center gap-2 border border-slate-200 cursor-default select-none">
+                            <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                            <span>Meeting Concluded</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <a
+                          href={lc.meetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`w-full py-2.5 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition ${
+                            lc.status === "LIVE"
+                              ? "bg-rose-600 hover:bg-rose-500 animate-pulse shadow-rose-600/20"
+                              : "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20"
+                          }`}
+                        >
+                          <Video className="w-4 h-4" />
+                          <span>{lc.status === "LIVE" ? "Join Ongoing Session" : "Join Meet Session"}</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      );
+                    })()}
 
                     {lc.recordingUrl && (
                       <a
@@ -1251,9 +1268,16 @@ export default function BatchDetailClient({
                   className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs space-y-3 flex flex-col justify-between hover:border-purple-300 transition"
                 >
                   <div className="space-y-2">
-                    <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
-                      {res.fileType}
-                    </span>
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
+                        {res.fileType}
+                      </span>
+                      {res.origin && (
+                        <span className="text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md truncate max-w-[170px]" title={res.origin}>
+                          {res.origin}
+                        </span>
+                      )}
+                    </div>
                     <h4 className="font-extrabold text-slate-900 text-sm line-clamp-2">{res.title}</h4>
                     <p className="text-[11px] font-mono text-slate-400">
                       {(res.fileSize / (1024 * 1024)).toFixed(2)} MB • {formatDate(res.createdAt)}
