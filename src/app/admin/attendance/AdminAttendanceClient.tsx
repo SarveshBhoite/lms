@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   CheckSquare,
   Search,
@@ -14,308 +14,469 @@ import {
   Users,
   Calendar,
   Layers,
-  Edit2,
+  ChevronRight,
+  Eye,
   X,
-  Save,
+  ExternalLink,
+  BookOpen,
+  Sparkles,
+  Percent,
+  SlidersHorizontal,
+  UserCheck,
+  TrendingUp,
+  Award,
+  ArrowUpRight,
+  Check,
 } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
-interface AttendanceRecord {
+interface StudentAttendanceRecord {
   id: string;
   status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED";
   recordedAt: string;
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    profile?: { avatarUrl?: string | null } | null;
-  };
+  joinClickTime?: string | null;
+  leftTime?: string | null;
+  excuseReason?: string | null;
   liveClass: {
     id: string;
     title: string;
     scheduledDate: string;
-    trainer: { name: string };
-    batch: { id: string; name: string; course: { title: string } };
+    startTime: string;
+    endTime: string;
+    trainerName: string;
+    batchName: string;
+    courseTitle: string;
   };
 }
 
-interface StatsData {
-  totalRecords: number;
+interface StudentItem {
+  id: string;
+  name: string;
+  email: string;
+  isActive?: boolean;
+  profile?: {
+    avatarUrl?: string | null;
+    phone?: string | null;
+    designation?: string | null;
+  } | null;
+  studentBatches: Array<{
+    batchId: string;
+    batchName: string;
+    courseTitle: string;
+  }>;
+  enrollments: Array<{
+    courseId: string;
+    courseTitle: string;
+    batchName?: string | null;
+  }>;
+  attendances: StudentAttendanceRecord[];
+  stats: {
+    totalSessions: number;
+    presentCount: number;
+    lateCount: number;
+    absentCount: number;
+    excusedCount: number;
+    rate: number;
+  };
+}
+
+interface PlatformStats {
+  totalStudents: number;
+  totalAuditedChecks: number;
   presentCount: number;
   absentCount: number;
   lateCount: number;
   excusedCount: number;
-  overallRate: number;
+  platformRate: number;
+}
+
+interface CourseOption {
+  id: string;
+  title: string;
 }
 
 interface BatchOption {
   id: string;
   name: string;
+  courseId: string;
 }
 
 export default function AdminAttendanceClient({
-  initialData,
+  initialStudents,
+  courses,
   batches,
+  platformStats,
 }: {
-  initialData: { attendances: AttendanceRecord[]; stats: StatsData };
+  initialStudents: StudentItem[];
+  courses: CourseOption[];
   batches: BatchOption[];
+  platformStats: PlatformStats;
 }) {
-  const router = useRouter();
-  const [records, setRecords] = useState<AttendanceRecord[]>(initialData.attendances);
-  const [stats, setStats] = useState<StatsData>(initialData.stats);
+  const [students, setStudents] = useState<StudentItem[]>(initialStudents);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [selectedBatch, setSelectedBatch] = useState<string>("ALL");
+  const [selectedBatch, setSelectedBatch] = useState("ALL");
+  const [selectedCourse, setSelectedCourse] = useState("ALL");
+  const [performanceFilter, setPerformanceFilter] = useState<"ALL" | "EXCELLENT" | "AVERAGE" | "LOW">("ALL");
 
-  const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
-  const [newStatus, setNewStatus] = useState<"PRESENT" | "ABSENT" | "LATE" | "EXCUSED">("PRESENT");
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  // Selected student for detailed modal/drawer
+  const [selectedStudent, setSelectedStudent] = useState<StudentItem | null>(null);
+  const [modalSearch, setModalSearch] = useState("");
+  const [modalStatusFilter, setModalStatusFilter] = useState("ALL");
 
-  const showToast = (type: "success" | "error", text: string) => {
-    setToast({ type, text });
-    setTimeout(() => setToast(null), 4000);
-  };
+  // Filter students
+  const filteredStudents = useMemo(() => {
+    return students.filter((st) => {
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        st.name.toLowerCase().includes(q) ||
+        st.email.toLowerCase().includes(q) ||
+        st.studentBatches.some((b) => b.batchName.toLowerCase().includes(q)) ||
+        st.enrollments.some((e) => e.courseTitle.toLowerCase().includes(q));
 
-  const handleUpdateRecord = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRecord) return;
+      const matchesBatch =
+        selectedBatch === "ALL" || st.studentBatches.some((b) => b.batchId === selectedBatch);
 
-    setSaving(true);
-    try {
-      const res = await fetch("/api/admin/attendance", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          liveClassId: editingRecord.liveClass.id,
-          userId: editingRecord.user.id,
-          status: newStatus,
-        }),
-      });
+      const matchesCourse =
+        selectedCourse === "ALL" || st.enrollments.some((e) => e.courseId === selectedCourse);
 
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Failed to update attendance");
+      let matchesPerformance = true;
+      if (performanceFilter === "EXCELLENT") {
+        matchesPerformance = st.stats.rate >= 80;
+      } else if (performanceFilter === "AVERAGE") {
+        matchesPerformance = st.stats.rate >= 50 && st.stats.rate < 80;
+      } else if (performanceFilter === "LOW") {
+        matchesPerformance = st.stats.totalSessions > 0 && st.stats.rate < 50;
+      }
 
-      setRecords((prev) =>
-        prev.map((r) => (r.id === editingRecord.id ? { ...r, status: newStatus } : r))
-      );
-      showToast("success", "Attendance status updated successfully!");
-      setEditingRecord(null);
-      router.refresh();
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to update attendance");
-    } finally {
-      setSaving(false);
+      return matchesSearch && matchesBatch && matchesCourse && matchesPerformance;
+    });
+  }, [students, searchQuery, selectedBatch, selectedCourse, performanceFilter]);
+
+  // Filter attendances in the student modal
+  const modalFilteredAttendances = useMemo(() => {
+    if (!selectedStudent) return [];
+    return selectedStudent.attendances.filter((att) => {
+      const q = modalSearch.toLowerCase();
+      const matchesSearch =
+        att.liveClass.title.toLowerCase().includes(q) ||
+        att.liveClass.trainerName.toLowerCase().includes(q) ||
+        att.liveClass.batchName.toLowerCase().includes(q);
+
+      const matchesStatus = modalStatusFilter === "ALL" || att.status === modalStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [selectedStudent, modalSearch, modalStatusFilter]);
+
+  const getStatusBadge = (status: "PRESENT" | "ABSENT" | "LATE" | "EXCUSED") => {
+    switch (status) {
+      case "PRESENT":
+        return (
+          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <Check className="w-3 h-3 text-emerald-600" /> Present
+          </span>
+        );
+      case "LATE":
+        return (
+          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            <Clock className="w-3 h-3 text-amber-600" /> Late
+          </span>
+        );
+      case "EXCUSED":
+        return (
+          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-purple-50 text-[#7C248C] border border-purple-200">
+            <Sparkles className="w-3 h-3 text-[#7C248C]" /> Excused
+          </span>
+        );
+      case "ABSENT":
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+            <X className="w-3 h-3 text-rose-600" /> Absent
+          </span>
+        );
     }
   };
 
-  const filteredRecords = records.filter((r) => {
-    const matchesSearch =
-      r.user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.liveClass.title.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesStatus = selectedStatus === "ALL" || r.status === selectedStatus;
-    const matchesBatch = selectedBatch === "ALL" || r.liveClass.batch.id === selectedBatch;
-
-    return matchesSearch && matchesStatus && matchesBatch;
-  });
+  const getRateBadge = (rate: number, totalSessions: number) => {
+    if (totalSessions === 0) {
+      return (
+        <span className="text-[11px] font-mono text-slate-400 font-semibold px-2 py-0.5 rounded-md bg-slate-100">
+          No Sessions
+        </span>
+      );
+    }
+    if (rate >= 80) {
+      return (
+        <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+          {rate}% High
+        </span>
+      );
+    }
+    if (rate >= 50) {
+      return (
+        <span className="text-[11px] font-mono font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
+          {rate}% Moderate
+        </span>
+      );
+    }
+    return (
+      <span className="text-[11px] font-mono font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full">
+        {rate}% Low
+      </span>
+    );
+  };
 
   return (
     <div className="p-6 sm:p-10 space-y-8 max-w-7xl w-full mx-auto">
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-2xl shadow-xl border flex items-center gap-3 ${
-            toast.type === "success"
-              ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-              : "bg-rose-50 text-rose-800 border-rose-200"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-600" />
-          )}
-          <span className="text-xs font-bold">{toast.text}</span>
-        </div>
-      )}
+      {/* 1. Header Studio Banner */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-gradient-to-r from-white via-purple-50/40 to-indigo-50/30 px-6 py-6 sm:px-8 sm:py-7 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="absolute top-0 right-0 -mt-8 -mr-8 w-56 h-56 rounded-full bg-gradient-to-br from-purple-400/10 to-pink-500/10 blur-xl pointer-events-none" />
 
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2.5">
-            <CheckSquare className="w-7 h-7 text-[#7C248C]" /> Institutional Attendance Control Hub
+        <div className="space-y-1.5 relative z-10 max-w-2xl">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100 text-[#7C248C] text-[10px] font-mono font-bold uppercase tracking-wider">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#7C248C]" /> Student Attendance & Compliance Matrix
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+            <CheckSquare className="w-7 h-7 text-[#7C248C]" /> Attendance Records 📋
           </h1>
-          <p className="text-slate-600 text-sm mt-1">
-            Real-time monitoring and administrative override for live session attendance across all cohorts and trainers.
+          <p className="text-xs text-slate-500 font-medium leading-relaxed">
+            Monitor real-time student attendance across all live classes and cohorts. Select any student to inspect their detailed attendance history, timestamps, and participation ratios.
           </p>
         </div>
-      </div>
 
-      {/* Overview Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">OVERALL ATTENDANCE RATE</span>
-          <div className="text-2xl font-black text-slate-900">{stats.overallRate.toFixed(1)}%</div>
-          <p className="text-[10px] text-slate-500">Present + Late Attendance Ratio</p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] font-mono font-bold text-emerald-600 uppercase">PRESENT SESSIONS</span>
-          <div className="text-2xl font-black text-emerald-700">{stats.presentCount}</div>
-          <p className="text-[10px] text-slate-500">On-time student attendances</p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] font-mono font-bold text-rose-600 uppercase">ABSENT SESSIONS</span>
-          <div className="text-2xl font-black text-rose-700">{stats.absentCount}</div>
-          <p className="text-[10px] text-slate-500">Unexcused missed live classes</p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] font-mono font-bold text-amber-600 uppercase">LATE ARRIVALS</span>
-          <div className="text-2xl font-black text-amber-700">{stats.lateCount}</div>
-          <p className="text-[10px] text-slate-500">Joined after session start</p>
-        </div>
-
-        <div className="p-5 rounded-3xl bg-white border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[10px] font-mono font-bold text-purple-600 uppercase">EXCUSED ABSENCES</span>
-          <div className="text-2xl font-black text-purple-700">{stats.excusedCount}</div>
-          <p className="text-[10px] text-slate-500">Faculty-authorized leaves</p>
+        <div className="flex items-center gap-3 shrink-0 relative z-10">
+          <Link
+            href="/admin/batches"
+            className="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 shadow-2xs flex items-center gap-2 transition"
+          >
+            <Layers className="w-4 h-4 text-[#7C248C]" /> View All Cohorts
+          </Link>
         </div>
       </div>
 
-      {/* Filter & Search Toolbar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search student, email, or live class..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-medium focus:outline-none focus:border-rose-500"
-          />
+      {/* 2. Platform Summary Metrics Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Users className="w-3.5 h-3.5 text-purple-600" /> Total Students
+          </div>
+          <div className="text-2xl font-black text-slate-900">{platformStats.totalStudents}</div>
+          <div className="text-[11px] font-mono text-purple-700 font-semibold">{batches.length} Cohorts Active</div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          {/* Status Filter */}
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-2xl">
-            {["ALL", "PRESENT", "ABSENT", "LATE", "EXCUSED"].map((st) => (
-              <button
-                key={st}
-                onClick={() => setSelectedStatus(st)}
-                className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition ${
-                  selectedStatus === st
-                    ? "bg-white text-slate-900 shadow-xs"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                {st}
-              </button>
-            ))}
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Percent className="w-3.5 h-3.5 text-emerald-600" /> Average Rate
+          </div>
+          <div className="text-2xl font-black text-emerald-600">{platformStats.platformRate.toFixed(1)}%</div>
+          <div className="text-[11px] font-mono text-emerald-700 font-semibold">Institutional Compliance</div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Present Checks
+          </div>
+          <div className="text-2xl font-black text-slate-900">{platformStats.presentCount}</div>
+          <div className="text-[11px] font-mono text-emerald-700 font-semibold">On-Time Sessions</div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-600" /> Late Arrivals
+          </div>
+          <div className="text-2xl font-black text-amber-600">{platformStats.lateCount}</div>
+          <div className="text-[11px] font-mono text-amber-700 font-semibold">Joined Post Cutoff</div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-1">
+          <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <XCircle className="w-3.5 h-3.5 text-rose-600" /> Absent Sessions
+          </div>
+          <div className="text-2xl font-black text-rose-600">{platformStats.absentCount}</div>
+          <div className="text-[11px] font-mono text-rose-700 font-semibold">
+            {platformStats.excusedCount} Excused Leaves
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Search & Interactive Filter Controls */}
+      <div className="p-4 sm:p-5 rounded-3xl border border-slate-200/90 bg-white shadow-xs space-y-4">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div className="relative flex-1">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            <input
+              type="text"
+              placeholder="Search student by name, email, cohort..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C] transition"
+            />
           </div>
 
-          {/* Batch Selector */}
-          <select
-            value={selectedBatch}
-            onChange={(e) => setSelectedBatch(e.target.value)}
-            className="px-3.5 py-2 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 focus:outline-none focus:border-rose-500"
-          >
-            <option value="ALL">All Cohorts / Batches</option>
-            {batches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <select
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-semibold focus:outline-none focus:border-[#7C248C]"
+            >
+              <option value="ALL">All Cohorts / Batches</option>
+              {batches.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedCourse}
+              onChange={(e) => setSelectedCourse(e.target.value)}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-semibold focus:outline-none focus:border-[#7C248C]"
+            >
+              <option value="ALL">All Course Programs</option>
+              {courses.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={performanceFilter}
+              onChange={(e) => setPerformanceFilter(e.target.value as any)}
+              className="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-semibold focus:outline-none focus:border-[#7C248C]"
+            >
+              <option value="ALL">All Attendance Tiers</option>
+              <option value="EXCELLENT">High (≥ 80%)</option>
+              <option value="AVERAGE">Moderate (50% – 79%)</option>
+              <option value="LOW">Low (&lt; 50%)</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* Attendance Table */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">
-        {filteredRecords.length > 0 ? (
+      {/* 4. Student Roster Table */}
+      <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs">
+        {filteredStudents.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-mono">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-bold text-[10px] tracking-wider">
                 <tr>
-                  <th className="p-4">Student Details</th>
-                  <th className="p-4">Live Class & Instructor</th>
-                  <th className="p-4">Course & Batch</th>
-                  <th className="p-4">Scheduled Date</th>
-                  <th className="p-4">Attendance Status</th>
-                  <th className="p-4 text-right">Admin Action</th>
+                  <th className="p-4">Student</th>
+                  <th className="p-4">Cohort / Program</th>
+                  <th className="p-4 text-center">Sessions Logged</th>
+                  <th className="p-4 text-center">Attendance Breakdown</th>
+                  <th className="p-4 text-center">Compliance Rate</th>
+                  <th className="p-4 text-right">Attendance Audit</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredRecords.map((rec) => (
-                  <tr key={rec.id} className="hover:bg-slate-50 transition">
+                {filteredStudents.map((st) => (
+                  <tr
+                    key={st.id}
+                    onClick={() => {
+                      setSelectedStudent(st);
+                      setModalSearch("");
+                      setModalStatusFilter("ALL");
+                    }}
+                    className="hover:bg-purple-50/40 cursor-pointer transition group"
+                  >
+                    {/* Student Info */}
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex-shrink-0">
+                        {st.profile?.avatarUrl ? (
                           <img
-                            src={
-                              rec.user.profile?.avatarUrl ||
-                              `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-                                rec.user.name
-                              )}`
-                            }
-                            alt={rec.user.name}
-                            className="w-full h-full object-cover"
+                            src={st.profile.avatarUrl}
+                            alt={st.name}
+                            className="w-9 h-9 rounded-2xl object-cover border border-purple-100 shrink-0"
                           />
-                        </div>
+                        ) : (
+                          <div className="w-9 h-9 rounded-2xl bg-[#7C248C] text-white font-bold flex items-center justify-center text-xs shrink-0">
+                            {st.name.charAt(0)}
+                          </div>
+                        )}
                         <div>
-                          <div className="font-bold text-slate-900">{rec.user.name}</div>
-                          <div className="text-[10px] text-slate-500 font-mono">{rec.user.email}</div>
+                          <div className="font-extrabold text-slate-900 group-hover:text-[#7C248C] transition">
+                            {st.name}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono">{st.email}</div>
                         </div>
                       </div>
                     </td>
 
+                    {/* Batch / Cohort */}
                     <td className="p-4">
-                      <div className="font-bold text-slate-900">{rec.liveClass.title}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        Instructor: {rec.liveClass.trainer.name}
+                      {st.studentBatches.length > 0 ? (
+                        <div className="space-y-0.5">
+                          <div className="font-semibold text-slate-800 text-xs">
+                            {st.studentBatches[0].batchName}
+                          </div>
+                          <div className="text-[10px] text-[#7C248C] font-mono">
+                            {st.studentBatches[0].courseTitle}
+                          </div>
+                        </div>
+                      ) : st.enrollments.length > 0 ? (
+                        <div className="text-xs text-slate-600">{st.enrollments[0].courseTitle}</div>
+                      ) : (
+                        <span className="text-slate-400 italic text-xs">Unassigned</span>
+                      )}
+                    </td>
+
+                    {/* Sessions Logged */}
+                    <td className="p-4 text-center font-bold text-slate-900 text-sm">
+                      {st.stats.totalSessions}
+                    </td>
+
+                    {/* Status Breakdown Pills */}
+                    <td className="p-4">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <span
+                          className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-mono font-bold text-[10px]"
+                          title="Present"
+                        >
+                          P: {st.stats.presentCount}
+                        </span>
+                        <span
+                          className="px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 font-mono font-bold text-[10px]"
+                          title="Late"
+                        >
+                          L: {st.stats.lateCount}
+                        </span>
+                        <span
+                          className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-mono font-bold text-[10px]"
+                          title="Absent"
+                        >
+                          A: {st.stats.absentCount}
+                        </span>
+                        {st.stats.excusedCount > 0 && (
+                          <span
+                            className="px-2 py-0.5 rounded-md bg-purple-50 text-[#7C248C] font-mono font-bold text-[10px]"
+                            title="Excused"
+                          >
+                            E: {st.stats.excusedCount}
+                          </span>
+                        )}
                       </div>
                     </td>
 
-                    <td className="p-4">
-                      <div className="font-bold text-indigo-700">{rec.liveClass.batch.course.title}</div>
-                      <div className="text-[10px] text-slate-500 font-mono">{rec.liveClass.batch.name}</div>
+                    {/* Compliance Rate Badge */}
+                    <td className="p-4 text-center">
+                      {getRateBadge(st.stats.rate, st.stats.totalSessions)}
                     </td>
 
-                    <td className="p-4 font-mono text-slate-500" suppressHydrationWarning>
-                      {new Date(rec.liveClass.scheduledDate).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </td>
-
-                    <td className="p-4">
-                      <span
-                        className={`px-3 py-1 rounded-full font-extrabold text-[10px] uppercase border ${
-                          rec.status === "PRESENT"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : rec.status === "ABSENT"
-                            ? "bg-rose-50 text-rose-700 border-rose-200"
-                            : rec.status === "LATE"
-                            ? "bg-amber-50 text-amber-700 border-amber-200"
-                            : "bg-purple-50 text-purple-700 border-purple-200"
-                        }`}
-                      >
-                        {rec.status}
-                      </span>
-                    </td>
-
+                    {/* Action */}
                     <td className="p-4 text-right">
                       <button
-                        onClick={() => {
-                          setEditingRecord(rec);
-                          setNewStatus(rec.status);
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedStudent(st);
+                          setModalSearch("");
+                          setModalStatusFilter("ALL");
                         }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-700 font-bold text-xs transition flex items-center gap-1.5 ml-auto"
+                        className="px-3.5 py-1.5 rounded-xl bg-white border border-slate-200 group-hover:border-purple-300 text-[#7C248C] font-bold text-xs inline-flex items-center gap-1.5 shadow-2xs transition"
                       >
-                        <Edit2 className="w-3.5 h-3.5" /> Override
+                        <Eye className="w-3.5 h-3.5" /> View Records
                       </button>
                     </td>
                   </tr>
@@ -324,83 +485,173 @@ export default function AdminAttendanceClient({
             </table>
           </div>
         ) : (
-          <div className="p-12 text-center text-slate-500 space-y-3">
-            <CheckSquare className="w-10 h-10 mx-auto text-slate-300" />
-            <p className="text-sm font-semibold">No attendance records found matching filters.</p>
+          <div className="p-16 text-center text-slate-500 space-y-3">
+            <Users className="w-12 h-12 mx-auto text-slate-300" />
+            <h3 className="text-base font-bold text-slate-900">No students match current filter</h3>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              Try modifying your search keywords or adjusting the cohort and attendance tier filters.
+            </p>
           </div>
         )}
       </div>
 
-      {/* Override Modal */}
-      {editingRecord && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <form
-            onSubmit={handleUpdateRecord}
-            className="bg-white p-6 rounded-3xl border border-slate-200 max-w-md w-full space-y-4 shadow-xl"
-          >
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-rose-600" /> Admin Attendance Override
-              </h3>
+      {/* 5. Detailed Student Attendance Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-3xl rounded-3xl border border-slate-200 shadow-2xl animate-in zoom-in-95 my-8 max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-6 sm:p-7 border-b border-slate-100 bg-gradient-to-r from-white via-purple-50/40 to-indigo-50/20 flex items-start justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                {selectedStudent.profile?.avatarUrl ? (
+                  <img
+                    src={selectedStudent.profile.avatarUrl}
+                    alt={selectedStudent.name}
+                    className="w-12 h-12 rounded-2xl object-cover border border-purple-200 shadow-2xs"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-2xl bg-[#7C248C] text-white font-bold flex items-center justify-center text-base shadow-2xs">
+                    {selectedStudent.name.charAt(0)}
+                  </div>
+                )}
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-black text-slate-900 text-lg">{selectedStudent.name}</h3>
+                    {getRateBadge(selectedStudent.stats.rate, selectedStudent.stats.totalSessions)}
+                  </div>
+                  <div className="text-xs text-slate-500 font-mono mt-0.5">{selectedStudent.email}</div>
+                  {selectedStudent.studentBatches.length > 0 && (
+                    <div className="text-[11px] font-semibold text-[#7C248C] mt-1">
+                      {selectedStudent.studentBatches[0].batchName} •{" "}
+                      {selectedStudent.studentBatches[0].courseTitle}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <button
-                type="button"
-                onClick={() => setEditingRecord(null)}
-                className="text-slate-400 hover:text-slate-700"
+                onClick={() => setSelectedStudent(null)}
+                className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-900 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs font-mono space-y-1">
-              <div>
-                Student: <strong className="text-slate-900">{editingRecord.user.name}</strong>
+            {/* Modal Mini KPI Bar */}
+            <div className="p-4 sm:px-6 bg-slate-50/70 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-center">
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                <div className="text-[10px] uppercase font-bold text-slate-400">Total</div>
+                <div className="text-lg font-black text-slate-900">{selectedStudent.stats.totalSessions}</div>
               </div>
-              <div>
-                Class: <strong className="text-indigo-700">{editingRecord.liveClass.title}</strong>
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                <div className="text-[10px] uppercase font-bold text-emerald-600">Present</div>
+                <div className="text-lg font-black text-emerald-600">{selectedStudent.stats.presentCount}</div>
               </div>
-              <div>
-                Current Status: <strong className="text-rose-600">{editingRecord.status}</strong>
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                <div className="text-[10px] uppercase font-bold text-amber-600">Late</div>
+                <div className="text-lg font-black text-amber-600">{selectedStudent.stats.lateCount}</div>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">Select New Status *</label>
-              <div className="grid grid-cols-2 gap-2">
-                {(["PRESENT", "ABSENT", "LATE", "EXCUSED"] as const).map((st) => (
-                  <button
-                    key={st}
-                    type="button"
-                    onClick={() => setNewStatus(st)}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-extrabold transition border ${
-                      newStatus === st
-                        ? "bg-rose-600 text-white border-rose-600 shadow-md shadow-rose-600/20"
-                        : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
-                    }`}
-                  >
-                    {st}
-                  </button>
-                ))}
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                <div className="text-[10px] uppercase font-bold text-rose-600">Absent</div>
+                <div className="text-lg font-black text-rose-600">{selectedStudent.stats.absentCount}</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
+                <div className="text-[10px] uppercase font-bold text-[#7C248C]">Excused</div>
+                <div className="text-lg font-black text-[#7C248C]">{selectedStudent.stats.excusedCount}</div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditingRecord(null)}
-                className="px-4 py-2.5 rounded-xl bg-slate-100 text-slate-700 font-bold text-xs"
+            {/* Modal Filter Bar */}
+            <div className="p-4 sm:px-6 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="Filter by session title, trainer..."
+                  value={modalSearch}
+                  onChange={(e) => setModalSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs focus:outline-none focus:border-[#7C248C]"
+                />
+              </div>
+
+              <div className="flex items-center gap-1.5 w-full sm:w-auto">
+                <select
+                  value={modalStatusFilter}
+                  onChange={(e) => setModalStatusFilter(e.target.value)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-xs font-semibold focus:outline-none focus:border-[#7C248C] w-full sm:w-auto"
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PRESENT">Present</option>
+                  <option value="LATE">Late</option>
+                  <option value="ABSENT">Absent</option>
+                  <option value="EXCUSED">Excused</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Modal Attendance Records List */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+              {modalFilteredAttendances.length > 0 ? (
+                <div className="space-y-2.5">
+                  {modalFilteredAttendances.map((att) => (
+                    <div
+                      key={att.id}
+                      className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-purple-200 transition"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-extrabold text-slate-900 text-sm">{att.liveClass.title}</h4>
+                          {getStatusBadge(att.status)}
+                        </div>
+                        <div className="text-[11px] text-slate-500 font-mono flex items-center gap-3 flex-wrap">
+                          <span>Faculty: {att.liveClass.trainerName}</span>
+                          <span>•</span>
+                          <span>Cohort: {att.liveClass.batchName}</span>
+                          <span>•</span>
+                          <span>Date: {formatDate(att.liveClass.scheduledDate)}</span>
+                        </div>
+                        {att.excuseReason && (
+                          <div className="text-[11px] text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block mt-1 font-sans">
+                            Reason: {att.excuseReason}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="text-[10px] text-slate-400 font-mono">Timestamp</div>
+                        <div className="text-xs font-mono font-semibold text-slate-700">
+                          {att.joinClickTime
+                            ? formatDate(att.joinClickTime, { includeTime: true })
+                            : formatDate(att.recordedAt, { includeTime: true })}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-12 text-center text-slate-400 space-y-2">
+                  <CheckSquare className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="text-xs">No attendance logs found matching filter criteria.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:px-6 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <Link
+                href={`/admin/students/${selectedStudent.id}`}
+                className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-[#7C248C] font-bold text-xs inline-flex items-center gap-1.5 transition"
               >
-                Cancel
-              </button>
+                View Full Student Profile <ArrowUpRight className="w-3.5 h-3.5" />
+              </Link>
+
               <button
-                type="submit"
-                disabled={saving}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-2 shadow-xs"
+                onClick={() => setSelectedStudent(null)}
+                className="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition"
               >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}{" "}
-                Save Admin Override
+                Close
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </div>
