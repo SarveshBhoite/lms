@@ -55,15 +55,7 @@ export default function Navbar() {
                 className="h-10 sm:h-11 w-auto object-contain"
               />
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className="font-extrabold text-lg sm:text-xl tracking-tight text-[#10162F]">
-                JVM <span className="bg-gradient-to-r from-[#4338CA] via-[#7C3AED] to-[#D41472] bg-clip-text text-transparent">LMS</span>
-              </span>
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#F8F5FF] text-[#4338CA] border border-[#4338CA]/20 shadow-[0_2px_8px_-2px_rgba(67,56,202,0.12)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D41472] animate-pulse"></span>
-                OFFICIAL PORTAL
-              </span>
-            </div>
+           
           </Link>
         </div>
 
@@ -137,9 +129,7 @@ export default function Navbar() {
               <span className="text-xs font-bold uppercase tracking-wider text-[#4338CA] flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-[#D41472]" /> JVM LMS Navigation
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-[#F8F5FF] text-[#4338CA] border border-[#4338CA]/20">
-                OFFICIAL PORTAL
-              </span>
+              
             </div>
 
             <div className="flex flex-col space-y-1">
