@@ -91,7 +91,7 @@ export default function AdminDrawerLayout({
       badge: unreadNotificationsCount,
       badgeTooltip: "Unread notifications",
     },
-    { name: "Reports & Analytics", href: "/admin/reports", icon: BarChart3 },
+    { name: "Reports", href: "/admin/reports", icon: BarChart3 },
   ];
 
   return (
