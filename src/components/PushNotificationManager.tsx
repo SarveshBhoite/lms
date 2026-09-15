@@ -64,19 +64,23 @@ export default function PushNotificationManager({ compact = false }: { compact?:
       // 2. Get SW registration
       const registration = await navigator.serviceWorker.ready;
 
-      // 3. Subscribe to Push Manager
+      // 3. Check if there is already an active push subscription
+      let subscription = await registration.pushManager.getSubscription();
+
       const vapidPublicKey =
         process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
         "BAQKLf2LmNPLSN6ooP3v1nTBWY_nD7s7w15CdA8RZfX4mZcjHt58_Rx92oQHzDG2lApwBwfpEIajob1RudSHGT4";
-
       const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
 
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: convertedVapidKey,
-      });
+      if (!subscription) {
+        // Create new subscription
+        subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: convertedVapidKey,
+        });
+      }
 
-      // 4. Send subscription keys to our API
+      // 4. Send subscription keys to our API for current logged-in user
       const subJson = subscription.toJSON();
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
@@ -91,9 +95,68 @@ export default function PushNotificationManager({ compact = false }: { compact?:
       if (res.ok) {
         setIsSubscribed(true);
         setShowPromptBanner(false);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        console.error("Push subscribe API response error:", errJson);
+        // If there was an issue with key mismatch or expired token, recreate
+        try {
+          await subscription.unsubscribe();
+          const newSub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+          const newSubJson = newSub.toJSON();
+          const retryRes = await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              endpoint: newSub.endpoint,
+              keys: newSubJson.keys,
+              userAgent: navigator.userAgent,
+            }),
+          });
+          if (retryRes.ok) {
+            setIsSubscribed(true);
+            setShowPromptBanner(false);
+          }
+        } catch (recreateErr) {
+          console.error("Failed to recreate subscription:", recreateErr);
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to subscribe to mobile push notifications:", err);
+      // If error is related to existing subscription or keys, attempt clean recreate
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+          await existingSub.unsubscribe();
+          const vapidPublicKey =
+            process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ||
+            "BAQKLf2LmNPLSN6ooP3v1nTBWY_nD7s7w15CdA8RZfX4mZcjHt58_Rx92oQHzDG2lApwBwfpEIajob1RudSHGT4";
+          const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+          const freshSub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey,
+          });
+          const freshJson = freshSub.toJSON();
+          const res = await fetch("/api/push/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              endpoint: freshSub.endpoint,
+              keys: freshJson.keys,
+              userAgent: navigator.userAgent,
+            }),
+          });
+          if (res.ok) {
+            setIsSubscribed(true);
+            setShowPromptBanner(false);
+          }
+        }
+      } catch (recoveryErr) {
+        console.error("Recovery subscription attempt failed:", recoveryErr);
+      }
     } finally {
       setIsLoading(false);
     }
