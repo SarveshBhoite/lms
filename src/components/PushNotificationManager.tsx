@@ -144,13 +144,35 @@ export default function PushNotificationManager({ compact = false }: { compact?:
         {isLoading ? (
           <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-600" />
         ) : isSubscribed ? (
-          <button
-            onClick={unsubscribeFromPush}
-            title="Disable Mobile Push"
-            className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-rose-50 hover:text-rose-700 px-2 py-0.5 rounded-full border border-emerald-200 transition"
-          >
-            Active ✓
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={async () => {
+                try {
+                  await fetch("/api/push/test", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      title: "JVM LMS Test Notification",
+                      message: "Push notifications are working perfectly on your device!",
+                    }),
+                  });
+                } catch (e) {
+                  console.error(e);
+                }
+              }}
+              title="Send a test notification to this device"
+              className="text-[10px] font-bold text-purple-700 bg-purple-100/80 hover:bg-purple-200 px-1.5 py-0.5 rounded-md transition"
+            >
+              Test
+            </button>
+            <button
+              onClick={unsubscribeFromPush}
+              title="Click to disable notifications on this device"
+              className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-rose-50 hover:text-rose-700 px-2 py-0.5 rounded-full border border-emerald-200 transition"
+            >
+              Active ✓
+            </button>
+          </div>
         ) : (
           <button
             onClick={subscribeToPush}

@@ -1,17 +1,21 @@
 // JVM Institute LMS - Service Worker for Mobile & Desktop Web Push Notifications
 
 self.addEventListener('push', function (event) {
-  if (!event.data) {
-    return;
-  }
-
   let data = {};
-  try {
-    data = event.data.json();
-  } catch (e) {
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = {
+        title: 'JVM Institute',
+        message: event.data.text() || 'You have a new notification',
+        actionUrl: '/notifications'
+      };
+    }
+  } else {
     data = {
-      title: 'JVM Institute',
-      message: event.data.text() || 'You have a new notification',
+      title: 'JVM Institute Alert',
+      message: 'You have a new update in JVM LMS.',
       actionUrl: '/notifications'
     };
   }
@@ -21,19 +25,13 @@ self.addEventListener('push', function (event) {
     body: data.message || data.body || 'You have a new update in JVM LMS.',
     icon: data.icon || '/logo.png',
     badge: data.badge || '/logo.png',
-    tag: data.tag || 'jvm-notification-' + Date.now(),
+    tag: data.tag || 'jvm-' + Date.now(),
     data: {
       url: data.actionUrl || data.url || '/notifications',
       timestamp: Date.now()
     },
     vibrate: [100, 50, 100],
-    requireInteraction: false,
-    actions: [
-      {
-        action: 'open',
-        title: 'Open'
-      }
-    ]
+    requireInteraction: true,
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
