@@ -10,7 +10,7 @@ export default function DeactivatedAccountScreen({
 }: {
   userName: string;
   userEmail: string;
-  role?: "STUDENT" | "TRAINER" | "USER";
+  role?: "STUDENT" | "TRAINER" | "ADMIN" | "USER";
 }) {
   const isTrainer = role === "TRAINER";
 
