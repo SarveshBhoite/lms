@@ -9,33 +9,50 @@ export default async function AdminCertificatesPage() {
     redirect("/login");
   }
 
-  const certificates = await prisma.certificate.findMany({
-    include: {
-      user: { select: { name: true, email: true } },
-      course: { select: { title: true, level: true } },
-    },
-    orderBy: { issueDate: "desc" },
-  });
+  const [certificates, courses] = await Promise.all([
+    prisma.certificate.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profile: { select: { phone: true, avatarUrl: true } },
+          },
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            level: true,
+            durationHours: true,
+            thumbnailUrl: true,
+          },
+        },
+      },
+      orderBy: { issueDate: "desc" },
+    }),
+    prisma.course.findMany({
+      select: { id: true, title: true, level: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
 
   const formatted = certificates.map((c) => ({
     id: c.id,
     certificateNumber: c.certificateNumber,
     issueDate: c.issueDate.toISOString(),
+    qrCodeUrl: c.qrCodeUrl,
     user: c.user,
     course: c.course,
   }));
 
   return (
-    <div className="p-6 sm:p-8 space-y-8 max-w-7xl w-full mx-auto">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900">Certificate Registry & Verifications</h1>
-        <p className="text-slate-500 text-sm mt-1">
-          Audit tamper-proof certificates, search issued credentials, and access public QR verification endpoints.
-        </p>
-      </div>
-
-      <AdminCertificatesClient initialCertificates={formatted} />
-    </div>
+    <AdminCertificatesClient
+      initialCertificates={formatted as any}
+      courses={courses}
+    />
   );
 }
 
