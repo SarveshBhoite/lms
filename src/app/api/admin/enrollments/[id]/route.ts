@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { createUserNotification } from "@/lib/notifications";
 import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
 import { EnrollmentUpdateSchema } from "@/validations/enrollment.schema";
 
@@ -174,15 +175,13 @@ export async function PATCH(
               },
             });
 
-            // Notify the student that certificate has been unlocked
-            await prisma.notification.create({
-              data: {
-                userId: studentUser.id,
-                title: "🎓 Certificate Unlocked!",
-                message: `Congratulations! Your course ${courseData.title} is completed and your certificate has been unlocked.`,
-                type: "CERTIFICATE_ISSUED",
-                actionUrl: `/verify/certificate/${certificateNumber}`,
-              },
+            // Notify the student that certificate has been unlocked with Web Push dispatch
+            await createUserNotification({
+              userId: studentUser.id,
+              title: "🎓 Certificate Unlocked!",
+              message: `Congratulations! Your course ${courseData.title} is completed and your certificate has been unlocked.`,
+              type: "CERTIFICATE_ISSUED",
+              actionUrl: `/verify/certificate/${certificateNumber}`,
             });
           }
         }

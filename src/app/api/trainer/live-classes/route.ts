@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { createBulkUserNotifications } from "@/lib/notifications";
 import { requireActiveTrainer, verifyTrainerBatchAccess, handleApiError, AuthError } from "@/lib/rbac";
 import { getValidAccessToken, createGoogleMeetEvent } from "@/lib/googleMeet";
 
@@ -143,14 +144,12 @@ export async function POST(req: NextRequest) {
     const uniqueStudentIds = Array.from(new Set(batchStudents.map((bs) => bs.userId)));
 
     if (uniqueStudentIds.length > 0) {
-      await prisma.notification.createMany({
-        data: uniqueStudentIds.map((userId) => ({
-          userId,
-          title: `New Live Class Scheduled: ${title}`,
-          message: `Live session "${title}" is scheduled for ${new Date(scheduledDate).toLocaleDateString()} at ${new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
-          type: "LIVE_CLASS_REMINDER",
-          actionUrl: `/student/live-classes`,
-        })),
+      await createBulkUserNotifications({
+        userIds: uniqueStudentIds,
+        title: `New Live Class Scheduled: ${title}`,
+        message: `Live session "${title}" is scheduled for ${new Date(scheduledDate).toLocaleDateString()} at ${new Date(startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+        type: "LIVE_CLASS_REMINDER",
+        actionUrl: `/student/live-classes`,
       });
     }
 

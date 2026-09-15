@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { createBulkUserNotifications } from "@/lib/notifications";
 import { requireAdmin, handleApiError } from "@/lib/rbac";
 import { z } from "zod";
 
@@ -112,15 +113,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Create notifications for all matching users in bulk
-    await prisma.notification.createMany({
-      data: targetUsers.map((u) => ({
-        userId: u.id,
-        title: validated.title,
-        message: validated.message,
-        type: validated.type,
-        actionUrl: validated.actionUrl || null,
-      })),
+    // Create notifications for all matching users in bulk AND push to mobile devices
+    await createBulkUserNotifications({
+      userIds: targetUsers.map((u) => u.id),
+      title: validated.title,
+      message: validated.message,
+      type: validated.type as any,
+      actionUrl: validated.actionUrl || null,
     });
 
     // Log admin activity

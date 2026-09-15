@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { createUserNotification } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
@@ -53,15 +54,13 @@ export async function POST(req: NextRequest) {
       data: { status: validStatus },
     });
 
-    // Send notification to student
-    await prisma.notification.create({
-      data: {
-        userId: submission.userId,
-        title: validStatus === "RESUBMISSION_REQUESTED" ? "Assignment Revision Requested" : "Assignment Evaluated",
-        message: `Your submission for '${submission.assignment.title}' was reviewed. Status: ${validStatus}. Marks: ${marksAwarded}/${submission.assignment.totalMarks}. Remarks: "${feedbackText}"`,
-        type: "ASSIGNMENT_EVALUATED",
-        actionUrl: `/student/assignments/${submission.assignmentId}`,
-      },
+    // Send notification to student with Web Push dispatch
+    await createUserNotification({
+      userId: submission.userId,
+      title: validStatus === "RESUBMISSION_REQUESTED" ? "Assignment Revision Requested" : "Assignment Evaluated",
+      message: `Your submission for '${submission.assignment.title}' was reviewed. Status: ${validStatus}. Marks: ${marksAwarded}/${submission.assignment.totalMarks}. Remarks: "${feedbackText}"`,
+      type: "ASSIGNMENT_EVALUATED",
+      actionUrl: `/student/assignments/${submission.assignmentId}`,
     });
 
     return NextResponse.json({ success: true, message: "Submission evaluated successfully" });

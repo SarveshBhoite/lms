@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { createUserNotification } from "@/lib/notifications";
 import { requireAdmin, handleApiError } from "@/lib/rbac";
 
 export async function GET(req: NextRequest) {
@@ -101,15 +102,13 @@ export async function PATCH(req: NextRequest) {
       },
     });
 
-    // Notify student of admin override
-    await prisma.notification.create({
-      data: {
-        userId,
-        title: "Attendance Updated by Admin",
-        message: `Your attendance record was updated to ${status}.`,
-        type: "SYSTEM_ALERT",
-        actionUrl: "/student/attendance",
-      },
+    // Notify student of admin override with Web Push dispatch
+    await createUserNotification({
+      userId,
+      title: "Attendance Updated by Admin",
+      message: `Your attendance record was updated to ${status}.`,
+      type: "SYSTEM_ALERT",
+      actionUrl: "/student/attendance",
     }).catch(() => {});
 
     return NextResponse.json({

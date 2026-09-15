@@ -18,6 +18,7 @@ import {
   X,
   LogOut,
 } from "lucide-react";
+import PushNotificationManager from "@/components/PushNotificationManager";
 
 interface StudentDrawerProps {
   user: {
@@ -219,6 +220,9 @@ export default function StudentDrawerLayout({
             </div>
           </div>
 
+          {/* Mobile Web Push Notification Toggle */}
+          <PushNotificationManager compact={true} />
+
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
@@ -229,6 +233,9 @@ export default function StudentDrawerLayout({
           </form>
         </div>
       </aside>
+
+      {/* Floating Push Notification Prompt Banner */}
+      <PushNotificationManager compact={false} />
 
       {/* Main Content Area - Independently Scrollable */}
       <main className="flex-1 h-[calc(100vh-4rem)] md:h-screen overflow-y-auto relative z-10">

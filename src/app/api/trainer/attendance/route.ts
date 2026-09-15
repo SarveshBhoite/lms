@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { createUserNotification } from "@/lib/notifications";
 import { requireActiveTrainer, verifyTrainerBatchAccess, handleApiError, AuthError } from "@/lib/rbac";
 
 export async function POST(req: NextRequest) {
@@ -49,15 +50,13 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Notify student of updated attendance
-        await prisma.notification.create({
-          data: {
-            userId: record.userId,
-            title: "Attendance Recorded",
-            message: `Your attendance for live session '${liveClass.title}' was marked as ${record.status}.`,
-            type: "SYSTEM_ALERT",
-            actionUrl: "/student/attendance",
-          },
+        // Notify student of updated attendance with Web Push dispatch
+        await createUserNotification({
+          userId: record.userId,
+          title: "Attendance Recorded",
+          message: `Your attendance for live session '${liveClass.title}' was marked as ${record.status}.`,
+          type: "SYSTEM_ALERT",
+          actionUrl: "/student/attendance",
         }).catch(() => {});
       }
     }

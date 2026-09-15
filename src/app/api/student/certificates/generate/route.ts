@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { createUserNotification } from "@/lib/notifications";
 import QRCode from "qrcode";
 
 export async function POST(req: NextRequest) {
@@ -168,15 +169,13 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create a notification for the student
-    await prisma.notification.create({
-      data: {
-        userId: studentId,
-        title: "🎓 Certificate Issued!",
-        message: `Congratulations! Your certificate for ${course.title} has been generated.`,
-        type: "CERTIFICATE_ISSUED",
-        actionUrl: `/verify/certificate/${certificateNumber}`,
-      },
+    // Create a notification for the student with Web Push dispatch
+    await createUserNotification({
+      userId: studentId,
+      title: "🎓 Certificate Issued!",
+      message: `Congratulations! Your certificate for ${course.title} has been generated.`,
+      type: "CERTIFICATE_ISSUED",
+      actionUrl: `/verify/certificate/${certificateNumber}`,
     });
 
     return NextResponse.json({ success: true, data: newCertificate });

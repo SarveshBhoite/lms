@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { createUserNotification, createBulkUserNotifications } from "@/lib/notifications";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -25,6 +26,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         questions: {
           include: { options: true },
           orderBy: { orderIndex: "asc" },
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+            trainerId: true,
+            batches: {
+              select: {
+                trainers: {
+                  select: { trainerId: true },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -141,16 +156,41 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       });
     }
 
-    // Create Notification
-    await prisma.notification.create({
-      data: {
-        userId: studentId,
-        title: `Quiz Result: ${quiz.title}`,
-        message: `You scored ${finalScore}% on "${quiz.title}". Status: ${isPassed ? "PASSED" : "FAILED"}.`,
-        type: "QUIZ_PUBLISHED",
-        actionUrl: `/student/quizzes/${quizId}`,
-      },
+    // 1. Create Notification with Web Push dispatch for Student
+    await createUserNotification({
+      userId: studentId,
+      title: `Quiz Result: ${quiz.title}`,
+      message: `You scored ${finalScore}% on "${quiz.title}". Status: ${isPassed ? "PASSED" : "FAILED"}.`,
+      type: "QUIZ_PUBLISHED",
+      actionUrl: `/student/quizzes/${quizId}`,
     });
+
+    // 2. Also notify course Trainer(s) via database notification & Web Push
+    try {
+      const trainerIds: string[] = [];
+      if (quiz.course?.trainerId) {
+        trainerIds.push(quiz.course.trainerId);
+      }
+      if (quiz.course?.batches) {
+        quiz.course.batches.forEach((b) => {
+          b.trainers.forEach((t) => {
+            if (t.trainerId) trainerIds.push(t.trainerId);
+          });
+        });
+      }
+      const uniqueTrainers = Array.from(new Set(trainerIds.filter((tid) => tid !== studentId)));
+      if (uniqueTrainers.length > 0) {
+        await createBulkUserNotifications({
+          userIds: uniqueTrainers,
+          title: `Quiz Submitted: ${quiz.title}`,
+          message: `${session.name || "A student"} scored ${finalScore}% on quiz "${quiz.title}".`,
+          type: "QUIZ_PUBLISHED",
+          actionUrl: `/trainer/quizzes/${quizId}`,
+        });
+      }
+    } catch (trainerNotifyErr) {
+      console.error("Failed to notify trainer of quiz submission:", trainerNotifyErr);
+    }
 
     return NextResponse.json({
       success: true,

@@ -21,6 +21,7 @@ import {
   ChevronRight,
   ShieldCheck,
 } from "lucide-react";
+import PushNotificationManager from "@/components/PushNotificationManager";
 
 interface TrainerDrawerProps {
   user: {
@@ -254,6 +255,9 @@ export default function TrainerDrawerLayout({
             </div>
           </Link>
 
+          {/* Mobile Web Push Notification Toggle */}
+          <PushNotificationManager compact={true} />
+
           <form action="/api/auth/logout" method="POST">
             <button
               type="submit"
@@ -264,6 +268,9 @@ export default function TrainerDrawerLayout({
           </form>
         </div>
       </aside>
+
+      {/* Floating Push Notification Prompt Banner */}
+      <PushNotificationManager compact={false} />
 
       {/* Main Content Area - Independently Scrollable */}
       <main className="flex-1 h-[calc(100vh-4rem)] md:h-screen overflow-y-auto relative z-10">
