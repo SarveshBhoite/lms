@@ -70,28 +70,51 @@ export async function GET(req: NextRequest) {
       orderBy: { enrolledAt: "desc" },
     });
 
-    // Attach CourseProgress for each student-course pair
+    // Attach CourseProgress and Certificate for each student-course pair
     const formatted = await Promise.all(
-      enrollments.map(async (enr) => {
-        const progress = await prisma.courseProgress.findUnique({
-          where: {
-            userId_courseId: {
-              userId: enr.userId,
-              courseId: enr.courseId,
-            },
-          },
-        });
-        return {
-          ...enr,
-          progress: progress || {
-            completedLessonsCount: 0,
-            totalLessonsCount: 0,
-            progressPercent: 0.0,
-            isCompleted: false,
-          },
-        };
-      })
-    );
+       enrollments.map(async (enr) => {
+         const [progress, certificate] = await Promise.all([
+           prisma.courseProgress.findUnique({
+             where: {
+               userId_courseId: {
+                 userId: enr.userId,
+                 courseId: enr.courseId,
+               },
+             },
+           }),
+           prisma.certificate.findUnique({
+             where: {
+               userId_courseId: {
+                 userId: enr.userId,
+                 courseId: enr.courseId,
+               },
+             },
+             select: {
+               id: true,
+               certificateNumber: true,
+               issueDate: true,
+             },
+           }),
+         ]);
+
+         return {
+           ...enr,
+           certificate: certificate
+             ? {
+                 id: certificate.id,
+                 certificateNumber: certificate.certificateNumber,
+                 issueDate: certificate.issueDate.toISOString(),
+               }
+             : null,
+           progress: progress || {
+             completedLessonsCount: 0,
+             totalLessonsCount: 0,
+             progressPercent: 0.0,
+             isCompleted: false,
+           },
+         };
+       })
+     );
 
     return NextResponse.json({ success: true, data: formatted });
   } catch (error) {
@@ -141,6 +164,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Upsert Enrollment (unique on userId_courseId)
+    const isCompleted = validated.status === "COMPLETED";
     const enrollment = await prisma.enrollment.upsert({
       where: {
         userId_courseId: {
@@ -153,10 +177,12 @@ export async function POST(req: NextRequest) {
         courseId: validated.courseId,
         batchId: validated.batchId || null,
         status: validated.status,
+        completedAt: isCompleted ? new Date() : null,
       },
       update: {
         batchId: validated.batchId || null,
         status: validated.status,
+        completedAt: isCompleted ? new Date() : null,
       },
       include: {
         user: { select: { id: true, name: true, email: true } },
@@ -164,6 +190,67 @@ export async function POST(req: NextRequest) {
         batch: { select: { id: true, name: true } },
       },
     });
+
+    // If completed status chosen upon enrollment, create certificate and unlock
+    if (isCompleted) {
+      const existingCert = await prisma.certificate.findUnique({
+        where: {
+          userId_courseId: {
+            userId: validated.userId,
+            courseId: validated.courseId,
+          },
+        },
+      });
+
+      if (!existingCert) {
+        const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+        const year = new Date().getFullYear();
+        const certificateNumber = `JVM-CERT-${year}-${randomSuffix}`;
+
+        let qrCodeDataUrl = "";
+        try {
+          const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "https://jvm.institute";
+          const verificationUrl = `${origin}/verify/certificate/${certificateNumber}`;
+          const QRCode = (await import("qrcode")).default;
+          qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
+            margin: 1,
+            width: 250,
+            color: {
+              dark: "#1e1b4b",
+              light: "#ffffff",
+            },
+          });
+        } catch (qrErr) {
+          console.error("Failed to generate certificate QR code:", qrErr);
+        }
+
+        await prisma.certificate.create({
+          data: {
+            certificateNumber,
+            userId: validated.userId,
+            courseId: validated.courseId,
+            issueDate: new Date(),
+            qrCodeUrl: qrCodeDataUrl,
+            metadata: {
+              studentName: enrollment.user.name,
+              studentEmail: enrollment.user.email,
+              courseTitle: enrollment.course.title,
+              issuedAt: new Date().toISOString(),
+            },
+          },
+        });
+
+        await prisma.notification.create({
+          data: {
+            userId: validated.userId,
+            title: "🎓 Certificate Unlocked!",
+            message: `Congratulations! Your course ${enrollment.course.title} is completed and your certificate has been unlocked.`,
+            type: "CERTIFICATE_ISSUED",
+            actionUrl: `/verify/certificate/${certificateNumber}`,
+          },
+        });
+      }
+    }
 
     // If batchId provided, also upsert BatchStudent (unique on batchId_userId)
     if (validated.batchId) {

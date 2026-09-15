@@ -151,6 +151,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     });
 
+    // If course is fully completed, also dynamically mark enrollment as COMPLETED
+    if (isCourseFullyCompleted) {
+      await prisma.enrollment.updateMany({
+        where: {
+          userId: studentId,
+          courseId,
+        },
+        data: {
+          status: "COMPLETED",
+          completedAt: new Date(),
+        },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {

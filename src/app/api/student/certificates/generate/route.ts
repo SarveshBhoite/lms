@@ -132,6 +132,42 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Dynamically update student's enrollment status to COMPLETED
+    await prisma.enrollment.updateMany({
+      where: {
+        userId: studentId,
+        courseId: course.id,
+      },
+      data: {
+        status: "COMPLETED",
+        completedAt: new Date(),
+      },
+    });
+
+    // Also mark course progress as completed
+    await prisma.courseProgress.upsert({
+      where: {
+        userId_courseId: {
+          userId: studentId,
+          courseId: course.id,
+        },
+      },
+      create: {
+        userId: studentId,
+        courseId: course.id,
+        completedLessonsCount: totalLessons,
+        totalLessonsCount: totalLessons,
+        progressPercent: 100.0,
+        isCompleted: true,
+      },
+      update: {
+        completedLessonsCount: totalLessons,
+        totalLessonsCount: totalLessons,
+        progressPercent: 100.0,
+        isCompleted: true,
+      },
+    });
+
     // Create a notification for the student
     await prisma.notification.create({
       data: {

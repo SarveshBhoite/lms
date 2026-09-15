@@ -112,6 +112,80 @@ export async function PATCH(
       updateData.status = validated.status;
       if (validated.status === "COMPLETED") {
         updateData.completedAt = new Date();
+
+        // Check if certificate already exists for this student & course
+        const existingCert = await prisma.certificate.findUnique({
+          where: {
+            userId_courseId: {
+              userId: existingEnrollment.userId,
+              courseId: existingEnrollment.courseId,
+            },
+          },
+        });
+
+        if (!existingCert) {
+          // Fetch student and course details for certificate creation
+          const [studentUser, courseData] = await Promise.all([
+            prisma.user.findUnique({
+              where: { id: existingEnrollment.userId },
+              select: { id: true, name: true, email: true },
+            }),
+            prisma.course.findUnique({
+              where: { id: existingEnrollment.courseId },
+              select: { id: true, title: true },
+            }),
+          ]);
+
+          if (studentUser && courseData) {
+            const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+            const year = new Date().getFullYear();
+            const certificateNumber = `JVM-CERT-${year}-${randomSuffix}`;
+
+            let qrCodeDataUrl = "";
+            try {
+              const origin = req.headers.get("origin") || process.env.NEXTAUTH_URL || "https://jvm.institute";
+              const verificationUrl = `${origin}/verify/certificate/${certificateNumber}`;
+              const QRCode = (await import("qrcode")).default;
+              qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
+                margin: 1,
+                width: 250,
+                color: {
+                  dark: "#1e1b4b",
+                  light: "#ffffff",
+                },
+              });
+            } catch (qrErr) {
+              console.error("Failed to generate certificate QR code:", qrErr);
+            }
+
+            await prisma.certificate.create({
+              data: {
+                certificateNumber,
+                userId: studentUser.id,
+                courseId: courseData.id,
+                issueDate: new Date(),
+                qrCodeUrl: qrCodeDataUrl,
+                metadata: {
+                  studentName: studentUser.name,
+                  studentEmail: studentUser.email,
+                  courseTitle: courseData.title,
+                  issuedAt: new Date().toISOString(),
+                },
+              },
+            });
+
+            // Notify the student that certificate has been unlocked
+            await prisma.notification.create({
+              data: {
+                userId: studentUser.id,
+                title: "🎓 Certificate Unlocked!",
+                message: `Congratulations! Your course ${courseData.title} is completed and your certificate has been unlocked.`,
+                type: "CERTIFICATE_ISSUED",
+                actionUrl: `/verify/certificate/${certificateNumber}`,
+              },
+            });
+          }
+        }
       } else {
         updateData.completedAt = null;
       }

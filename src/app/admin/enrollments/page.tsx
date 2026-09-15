@@ -66,17 +66,32 @@ export default async function AdminEnrollmentsPage() {
     }),
   ]);
 
-  // Fetch CourseProgress for each enrollment
+  // Fetch CourseProgress and Certificate for each enrollment
   const formattedEnrollments = await Promise.all(
     enrollments.map(async (enr) => {
-      const progress = await prisma.courseProgress.findUnique({
-        where: {
-          userId_courseId: {
-            userId: enr.userId,
-            courseId: enr.courseId,
+      const [progress, certificate] = await Promise.all([
+        prisma.courseProgress.findUnique({
+          where: {
+            userId_courseId: {
+              userId: enr.userId,
+              courseId: enr.courseId,
+            },
           },
-        },
-      });
+        }),
+        prisma.certificate.findUnique({
+          where: {
+            userId_courseId: {
+              userId: enr.userId,
+              courseId: enr.courseId,
+            },
+          },
+          select: {
+            id: true,
+            certificateNumber: true,
+            issueDate: true,
+          },
+        }),
+      ]);
 
       return {
         id: enr.id,
@@ -93,6 +108,13 @@ export default async function AdminEnrollmentsPage() {
               ...enr.batch,
               startDate: enr.batch.startDate.toISOString(),
               endDate: enr.batch.endDate.toISOString(),
+            }
+          : null,
+        certificate: certificate
+          ? {
+              id: certificate.id,
+              certificateNumber: certificate.certificateNumber,
+              issueDate: certificate.issueDate.toISOString(),
             }
           : null,
         progress: progress
