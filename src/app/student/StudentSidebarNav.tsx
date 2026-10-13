@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Video,
+  Film,
   HelpCircle,
   FileCheck,
   CheckSquare,
@@ -19,6 +20,7 @@ interface StudentNavProps {
   unreadCount?: number;
   notificationsCount?: number;
   liveClassesCount?: number;
+  recordingsCount?: number;
   quizzesCount?: number;
   assignmentsCount?: number;
 }
@@ -27,6 +29,7 @@ export default function StudentSidebarNav({
   unreadCount = 0,
   notificationsCount = unreadCount,
   liveClassesCount = 0,
+  recordingsCount = 0,
   quizzesCount = 0,
   assignmentsCount = 0,
 }: StudentNavProps) {
@@ -36,6 +39,7 @@ export default function StudentSidebarNav({
     { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
     { name: "My Courses", href: "/student/courses", icon: BookOpen },
     { name: "Live Classes", href: "/student/live-classes", icon: Video, badge: liveClassesCount },
+    { name: "Recorded Lectures", href: "/student/recorded-lectures", icon: Film, badge: recordingsCount },
     { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle, badge: quizzesCount },
     { name: "Assignments", href: "/student/assignments", icon: FileCheck, badge: assignmentsCount },
     { name: "Attendance", href: "/student/attendance", icon: CheckSquare },

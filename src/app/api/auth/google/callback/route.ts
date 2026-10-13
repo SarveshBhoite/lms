@@ -52,9 +52,15 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    return NextResponse.redirect(`${baseUrl}/trainer/live-classes?google_auth=success&email=${encodeURIComponent(googleEmail)}`);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    const returnPath = user?.role === "ADMIN" ? "/admin/recorded-lectures" : "/trainer/live-classes";
+
+    return NextResponse.redirect(`${baseUrl}${returnPath}?google_auth=success&email=${encodeURIComponent(googleEmail)}`);
   } catch (err: any) {
     console.error("Google OAuth Callback Error:", err);
-    return NextResponse.redirect(`${baseUrl}/trainer/live-classes?google_auth=error&msg=${encodeURIComponent(err.message || "Failed to link Google account")}`);
+    return NextResponse.redirect(`${baseUrl}/admin/recorded-lectures?google_auth=error&msg=${encodeURIComponent(err.message || "Failed to link Google account")}`);
   }
 }

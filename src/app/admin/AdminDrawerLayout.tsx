@@ -9,6 +9,7 @@ import {
   GraduationCap,
   BookOpen,
   FileBox,
+  Film,
   Layers,
   CheckSquare,
   Award,
@@ -75,6 +76,7 @@ export default function AdminDrawerLayout({
     { name: "Trainers & Faculty", href: "/admin/trainers", icon: GraduationCap },
     { name: "Course Catalog", href: "/admin/courses", icon: BookOpen },
     { name: "Content Library", href: "/admin/content", icon: FileBox },
+    { name: "Recorded Lectures", href: "/admin/recorded-lectures", icon: Film },
     {
       name: "Batches & Cohorts",
       href: "/admin/batches",

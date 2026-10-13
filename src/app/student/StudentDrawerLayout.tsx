@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   BookOpen,
   Video,
+  Film,
   HelpCircle,
   FileCheck,
   CheckSquare,
@@ -28,6 +29,7 @@ interface StudentDrawerProps {
   };
   unreadNotificationsCount: number;
   liveClassesCount: number;
+  recordingsCount?: number;
   quizzesCount: number;
   assignmentsCount: number;
   children: React.ReactNode;
@@ -37,6 +39,7 @@ export default function StudentDrawerLayout({
   user,
   unreadNotificationsCount,
   liveClassesCount,
+  recordingsCount = 0,
   quizzesCount,
   assignmentsCount,
   children,
@@ -69,6 +72,7 @@ export default function StudentDrawerLayout({
     { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
     { name: "My Courses", href: "/student/courses", icon: BookOpen },
     { name: "Live Classes", href: "/student/live-classes", icon: Video, badge: liveClassesCount },
+    { name: "Recorded Lectures", href: "/student/recorded-lectures", icon: Film, badge: recordingsCount },
     { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle, badge: quizzesCount },
     { name: "Assignments", href: "/student/assignments", icon: FileCheck, badge: assignmentsCount },
     { name: "Attendance", href: "/student/attendance", icon: CheckSquare },

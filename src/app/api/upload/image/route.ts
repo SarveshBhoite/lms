@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
           folder: "jvm_lms/courses",
           resource_type: "image",
         },
-        (error, result) => {
+        (error: any, result: any) => {
           if (error) reject(error);
           else resolve(result);
         }

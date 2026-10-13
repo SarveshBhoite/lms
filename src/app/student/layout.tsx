@@ -52,7 +52,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
   todayStart.setHours(0, 0, 0, 0);
 
   // Parallel counts for badge indicators
-  const [unreadNotificationsCount, liveClassesCount, quizzesCount, assignmentsCount] = await Promise.all([
+  const [unreadNotificationsCount, liveClassesCount, quizzesCount, assignmentsCount, recordingsCount] = await Promise.all([
     // 1. Unread notifications
     prisma.notification.count({
       where: { userId: session.userId, isRead: false },
@@ -95,6 +95,31 @@ export default async function StudentLayout({ children }: { children: React.Reac
         },
       },
     }),
+
+    // 5. Available recorded lectures
+    enrolledBatchIds.length === 0 && enrolledCourseIds.length === 0
+      ? Promise.resolve(0)
+      : prisma.liveClass.count({
+          where: {
+            AND: [
+              { recordingUrl: { not: null } },
+              { recordingUrl: { not: "" } },
+              {
+                OR: [
+                  ...(enrolledBatchIds.length > 0
+                    ? [
+                        { batchId: { in: enrolledBatchIds } },
+                        { batchIds: { hasSome: enrolledBatchIds } },
+                      ]
+                    : []),
+                  ...(enrolledCourseIds.length > 0
+                    ? [{ courseId: { in: enrolledCourseIds } }]
+                    : []),
+                ],
+              },
+            ],
+          },
+        }),
   ]);
 
   return (
@@ -106,6 +131,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
       }}
       unreadNotificationsCount={unreadNotificationsCount}
       liveClassesCount={liveClassesCount}
+      recordingsCount={recordingsCount}
       quizzesCount={quizzesCount}
       assignmentsCount={assignmentsCount}
     >

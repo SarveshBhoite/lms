@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
           resource_type: resourceType,
           public_id: file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_") + "_" + Date.now(),
         },
-        (error, result) => {
+        (error: any, result: any) => {
           if (error) reject(error);
           else resolve(result);
         }
