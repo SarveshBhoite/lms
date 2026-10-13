@@ -29,29 +29,20 @@ function UnauthorizedContent() {
         </p>
       </div>
 
-      {/* Role Navigation Quick Access */}
+      {/* Quick Access */}
       <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-left space-y-2.5">
         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-          Available Authorized Workspaces
+          Authorized Workspace
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <Link
-            href="/student/dashboard"
-            className="p-2.5 rounded-xl bg-slate-950/80 border border-indigo-500/20 hover:border-indigo-500 text-indigo-300 text-xs font-bold flex items-center gap-2 transition"
-          >
-            <GraduationCap className="w-4 h-4 text-indigo-400" /> Student Space
-          </Link>
+        <div>
           <Link
             href="/trainer/dashboard"
-            className="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/20 hover:border-amber-500 text-amber-300 text-xs font-bold flex items-center gap-2 transition"
+            className="p-3 rounded-xl bg-slate-950/80 border border-amber-500/30 hover:border-amber-500 text-amber-300 text-xs font-bold flex items-center justify-between transition"
           >
-            <Sparkles className="w-4 h-4 text-amber-400" /> Faculty Space
-          </Link>
-          <Link
-            href="/admin/dashboard"
-            className="p-2.5 rounded-xl bg-slate-950/80 border border-rose-500/20 hover:border-rose-500 text-rose-300 text-xs font-bold flex items-center gap-2 transition"
-          >
-            <ShieldCheck className="w-4 h-4 text-rose-400" /> Admin Control
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" /> Faculty Trainer Dashboard
+            </div>
+            <span className="text-[10px] font-mono bg-amber-500/20 px-2 py-0.5 rounded text-amber-300">Open &rarr;</span>
           </Link>
         </div>
       </div>

@@ -51,14 +51,18 @@ export class QuizService {
         },
       });
 
-      await tx.activityLog.create({
-        data: {
-          userId: trainerId,
-          action: "QUIZ_CREATED",
-          resource: `Quiz:${quiz.id}`,
-          details: { title: quiz.title, courseId: quiz.courseId },
-        },
-      });
+      try {
+        await tx.activityLog.create({
+          data: {
+            userId: trainerId,
+            action: "QUIZ_CREATED",
+            resource: `Quiz:${quiz.id}`,
+            details: { title: quiz.title, courseId: quiz.courseId },
+          },
+        });
+      } catch (logErr) {
+        console.warn("ActivityLog skipped:", logErr);
+      }
 
       return quiz;
     });

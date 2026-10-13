@@ -229,37 +229,47 @@ export default function TrainerAttendancePage() {
                         {rec.status}
                       </span>
                     </td>
-                    <td className="p-4 sm:pr-6 text-right space-x-1">
-                      <button
-                        onClick={() => toggleStatus(rec, "PRESENT")}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition cursor-pointer ${
-                          rec.status === "PRESENT"
-                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
-                            : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Present
-                      </button>
-                      <button
-                        onClick={() => toggleStatus(rec, "LATE")}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition cursor-pointer ${
-                          rec.status === "LATE"
-                            ? "bg-amber-600 text-white shadow-md shadow-amber-600/20"
-                            : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Late
-                      </button>
-                      <button
-                        onClick={() => toggleStatus(rec, "ABSENT")}
-                        className={`px-2.5 py-1 rounded-lg text-[10px] font-bold font-mono transition cursor-pointer ${
-                          rec.status === "ABSENT"
-                            ? "bg-rose-600 text-white shadow-md shadow-rose-600/20"
-                            : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
-                        }`}
-                      >
-                        Absent
-                      </button>
+                    <td className="p-4 sm:pr-6 text-right">
+                      <div className="inline-flex items-center gap-1.5 p-1 rounded-xl bg-slate-950/80 border border-slate-800">
+                        {/* 1. Present */}
+                        <button
+                          type="button"
+                          onClick={() => toggleStatus(rec, "PRESENT")}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono transition flex items-center gap-1 cursor-pointer ${
+                            rec.status === "PRESENT"
+                              ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30 ring-1 ring-emerald-400/50"
+                              : "text-slate-400 hover:text-emerald-300 hover:bg-slate-900"
+                          }`}
+                        >
+                          <Check className="w-3 h-3 text-emerald-300" /> Present
+                        </button>
+
+                        {/* 2. Late */}
+                        <button
+                          type="button"
+                          onClick={() => toggleStatus(rec, "LATE")}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono transition flex items-center gap-1 cursor-pointer ${
+                            rec.status === "LATE"
+                              ? "bg-amber-600 text-white shadow-md shadow-amber-600/30 ring-1 ring-amber-400/50"
+                              : "text-slate-400 hover:text-amber-300 hover:bg-slate-900"
+                          }`}
+                        >
+                          <Clock className="w-3 h-3 text-amber-300" /> Late
+                        </button>
+
+                        {/* 3. Absent */}
+                        <button
+                          type="button"
+                          onClick={() => toggleStatus(rec, "ABSENT")}
+                          className={`px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono transition flex items-center gap-1 cursor-pointer ${
+                            rec.status === "ABSENT"
+                              ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-1 ring-rose-400/50"
+                              : "text-slate-400 hover:text-rose-300 hover:bg-slate-900"
+                          }`}
+                        >
+                          <X className="w-3 h-3 text-rose-300" /> Absent
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

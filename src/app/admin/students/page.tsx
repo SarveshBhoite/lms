@@ -17,6 +17,7 @@ import {
   Calendar,
   Eye,
   KeyRound,
+  Phone,
 } from "lucide-react";
 import { INSTITUTE_CONFIG } from "@/lib/branding";
 
@@ -224,7 +225,18 @@ export default function AdminStudentsPage() {
                     </td>
 
                     <td className="p-4 text-slate-400 font-mono text-[11px]">
-                      {st.profile?.phone || "No phone added"}
+                      {st.profile?.phone ? (
+                        <a
+                          href={`tel:${st.profile.phone.replace(/[^0-9+]/g, "")}`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold transition shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                          title={`Call ${st.name} (${st.profile.phone})`}
+                        >
+                          <Phone className="w-3 h-3 text-emerald-400 animate-pulse" />
+                          <span>{st.profile.phone}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-600">No phone added</span>
+                      )}
                     </td>
 
                     <td className="p-4">

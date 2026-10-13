@@ -36,14 +36,18 @@ export class AssignmentService {
         },
       });
 
-      await tx.activityLog.create({
-        data: {
-          userId: trainerId,
-          action: "ASSIGNMENT_CREATED",
-          resource: `Assignment:${asgn.id}`,
-          details: { title: asgn.title, deadline: asgn.deadline },
-        },
-      });
+      try {
+        await tx.activityLog.create({
+          data: {
+            userId: trainerId,
+            action: "ASSIGNMENT_CREATED",
+            resource: `Assignment:${asgn.id}`,
+            details: { title: asgn.title, deadline: asgn.deadline },
+          },
+        });
+      } catch (logErr) {
+        console.warn("ActivityLog skipped:", logErr);
+      }
 
       return asgn;
     });

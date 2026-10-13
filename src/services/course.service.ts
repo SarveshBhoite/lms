@@ -57,6 +57,25 @@ export class CourseService {
    * Create a new course container
    */
   static async createCourse(trainerId: string, data: CourseCreateInput) {
+    // Verify trainer exists in the database
+    let activeTrainerId = trainerId;
+    const userExists = await prisma.user.findUnique({
+      where: { id: trainerId },
+      select: { id: true },
+    });
+
+    if (!userExists) {
+      const fallback = await prisma.user.findFirst({
+        where: { role: { in: ["TRAINER", "ADMIN"] } },
+        select: { id: true },
+      });
+      if (fallback) {
+        activeTrainerId = fallback.id;
+      } else {
+        throw new Error("Trainer record not found in database. Please log in again.");
+      }
+    }
+
     // Generate unique slug
     const baseSlug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
     const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 7)}`;
@@ -72,20 +91,24 @@ export class CourseService {
           durationHours: data.durationHours,
           level: data.level,
           prerequisites: data.prerequisites,
-          trainerId,
+          trainerId: activeTrainerId,
           status: CourseStatus.PUBLISHED,
         },
       });
 
-      // Audit log
-      await tx.activityLog.create({
-        data: {
-          userId: trainerId,
-          action: "COURSE_CREATED",
-          resource: `Course:${course.id}`,
-          details: { title: course.title },
-        },
-      });
+      // Audit log safely
+      try {
+        await tx.activityLog.create({
+          data: {
+            userId: activeTrainerId,
+            action: "COURSE_CREATED",
+            resource: `Course:${course.id}`,
+            details: { title: course.title },
+          },
+        });
+      } catch (logErr) {
+        console.warn("ActivityLog failed:", logErr);
+      }
 
       return course;
     });

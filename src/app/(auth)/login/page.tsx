@@ -70,7 +70,7 @@ function LoginForm() {
       if (redirectUrl && redirectUrl.startsWith("/")) {
         router.push(redirectUrl);
       } else {
-        // Otherwise redirect based on user role
+        // Redirect based on role
         if (data.data.role === "ADMIN") {
           router.push("/admin/dashboard");
         } else if (data.data.role === "TRAINER") {

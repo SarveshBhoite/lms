@@ -4,8 +4,13 @@ import { decryptToken, AUTH_COOKIE_NAME } from "@/lib/auth";
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Seamlessly redirect removed /trainer/notifications path to /trainer/dashboard
-  if (pathname === "/trainer/notifications" || pathname.startsWith("/trainer/notifications/")) {
+  // Seamlessly redirect typos / removed paths to /trainer/dashboard
+  if (
+    pathname === "/trainer/notifications" ||
+    pathname.startsWith("/trainer/notifications/") ||
+    pathname === "/trainer/dasshboard" ||
+    pathname.startsWith("/trainer/dasshboard/")
+  ) {
     return NextResponse.redirect(new URL("/trainer/dashboard", request.url));
   }
 

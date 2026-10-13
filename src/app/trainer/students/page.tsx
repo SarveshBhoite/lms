@@ -309,15 +309,23 @@ export default function TrainerStudentsPage() {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 font-mono">
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3 text-slate-500" />
+                        <a
+                          href={`mailto:${st.email}`}
+                          className="flex items-center gap-1 hover:text-white transition group"
+                          title="Send Email"
+                        >
+                          <Mail className="w-3 h-3 text-slate-500 group-hover:text-indigo-400 transition" />
                           <span className="truncate">{st.email}</span>
-                        </span>
+                        </a>
                         {st.profile?.phone ? (
-                          <span className="flex items-center gap-1 text-indigo-300">
-                            <Phone className="w-3 h-3 text-indigo-400" />
+                          <a
+                            href={`tel:${st.profile.phone.replace(/[^0-9+]/g, "")}`}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 font-bold transition shadow-sm hover:scale-105 active:scale-95 cursor-pointer"
+                            title={`Call ${st.name} (${st.profile.phone})`}
+                          >
+                            <Phone className="w-3 h-3 text-emerald-400 animate-pulse" />
                             <span>{st.profile.phone}</span>
-                          </span>
+                          </a>
                         ) : (
                           <span className="text-slate-600 text-[11px]">No phone listed</span>
                         )}
