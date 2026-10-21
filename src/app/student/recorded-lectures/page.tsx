@@ -102,8 +102,11 @@ export default async function StudentRecordedLecturesPage() {
           {
             OR: [
               { fileType: "VIDEO" },
+              { fileType: { contains: "video" } },
               { fileUrl: { contains: ".mp4" } },
-              { fileUrl: { contains: "cloudinary" } },
+              { fileUrl: { contains: ".mkv" } },
+              { fileUrl: { contains: ".webm" } },
+              { fileUrl: { contains: "/video/upload/" } },
             ],
           },
           {
