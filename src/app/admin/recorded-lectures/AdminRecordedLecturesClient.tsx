@@ -18,6 +18,14 @@ import {
   ArrowUpDown,
   Bell,
   Link as LinkIcon,
+  Folder,
+  HardDrive,
+  FolderOpen,
+  ChevronRight,
+  Eye,
+  RefreshCw,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -104,6 +112,12 @@ interface AdminRecordedLecturesClientProps {
     isConnected: boolean;
     email: string | null;
   };
+  initialDriveStatus?: {
+    isConnected: boolean;
+    email: string | null;
+    rootFolderId: string | null;
+    rootFolderName: string | null;
+  };
 }
 
 export default function AdminRecordedLecturesClient({
@@ -113,6 +127,7 @@ export default function AdminRecordedLecturesClient({
   trainers,
   currentUserId,
   initialGoogleStatus,
+  initialDriveStatus,
 }: AdminRecordedLecturesClientProps) {
   const [recordings, setRecordings] = useState<AdminRecordedLecture[]>(initialRecordings);
   const [searchQuery, setSearchQuery] = useState("");
@@ -120,7 +135,7 @@ export default function AdminRecordedLecturesClient({
   const [selectedBatch, setSelectedBatch] = useState<string>("ALL");
   const [sortBy, setSortBy] = useState<"NEWEST" | "OLDEST" | "TITLE">("NEWEST");
 
-  // Google Account Connection Status
+  // Google Account Connection Status (Meet)
   const [googleStatus, setGoogleStatus] = useState<{
     isConnected: boolean;
     email: string | null;
@@ -130,9 +145,35 @@ export default function AdminRecordedLecturesClient({
     email: initialGoogleStatus?.email || null,
   });
 
+  // Google Drive Connection & Explorer Status
+  const [driveStatus, setDriveStatus] = useState<{
+    isConnected: boolean;
+    email: string | null;
+    authUrl?: string | null;
+    rootFolderId: string | null;
+    rootFolderName: string | null;
+  }>({
+    isConnected: initialDriveStatus?.isConnected || false,
+    email: initialDriveStatus?.email || null,
+    rootFolderId: initialDriveStatus?.rootFolderId || null,
+    rootFolderName: initialDriveStatus?.rootFolderName || null,
+  });
+
+  // Drive Explorer Modal
+  const [isDriveModalOpen, setIsDriveModalOpen] = useState(false);
+  const [driveItems, setDriveItems] = useState<any[]>([]);
+  const [driveCurrentFolder, setDriveCurrentFolder] = useState<{ id: string; name: string } | null>(null);
+  const [driveFolderHistory, setDriveFolderHistory] = useState<{ id: string; name: string }[]>([]);
+  const [driveLoading, setDriveLoading] = useState(false);
+  const [settingRoot, setSettingRoot] = useState(false);
+
+  // Active Tab: PUBLISHED_LECTURES vs DRIVE_ARCHIVE
+  const [activeTab, setActiveTab] = useState<"PUBLISHED" | "DRIVE">("PUBLISHED");
+
   // Modal States
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [activePreviewLecture, setActivePreviewLecture] = useState<AdminRecordedLecture | null>(null);
+  const [previewDriveFile, setPreviewDriveFile] = useState<{ id: string; name: string } | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Form State
@@ -180,10 +221,100 @@ export default function AdminRecordedLecturesClient({
     }
   };
 
+  // Disconnect Google Drive
+  const handleDisconnectDrive = async () => {
+    if (confirm("Disconnect this Google Drive Account?")) {
+      try {
+        const res = await fetch("/api/admin/google-drive", { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) {
+          setDriveStatus({
+            isConnected: false,
+            email: null,
+            authUrl: null,
+            rootFolderId: null,
+            rootFolderName: null,
+          });
+          setDriveItems([]);
+          showToast("success", "Google Drive disconnected successfully");
+        }
+      } catch {
+        showToast("error", "Failed to disconnect Google Drive");
+      }
+    }
+  };
+
+  // Load Google Drive Folder contents
+  const loadDriveFolder = async (folderId?: string, folderName?: string) => {
+    setDriveLoading(true);
+    try {
+      const url = folderId
+        ? `/api/admin/google-drive?folderId=${encodeURIComponent(folderId)}`
+        : "/api/admin/google-drive";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDriveItems(data.data.items || []);
+        setDriveCurrentFolder(data.data.currentFolder || null);
+
+        // Update breadcrumb history if navigating deeper
+        if (folderId && folderName) {
+          setDriveFolderHistory((prev) => {
+            const existsIdx = prev.findIndex((f) => f.id === folderId);
+            if (existsIdx >= 0) {
+              return prev.slice(0, existsIdx + 1);
+            }
+            return [...prev, { id: folderId, name: folderName }];
+          });
+        } else if (!folderId) {
+          setDriveFolderHistory([]);
+        }
+      } else {
+        showToast("error", data.error || "Failed to query Google Drive files");
+      }
+    } catch {
+      showToast("error", "Network error communicating with Google Drive");
+    } finally {
+      setDriveLoading(false);
+    }
+  };
+
+  // Set current folder as the default root folder for student lectures
+  const handleSetCurrentAsRoot = async () => {
+    if (!driveCurrentFolder) return;
+    setSettingRoot(true);
+    try {
+      const res = await fetch("/api/admin/google-drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rootFolderId: driveCurrentFolder.id,
+          rootFolderName: driveCurrentFolder.name,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDriveStatus((prev) => ({
+          ...prev,
+          rootFolderId: driveCurrentFolder.id,
+          rootFolderName: driveCurrentFolder.name,
+        }));
+        showToast("success", `Root lecture folder set to: "${driveCurrentFolder.name}"`);
+      } else {
+        showToast("error", data.error || "Failed to set root folder");
+      }
+    } catch {
+      showToast("error", "Failed to set root folder");
+    } finally {
+      setSettingRoot(false);
+    }
+  };
+
   // On mount check auth redirects & fetch status asynchronously
   useEffect(() => {
     let isMounted = true;
 
+    // Fetch Google Meet status
     fetch("/api/trainer/google-account")
       .then((res) => res.json())
       .then((data) => {
@@ -199,9 +330,47 @@ export default function AdminRecordedLecturesClient({
         console.error("Failed to query Google account status:", e);
       });
 
+    // Fetch Google Drive status
+    fetch("/api/admin/google-drive")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.success && data.data) {
+          setDriveStatus({
+            isConnected: Boolean(data.data.isConnected),
+            email: data.data.email || null,
+            authUrl: data.data.authUrl || null,
+            rootFolderId: data.data.rootFolderId || null,
+            rootFolderName: data.data.rootFolderName || null,
+          });
+          if (data.data.isConnected && data.data.items) {
+            setDriveItems(data.data.items);
+            setDriveCurrentFolder(data.data.currentFolder);
+          }
+        }
+      })
+      .catch((e) => {
+        console.error("Failed to query Google Drive status:", e);
+      });
+
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const googleAuth = params.get("google_auth");
+      const driveAuth = params.get("drive_auth");
+
+      if (driveAuth === "success") {
+        const email = params.get("email");
+        setTimeout(() => {
+          showToast("success", `Google Drive connected successfully: ${email || ""}`);
+        }, 100);
+        window.history.replaceState({}, "", window.location.pathname);
+      } else if (driveAuth === "error" || driveAuth === "failed") {
+        const msg = params.get("msg");
+        setTimeout(() => {
+          showToast("error", msg || "Failed to link Google Drive");
+        }, 100);
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+
       if (googleAuth === "success") {
         const email = params.get("email");
         setTimeout(() => {
@@ -466,38 +635,77 @@ export default function AdminRecordedLecturesClient({
             </p>
           </div>
 
-          {/* Action Group: Google Status Pill + Upload Recorded Lecture CTA */}
+          {/* Action Group: Google Meet + Google Drive + Upload CTA */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            {/* Google Connected Pill from Screenshot */}
+            {/* Google Drive Account Pill */}
+            {driveStatus?.isConnected ? (
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/95 border border-purple-200/90 shadow-sm text-xs">
+                <div className="w-7 h-7 rounded-xl bg-purple-100 flex items-center justify-center font-bold text-purple-700 text-xs shrink-0">
+                  <HardDrive className="w-4 h-4 text-purple-700" />
+                </div>
+                <div className="flex flex-col text-left leading-tight">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-purple-700">
+                    <span className="w-2 h-2 rounded-full bg-purple-600 shrink-0" />
+                    <span>Drive Connected</span>
+                  </div>
+                  <div className="text-[11px] font-bold text-slate-900 truncate max-w-[160px]">
+                    {driveStatus.email}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDisconnectDrive}
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline ml-1 cursor-pointer transition hover:opacity-80 shrink-0"
+                >
+                  Unlink
+                </button>
+              </div>
+            ) : (
+              <a
+                href={driveStatus?.authUrl || "#"}
+                onClick={(e) => {
+                  if (!driveStatus?.authUrl) {
+                    e.preventDefault();
+                    showToast("error", "Google Client ID / Secret not set in .env");
+                  }
+                }}
+                className="px-4 py-2.5 rounded-2xl bg-white hover:bg-purple-50 text-purple-900 font-bold text-xs flex items-center gap-2 shadow-sm transition hover:scale-[1.02] cursor-pointer border border-purple-200"
+              >
+                <HardDrive className="w-4 h-4 text-purple-700" />
+                <span>Connect Google Drive</span>
+              </a>
+            )}
+
+            {/* Google Meet Connected Pill */}
             {googleStatus?.isConnected ? (
-              <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white border border-emerald-300 shadow-sm text-xs">
-                <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-xs uppercase shrink-0">
+              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/95 border border-emerald-200 shadow-sm text-xs">
+                <div className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-xs uppercase shrink-0">
                   {googleStatus.email?.[0] || "A"}
                 </div>
                 <div className="flex flex-col text-left leading-tight">
                   <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span>Connected</span>
+                    <span>Meet Active</span>
                   </div>
-                  <div className="text-xs font-bold text-slate-900 truncate max-w-[180px] sm:max-w-[240px]">
+                  <div className="text-[11px] font-bold text-slate-900 truncate max-w-[150px]">
                     {googleStatus.email}
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleDisconnectGoogle}
-                  className="text-xs font-bold text-rose-600 hover:text-rose-700 underline ml-2 cursor-pointer transition hover:opacity-80 shrink-0"
+                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline ml-1 cursor-pointer transition hover:opacity-80 shrink-0"
                 >
-                  Disconnect
+                  Unlink
                 </button>
               </div>
             ) : (
               <a
                 href={googleStatus?.authUrl || "/api/trainer/google-account"}
-                className="px-4 py-2.5 rounded-full bg-white border border-slate-200 hover:border-purple-300 text-slate-800 font-bold text-xs flex items-center gap-2 shadow-sm transition hover:scale-[1.02] cursor-pointer"
+                className="px-3.5 py-2.5 rounded-2xl bg-white/90 border border-slate-200 hover:border-purple-300 text-slate-800 font-bold text-xs flex items-center gap-2 shadow-sm transition hover:scale-[1.02] cursor-pointer"
               >
                 <GoogleIcon className="w-4 h-4" />
-                <span>Connect Google</span>
+                <span>Connect Meet</span>
               </a>
             )}
 
@@ -506,10 +714,10 @@ export default function AdminRecordedLecturesClient({
               id="admin-upload-lecture-cta-btn"
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="px-6 py-3.5 rounded-2xl bg-white hover:bg-purple-50 text-[#7C248C] font-black text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 cursor-pointer"
+              className="px-5 py-3 rounded-2xl bg-white hover:bg-purple-50 text-[#7C248C] font-black text-xs sm:text-sm shadow-xl flex items-center gap-2 transition active:scale-95 cursor-pointer"
             >
               <Plus className="w-4 h-4 text-[#7C248C] stroke-[3]" />
-              <span>Upload Recorded Lecture</span>
+              <span>Upload Lecture</span>
             </button>
           </div>
         </div>
@@ -548,8 +756,46 @@ export default function AdminRecordedLecturesClient({
         </div>
       </div>
 
-      {/* FILTER & SEARCH BAR */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+      {/* TAB NAVIGATION: Published Lectures vs Google Drive Directory */}
+      <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("PUBLISHED")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer ${
+            activeTab === "PUBLISHED"
+              ? "bg-[#7C248C] text-white shadow-md shadow-purple-950/20"
+              : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80 hover:bg-slate-50"
+          }`}
+        >
+          <Film className="w-4 h-4" />
+          <span>Published Lectures ({recordings.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("DRIVE");
+            if (driveItems.length === 0 && driveStatus.isConnected) {
+              loadDriveFolder(driveStatus.rootFolderId || undefined);
+            }
+          }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer ${
+            activeTab === "DRIVE"
+              ? "bg-[#7C248C] text-white shadow-md shadow-purple-950/20"
+              : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80 hover:bg-slate-50"
+          }`}
+        >
+          <HardDrive className="w-4 h-4" />
+          <span>Google Drive Directory</span>
+          {driveStatus.isConnected && (
+            <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+          )}
+        </button>
+      </div>
+
+      {activeTab === "PUBLISHED" ? (
+        <>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3.5 justify-between">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -750,6 +996,254 @@ export default function AdminRecordedLecturesClient({
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+        </>
+      ) : (
+        <div className="space-y-6">
+          {/* DRIVE STATUS & BREADCRUMBS CARD */}
+          <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                  <HardDrive className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    Google Drive Cloud Archive
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {driveStatus.isConnected
+                      ? `Browsing connected account: ${driveStatus.email}`
+                      : "Connect your institution's Google Drive account to browse and share lecture folders."}
+                  </p>
+                </div>
+              </div>
+
+              {driveStatus.isConnected && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => loadDriveFolder(driveCurrentFolder?.id || driveStatus.rootFolderId || undefined)}
+                    disabled={driveLoading}
+                    className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${driveLoading ? "animate-spin" : ""}`} />
+                    <span>Refresh</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSetCurrentAsRoot}
+                    disabled={settingRoot || !driveCurrentFolder || driveCurrentFolder.id === driveStatus.rootFolderId}
+                    className="px-4 py-2 rounded-xl bg-purple-50 hover:bg-[#7C248C] text-[#7C248C] hover:text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border border-purple-200"
+                    title="Set this folder as the default home folder for students"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
+                    <span>
+                      {driveCurrentFolder?.id === driveStatus.rootFolderId
+                        ? "Current Root Folder"
+                        : "Set as Default Root"}
+                    </span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Configured Root Alert */}
+            {driveStatus.rootFolderId && (
+              <div className="px-4 py-3 rounded-2xl bg-purple-50/70 border border-purple-200/60 flex items-center justify-between text-xs text-purple-900">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold">Active Root Folder for Students:</span>
+                  <span className="font-mono bg-white px-2 py-0.5 rounded border border-purple-200 text-[#7C248C] font-bold">
+                    {driveStatus.rootFolderName || driveStatus.rootFolderId}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => loadDriveFolder(driveStatus.rootFolderId || undefined, driveStatus.rootFolderName || "Root")}
+                  className="text-xs font-bold text-[#7C248C] underline hover:opacity-80"
+                >
+                  Go to Root
+                </button>
+              </div>
+            )}
+
+            {/* Folder Breadcrumbs */}
+            {driveStatus.isConnected && (
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 overflow-x-auto py-1">
+                <button
+                  type="button"
+                  onClick={() => loadDriveFolder(driveStatus.rootFolderId || undefined)}
+                  className="hover:text-[#7C248C] flex items-center gap-1 shrink-0 cursor-pointer"
+                >
+                  <HardDrive className="w-3.5 h-3.5" />
+                  <span>{driveStatus.rootFolderName || "Drive Home"}</span>
+                </button>
+
+                {driveFolderHistory.map((crumb, idx) => (
+                  <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                    <button
+                      type="button"
+                      onClick={() => loadDriveFolder(crumb.id, crumb.name)}
+                      className={`hover:text-[#7C248C] cursor-pointer ${
+                        idx === driveFolderHistory.length - 1
+                          ? "text-[#7C248C] font-extrabold"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      {crumb.name}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* FOLDER CONTENTS GRID */}
+          {!driveStatus.isConnected ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-4 shadow-xs">
+              <div className="w-16 h-16 mx-auto rounded-3xl bg-purple-50 text-purple-600 flex items-center justify-center">
+                <HardDrive className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  Google Drive Account Not Connected
+                </h3>
+                <p className="text-slate-500 text-xs max-w-md mx-auto">
+                  Connect your Google Drive account with lecture folders. Students will be able to watch all
+                  pre-recorded videos through the system without you manually managing individual Drive email access.
+                </p>
+              </div>
+              <a
+                href={driveStatus?.authUrl || "#"}
+                onClick={(e) => {
+                  if (!driveStatus?.authUrl) {
+                    e.preventDefault();
+                    showToast("error", "Google Client ID / Secret not set in .env");
+                  }
+                }}
+                className="px-6 py-3 rounded-2xl jvm-gradient-bg text-white font-bold text-xs shadow-md transition cursor-pointer inline-flex items-center gap-2"
+              >
+                <HardDrive className="w-4 h-4" /> Connect Institution Google Drive
+              </a>
+            </div>
+          ) : driveLoading ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-3">
+              <Loader2 className="w-8 h-8 text-[#7C248C] animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 font-medium">Fetching contents from Google Drive...</p>
+            </div>
+          ) : driveItems.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
+              <Folder className="w-10 h-10 text-slate-300 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-700">This folder is empty</h4>
+              <p className="text-xs text-slate-400">No subfolders or video files found in this directory.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {driveItems.map((item) => {
+                if (item.isFolder) {
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => loadDriveFolder(item.id, item.name)}
+                      className="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-purple-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                          <Folder className="w-5 h-5 fill-purple-100" />
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="font-bold text-slate-900 group-hover:text-[#7C248C] transition text-xs line-clamp-2">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-1">Directory Folder</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-[11px] font-bold text-[#7C248C]">
+                        <span>Open Folder</span>
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Video / Image / File card
+                const isVideo = item.mimeType?.includes("video") || item.name?.match(/\.(mp4|mkv|webm|mov)$/i);
+                const isImage = item.mimeType?.includes("image") || item.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white p-4 rounded-2xl border border-slate-200/90 hover:border-purple-300 hover:shadow-md transition flex flex-col justify-between group"
+                  >
+                    <div>
+                      {/* Thumbnail or File placeholder */}
+                      <div className="w-full aspect-video rounded-xl bg-slate-900 overflow-hidden relative flex items-center justify-center mb-3">
+                        {item.thumbnailLink ? (
+                          <img
+                            src={item.thumbnailLink}
+                            alt={item.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition"
+                          />
+                        ) : isVideo ? (
+                          <Film className="w-8 h-8 text-slate-500" />
+                        ) : isImage ? (
+                          <ImageIcon className="w-8 h-8 text-slate-500" />
+                        ) : (
+                          <FileText className="w-8 h-8 text-slate-500" />
+                        )}
+
+                        {isVideo && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDriveFile({ id: item.id, name: item.name })}
+                            className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/90 text-[#7C248C] flex items-center justify-center shadow-lg group-hover:scale-110 transition cursor-pointer"
+                          >
+                            <Play className="w-4 h-4 fill-current translate-x-0.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="font-bold text-slate-900 text-xs line-clamp-2" title={item.name}>
+                        {item.name}
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-400">
+                        {item.videoDurationMinutes && (
+                          <span>{item.videoDurationMinutes} mins</span>
+                        )}
+                        {item.size && (
+                          <span>{(Number(item.size) / (1024 * 1024)).toFixed(1)} MB</span>
+                        )}
+                        <span className="uppercase text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">
+                          {isVideo ? "Video" : isImage ? "Image" : "Document"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                      {isVideo ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDriveFile({ id: item.id, name: item.name })}
+                          className="flex-1 py-1.5 rounded-xl bg-purple-50 hover:bg-[#7C248C] text-[#7C248C] hover:text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <Play className="w-3 h-3 fill-current" /> Watch Video
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {isImage ? "Image File (Not a lecture video)" : "Non-video File"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -1091,6 +1585,67 @@ export default function AdminRecordedLecturesClient({
                 className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition cursor-pointer"
               >
                 Exit Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GOOGLE DRIVE VIDEO STREAM PREVIEW MODAL */}
+      {previewDriveFile && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 animate-in fade-in">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-slate-950/90 border-b border-slate-800/80 flex items-center justify-between">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0">
+                  <Play className="w-4 h-4 fill-current" />
+                </div>
+                <div className="overflow-hidden">
+                  <h4 className="font-black text-white text-sm sm:text-base truncate">
+                    {previewDriveFile.name}
+                  </h4>
+                  <div className="flex items-center gap-2 text-[11px] text-purple-300 font-mono">
+                    <span>Google Drive Proxy Stream</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setPreviewDriveFile(null)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition cursor-pointer"
+                title="Close player"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Video Player (Using secure backend stream proxy) */}
+            <div className="w-full aspect-video bg-black flex items-center justify-center">
+              <video
+                key={previewDriveFile.id}
+                src={`/api/drive/stream/${previewDriveFile.id}`}
+                controls
+                autoPlay
+                controlsList="nodownload"
+                className="w-full h-full object-contain"
+              >
+                Your browser does not support HTML5 video streaming.
+              </video>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span className="text-[11px] text-slate-400">
+                Streaming directly from institution Drive securely via LMS proxy.
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewDriveFile(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition cursor-pointer"
+              >
+                Done Watching
               </button>
             </div>
           </div>

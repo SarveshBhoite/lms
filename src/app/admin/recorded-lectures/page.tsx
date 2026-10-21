@@ -11,7 +11,7 @@ export default async function AdminRecordedLecturesPage() {
     redirect("/login");
   }
 
-  const [courses, batches, trainers, liveRecordings, videoResources, googleAccount] =
+  const [courses, batches, trainers, liveRecordings, videoResources, googleAccount, googleDriveAccount] =
     await Promise.all([
       prisma.course.findMany({
         select: {
@@ -99,6 +99,10 @@ export default async function AdminRecordedLecturesPage() {
         where: { userId: session.userId },
         select: { email: true },
       }),
+      prisma.adminGoogleDriveAccount.findUnique({
+        where: { userId: session.userId },
+        select: { email: true, rootFolderId: true, rootFolderName: true },
+      }),
     ]);
 
   const formattedLiveRecordings: AdminRecordedLecture[] = liveRecordings.map(
@@ -167,6 +171,12 @@ export default async function AdminRecordedLecturesPage() {
       initialGoogleStatus={{
         isConnected: Boolean(googleAccount),
         email: googleAccount?.email || null,
+      }}
+      initialDriveStatus={{
+        isConnected: Boolean(googleDriveAccount),
+        email: googleDriveAccount?.email || null,
+        rootFolderId: googleDriveAccount?.rootFolderId || null,
+        rootFolderName: googleDriveAccount?.rootFolderName || null,
       }}
     />
   );

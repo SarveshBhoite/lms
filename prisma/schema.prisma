@@ -147,6 +147,7 @@ model User {
   studentNotes          TrainerNote[]            @relation("StudentNotes")
   authorNotes           TrainerNote[]            @relation("AuthorNotes")
   googleAccount         TrainerGoogleAccount?
+  googleDriveAccount    AdminGoogleDriveAccount?
 
   @@index([email])
   @@index([role])
@@ -197,6 +198,7 @@ model Course {
   certificates   Certificate[]
   liveClasses    LiveClass[]
   resources      Resource[]
+  driveFolderMappings DriveFolderMapping[]
 
   @@index([trainerId])
   @@index([status])
@@ -509,6 +511,7 @@ model Batch {
   liveClasses LiveClass[]
   enrollments Enrollment[]
   resources   Resource[]
+  driveFolderMappings DriveFolderMapping[]
 
   @@index([courseId])
   @@index([status])
@@ -609,6 +612,38 @@ model TrainerGoogleAccount {
 
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+model AdminGoogleDriveAccount {
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  email          String
+  accessToken    String
+  refreshToken   String?
+  scope          String?
+  expiresAt      DateTime?
+  rootFolderId   String?   // Optional: default root folder selected by admin
+  rootFolderName String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DriveFolderMapping {
+  id             String   @id @default(cuid())
+  folderId       String   // Google Drive Folder ID
+  folderName     String
+  courseId       String?
+  batchId        String?
+  createdAt      DateTime @default(now())
+
+  course         Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  batch          Batch?   @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([batchId])
+}
+
 
 // ----------------------------------------------------
 // CERTIFICATE, NOTIFICATION & AUDIT LOGS

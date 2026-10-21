@@ -17,6 +17,12 @@ import {
   List,
   LayoutGrid,
   ArrowUpDown,
+  Folder,
+  HardDrive,
+  Loader2,
+  RefreshCw,
+  Image as ImageIcon,
+  FileText,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -66,6 +72,52 @@ export default function StudentRecordedLecturesClient({
   const [viewMode, setViewMode] = useState<"GRID" | "LIST">("GRID");
   const [activeLecture, setActiveLecture] = useState<StudentRecordedLecture | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
+
+  // Tab: CLASS_RECORDINGS vs DRIVE_ARCHIVE
+  const [activeTab, setActiveTab] = useState<"RECORDINGS" | "DRIVE">("RECORDINGS");
+
+  // Google Drive state
+  const [driveItems, setDriveItems] = useState<any[]>([]);
+  const [driveCurrentFolder, setDriveCurrentFolder] = useState<{ id: string; name: string } | null>(null);
+  const [driveFolderHistory, setDriveFolderHistory] = useState<{ id: string; name: string }[]>([]);
+  const [driveLoading, setDriveLoading] = useState(false);
+  const [driveRootName, setDriveRootName] = useState<string>("Drive Directory");
+  const [previewDriveFile, setPreviewDriveFile] = useState<{ id: string; name: string } | null>(null);
+
+  // Load Drive Folder
+  const loadDriveFolder = async (folderId?: string, folderName?: string) => {
+    setDriveLoading(true);
+    try {
+      const url = folderId
+        ? `/api/student/drive-recordings?folderId=${encodeURIComponent(folderId)}`
+        : "/api/student/drive-recordings";
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.success && data.data) {
+        setDriveItems(data.data.items || []);
+        setDriveCurrentFolder(data.data.currentFolder || null);
+        if (data.data.rootFolderName) {
+          setDriveRootName(data.data.rootFolderName);
+        }
+
+        if (folderId && folderName) {
+          setDriveFolderHistory((prev) => {
+            const existsIdx = prev.findIndex((f) => f.id === folderId);
+            if (existsIdx >= 0) {
+              return prev.slice(0, existsIdx + 1);
+            }
+            return [...prev, { id: folderId, name: folderName }];
+          });
+        } else if (!folderId) {
+          setDriveFolderHistory([]);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load Google Drive folder:", e);
+    } finally {
+      setDriveLoading(false);
+    }
+  };
 
   // Close player with Esc key
   useEffect(() => {
@@ -204,8 +256,44 @@ export default function StudentRecordedLecturesClient({
         </div>
       </div>
 
-      {/* FILTER CONTROLS BAR */}
-      <div className="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
+      {/* TABS: Class Recordings vs Google Drive Cloud Directory */}
+      <div className="flex items-center gap-3 border-b border-slate-200 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab("RECORDINGS")}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer ${
+            activeTab === "RECORDINGS"
+              ? "bg-[#7C248C] text-white shadow-md shadow-purple-950/20"
+              : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80 hover:bg-slate-50"
+          }`}
+        >
+          <Film className="w-4 h-4" />
+          <span>Cohort Class Recordings ({recordings.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("DRIVE");
+            if (driveItems.length === 0) {
+              loadDriveFolder();
+            }
+          }}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black transition cursor-pointer ${
+            activeTab === "DRIVE"
+              ? "bg-[#7C248C] text-white shadow-md shadow-purple-950/20"
+              : "bg-white text-slate-600 hover:text-slate-900 border border-slate-200/80 hover:bg-slate-50"
+          }`}
+        >
+          <HardDrive className="w-4 h-4" />
+          <span>Pre-Recorded Drive Archive</span>
+        </button>
+      </div>
+
+      {activeTab === "RECORDINGS" ? (
+        <>
+          {/* FILTER CONTROLS BAR */}
+          <div className="bg-white/90 backdrop-blur-md p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3.5 justify-between">
           {/* Search Field */}
           <div className="relative flex-1">
@@ -555,6 +643,181 @@ export default function StudentRecordedLecturesClient({
           ))}
         </div>
       )}
+        </>
+      ) : (
+        /* GOOGLE DRIVE PRE-RECORDED ARCHIVE DIRECTORY */
+        <div className="space-y-6">
+          {/* Breadcrumbs & Navigation Bar */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-purple-50 text-[#7C248C] flex items-center justify-center">
+                  <HardDrive className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-slate-900 text-sm">
+                  {driveCurrentFolder ? driveCurrentFolder.name : driveRootName}
+                </h3>
+              </div>
+
+              {/* Breadcrumbs */}
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-600 overflow-x-auto pt-1">
+                <button
+                  type="button"
+                  onClick={() => loadDriveFolder()}
+                  className="hover:text-[#7C248C] flex items-center gap-1 shrink-0 cursor-pointer text-slate-500"
+                >
+                  <span>{driveRootName}</span>
+                </button>
+
+                {driveFolderHistory.map((crumb, idx) => (
+                  <div key={crumb.id} className="flex items-center gap-1.5 shrink-0">
+                    <ChevronRight className="w-3 h-3 text-slate-400" />
+                    <button
+                      type="button"
+                      onClick={() => loadDriveFolder(crumb.id, crumb.name)}
+                      className={`hover:text-[#7C248C] cursor-pointer ${
+                        idx === driveFolderHistory.length - 1
+                          ? "text-[#7C248C] font-extrabold"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      {crumb.name}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => loadDriveFolder(driveCurrentFolder?.id)}
+              disabled={driveLoading}
+              className="px-3.5 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer self-start sm:self-auto border border-slate-200"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${driveLoading ? "animate-spin" : ""}`} />
+              <span>Refresh Directory</span>
+            </button>
+          </div>
+
+          {/* FOLDER CONTENTS */}
+          {driveLoading ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center space-y-3">
+              <Loader2 className="w-8 h-8 text-[#7C248C] animate-spin mx-auto" />
+              <p className="text-xs text-slate-500 font-medium">Fetching lecture materials...</p>
+            </div>
+          ) : driveItems.length === 0 ? (
+            <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center space-y-3">
+              <Folder className="w-10 h-10 text-slate-300 mx-auto" />
+              <h4 className="text-sm font-bold text-slate-700">No content available</h4>
+              <p className="text-xs text-slate-400">
+                No recorded lectures found in this directory folder yet.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {driveItems.map((item) => {
+                if (item.isFolder) {
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => loadDriveFolder(item.id, item.name)}
+                      className="bg-white p-5 rounded-2xl border border-slate-200/90 hover:border-purple-300 hover:shadow-md transition cursor-pointer group flex flex-col justify-between"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition">
+                          <Folder className="w-5 h-5 fill-purple-100" />
+                        </div>
+                        <div className="overflow-hidden">
+                          <div className="font-bold text-slate-900 group-hover:text-[#7C248C] transition text-xs line-clamp-2">
+                            {item.name}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-1">Directory Folder</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 text-[11px] font-bold text-[#7C248C]">
+                        <span>Open Folder</span>
+                        <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition" />
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Video item card
+                const isVideo = item.mimeType?.includes("video") || item.name?.match(/\.(mp4|mkv|webm|mov)$/i);
+                const isImage = item.mimeType?.includes("image") || item.name?.match(/\.(jpg|jpeg|png|webp|gif)$/i);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white p-4 rounded-2xl border border-slate-200/90 hover:border-purple-300 hover:shadow-md transition flex flex-col justify-between group"
+                  >
+                    <div>
+                      {/* Video Thumbnail */}
+                      <div className="w-full aspect-video rounded-xl bg-slate-900 overflow-hidden relative flex items-center justify-center mb-3">
+                        {item.thumbnailLink ? (
+                          <img
+                            src={item.thumbnailLink}
+                            alt={item.name}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition"
+                          />
+                        ) : isVideo ? (
+                          <Film className="w-8 h-8 text-slate-500" />
+                        ) : isImage ? (
+                          <ImageIcon className="w-8 h-8 text-slate-500" />
+                        ) : (
+                          <FileText className="w-8 h-8 text-slate-500" />
+                        )}
+                        {isVideo && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDriveFile({ id: item.id, name: item.name })}
+                            className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/90 text-[#7C248C] flex items-center justify-center shadow-lg group-hover:scale-110 transition cursor-pointer"
+                          >
+                            <Play className="w-4 h-4 fill-current translate-x-0.5" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="font-bold text-slate-900 text-xs line-clamp-2" title={item.name}>
+                        {item.name}
+                      </div>
+
+                      <div className="flex items-center gap-2 mt-1 text-[10px] font-mono text-slate-400">
+                        {item.videoDurationMinutes && (
+                          <span>{item.videoDurationMinutes} mins</span>
+                        )}
+                        {item.size && (
+                          <span>{(Number(item.size) / (1024 * 1024)).toFixed(1)} MB</span>
+                        )}
+                        <span className="uppercase text-[9px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">
+                          {isVideo ? "Video" : isImage ? "Image" : "Document"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
+                      {isVideo ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDriveFile({ id: item.id, name: item.name })}
+                          className="flex-1 py-2 rounded-xl bg-purple-50 hover:bg-[#7C248C] text-[#7C248C] hover:text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-2xs"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" /> Watch Lecture
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 font-medium">
+                          {isImage ? "Image File (Not a lecture video)" : "Non-video File"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CINEMATIC VIDEO PLAYER MODAL */}
       {activeLecture && (
@@ -662,6 +925,71 @@ export default function StudentRecordedLecturesClient({
                   Close Player
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GOOGLE DRIVE VIDEO PLAYER MODAL */}
+      {previewDriveFile && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-2 sm:p-4 md:p-6 animate-in fade-in duration-200">
+          <div className="w-full max-w-5xl bg-slate-900 rounded-3xl border border-slate-800 shadow-2xl flex flex-col overflow-hidden max-h-[96vh]">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-slate-950 border-b border-slate-800 flex items-center justify-between gap-4 shrink-0">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-10 h-10 rounded-2xl jvm-gradient-bg flex items-center justify-center text-white shrink-0 shadow-sm">
+                  <Play className="w-5 h-5 fill-white text-white translate-x-0.5" />
+                </div>
+                <div className="overflow-hidden">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold border border-purple-400/30">
+                      Google Drive Pre-Recorded Lecture
+                    </span>
+                  </div>
+                  <h2 className="font-black text-white text-sm sm:text-base truncate mt-0.5">
+                    {previewDriveFile.name}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setPreviewDriveFile(null)}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition cursor-pointer"
+                  title="Close player (Esc)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Video Player */}
+            <div className="w-full aspect-video bg-black flex items-center justify-center shrink-0">
+              <video
+                key={previewDriveFile.id}
+                src={`/api/drive/stream/${previewDriveFile.id}`}
+                controls
+                autoPlay
+                controlsList="nodownload"
+                className="w-full h-full object-contain"
+              >
+                Your browser does not support HTML5 video streaming.
+              </video>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 sm:p-5 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between gap-3 text-xs text-slate-400">
+              <span className="text-[11px] text-slate-400">
+                Streaming directly from institution Drive securely via LMS proxy. No downloads or email shares needed.
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewDriveFile(null)}
+                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
+              >
+                Close Player
+              </button>
             </div>
           </div>
         </div>
