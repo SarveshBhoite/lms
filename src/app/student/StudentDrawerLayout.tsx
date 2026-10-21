@@ -64,15 +64,29 @@ export default function StudentDrawerLayout({
     };
   }, [mobileOpen]);
 
+  const [hasVisitedRecordings, setHasVisitedRecordings] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("jvm_student_visited_recordings");
+      if (stored === "true" || pathname.startsWith("/student/recorded-lectures")) {
+        setHasVisitedRecordings(true);
+        localStorage.setItem("jvm_student_visited_recordings", "true");
+      }
+    }
+  }, [pathname]);
+
+  const activeRecordingsBadge = hasVisitedRecordings ? 0 : recordingsCount;
+
   // Total aggregated badges count for hamburger icon
   const totalBadgesCount =
-    unreadNotificationsCount + liveClassesCount + quizzesCount + assignmentsCount;
+    unreadNotificationsCount + liveClassesCount + quizzesCount + assignmentsCount + activeRecordingsBadge;
 
   const navigation = [
     { name: "Dashboard", href: "/student/dashboard", icon: LayoutDashboard },
     { name: "My Courses", href: "/student/courses", icon: BookOpen },
     { name: "Live Classes", href: "/student/live-classes", icon: Video, badge: liveClassesCount },
-    { name: "Recorded Lectures", href: "/student/recorded-lectures", icon: Film, badge: recordingsCount },
+    { name: "Recorded Lectures", href: "/student/recorded-lectures", icon: Film, badge: activeRecordingsBadge },
     { name: "Quizzes", href: "/student/quizzes", icon: HelpCircle, badge: quizzesCount },
     { name: "Assignments", href: "/student/assignments", icon: FileCheck, badge: assignmentsCount },
     { name: "Attendance", href: "/student/attendance", icon: CheckSquare },

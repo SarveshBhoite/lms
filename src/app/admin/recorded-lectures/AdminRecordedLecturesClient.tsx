@@ -173,7 +173,7 @@ export default function AdminRecordedLecturesClient({
   // Modal States
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [activePreviewLecture, setActivePreviewLecture] = useState<AdminRecordedLecture | null>(null);
-  const [previewDriveFile, setPreviewDriveFile] = useState<{ id: string; name: string } | null>(null);
+  const [previewDriveFile, setPreviewDriveFile] = useState<{ id: string; name: string; mimeType?: string } | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // Form State
@@ -676,39 +676,6 @@ export default function AdminRecordedLecturesClient({
               </a>
             )}
 
-            {/* Google Meet Connected Pill */}
-            {googleStatus?.isConnected ? (
-              <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/95 border border-emerald-200 shadow-sm text-xs">
-                <div className="w-7 h-7 rounded-xl bg-emerald-100 flex items-center justify-center font-bold text-emerald-700 text-xs uppercase shrink-0">
-                  {googleStatus.email?.[0] || "A"}
-                </div>
-                <div className="flex flex-col text-left leading-tight">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                    <span>Meet Active</span>
-                  </div>
-                  <div className="text-[11px] font-bold text-slate-900 truncate max-w-[150px]">
-                    {googleStatus.email}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDisconnectGoogle}
-                  className="text-[11px] font-bold text-rose-600 hover:text-rose-700 underline ml-1 cursor-pointer transition hover:opacity-80 shrink-0"
-                >
-                  Unlink
-                </button>
-              </div>
-            ) : (
-              <a
-                href={googleStatus?.authUrl || "/api/trainer/google-account"}
-                className="px-3.5 py-2.5 rounded-2xl bg-white/90 border border-slate-200 hover:border-purple-300 text-slate-800 font-bold text-xs flex items-center gap-2 shadow-sm transition hover:scale-[1.02] cursor-pointer"
-              >
-                <GoogleIcon className="w-4 h-4" />
-                <span>Connect Meet</span>
-              </a>
-            )}
-
             {/* CTA: Upload Recorded Lecture */}
             <button
               id="admin-upload-lecture-cta-btn"
@@ -1196,13 +1163,21 @@ export default function AdminRecordedLecturesClient({
                           <FileText className="w-8 h-8 text-slate-500" />
                         )}
 
-                        {isVideo && (
+                        {isVideo ? (
                           <button
                             type="button"
-                            onClick={() => setPreviewDriveFile({ id: item.id, name: item.name })}
+                            onClick={() => setPreviewDriveFile({ id: item.id, name: item.name, mimeType: item.mimeType })}
                             className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/90 text-[#7C248C] flex items-center justify-center shadow-lg group-hover:scale-110 transition cursor-pointer"
                           >
                             <Play className="w-4 h-4 fill-current translate-x-0.5" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewDriveFile({ id: item.id, name: item.name, mimeType: item.mimeType })}
+                            className="absolute inset-0 m-auto w-10 h-10 rounded-full bg-white/90 text-purple-700 flex items-center justify-center shadow-lg group-hover:scale-110 transition cursor-pointer"
+                          >
+                            <Eye className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -1228,15 +1203,27 @@ export default function AdminRecordedLecturesClient({
                       {isVideo ? (
                         <button
                           type="button"
-                          onClick={() => setPreviewDriveFile({ id: item.id, name: item.name })}
+                          onClick={() => setPreviewDriveFile({ id: item.id, name: item.name, mimeType: item.mimeType })}
                           className="flex-1 py-1.5 rounded-xl bg-purple-50 hover:bg-[#7C248C] text-[#7C248C] hover:text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1"
                         >
                           <Play className="w-3 h-3 fill-current" /> Watch Video
                         </button>
+                      ) : isImage ? (
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDriveFile({ id: item.id, name: item.name, mimeType: item.mimeType })}
+                          className="flex-1 py-1.5 rounded-xl bg-purple-50 hover:bg-[#7C248C] text-[#7C248C] hover:text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Image
+                        </button>
                       ) : (
-                        <span className="text-[11px] text-slate-400 font-medium">
-                          {isImage ? "Image File (Not a lecture video)" : "Non-video File"}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewDriveFile({ id: item.id, name: item.name, mimeType: item.mimeType })}
+                          className="flex-1 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Document
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1621,31 +1608,45 @@ export default function AdminRecordedLecturesClient({
               </button>
             </div>
 
-            {/* Video Player (Using secure backend stream proxy) */}
-            <div className="w-full aspect-video bg-black flex items-center justify-center">
-              <video
-                key={previewDriveFile.id}
-                src={`/api/drive/stream/${previewDriveFile.id}`}
-                controls
-                autoPlay
-                controlsList="nodownload"
-                className="w-full h-full object-contain"
-              >
-                Your browser does not support HTML5 video streaming.
-              </video>
+            {/* File Viewer (Video vs Image vs Document) */}
+            <div className="w-full aspect-video max-h-[75vh] bg-black flex items-center justify-center overflow-hidden">
+              {previewDriveFile.mimeType?.includes("image") || previewDriveFile.name.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
+                <img
+                  src={`/api/drive/stream/${previewDriveFile.id}`}
+                  alt={previewDriveFile.name}
+                  className="max-w-full max-h-[75vh] object-contain p-2"
+                />
+              ) : previewDriveFile.mimeType?.includes("video") || previewDriveFile.name.match(/\.(mp4|mkv|webm|mov)$/i) ? (
+                <video
+                  key={previewDriveFile.id}
+                  src={`/api/drive/stream/${previewDriveFile.id}`}
+                  controls
+                  autoPlay
+                  controlsList="nodownload"
+                  className="w-full h-full object-contain"
+                >
+                  Your browser does not support HTML5 video streaming.
+                </video>
+              ) : (
+                <iframe
+                  src={`https://drive.google.com/file/d/${previewDriveFile.id}/preview`}
+                  title={previewDriveFile.name}
+                  className="w-full h-[70vh] border-0 bg-white"
+                />
+              )}
             </div>
 
             {/* Modal Footer */}
             <div className="p-4 bg-slate-950 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
               <span className="text-[11px] text-slate-400">
-                Streaming directly from institution Drive securely via LMS proxy.
+                Loaded securely from institution Google Drive via LMS proxy.
               </span>
               <button
                 type="button"
                 onClick={() => setPreviewDriveFile(null)}
                 className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold transition cursor-pointer"
               >
-                Done Watching
+                Close Preview
               </button>
             </div>
           </div>
