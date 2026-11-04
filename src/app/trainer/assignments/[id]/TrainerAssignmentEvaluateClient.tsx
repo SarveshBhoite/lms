@@ -976,7 +976,7 @@ export default function TrainerAssignmentEvaluateClient({
 
       {/* ---------------- IN-APP DOCUMENT & IMAGE VIEWER STUDIO MODAL FOR FACULTY ---------------- */}
       {previewSubmissionUrl && (
-        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in">
+        <div className="fixed inset-0 z-[100] bg-slate-950/70 backdrop-blur-sm flex flex-col items-center justify-center p-3 sm:p-6 md:p-8 md:pl-72 animate-in fade-in">
           <div className="w-full max-w-5xl h-[88vh] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
             {/* Inspection Modal Header */}
             <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white flex items-center justify-between gap-4 border-b border-white/10 shrink-0">
