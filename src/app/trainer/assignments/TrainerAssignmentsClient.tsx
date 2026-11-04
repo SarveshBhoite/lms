@@ -49,6 +49,14 @@ export interface SerializedAssignmentItem {
   createdAt: string;
 }
 
+function formatDateSafe(dateStr?: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
 export interface CourseFilterItem {
   id: string;
   title: string;
@@ -344,7 +352,7 @@ export default function TrainerAssignmentsClient({
                       >
                         <Calendar className="w-3 h-3" />
                         {asgn.deadline
-                          ? `${isOverdue ? "Closed: " : "Due: "}${new Date(asgn.deadline).toLocaleDateString()}`
+                          ? `${isOverdue ? "Closed: " : "Due: "}${formatDateSafe(asgn.deadline)}`
                           : "No Deadline"}
                       </span>
                     )}

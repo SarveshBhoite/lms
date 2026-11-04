@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import cloudinary from "@/lib/cloudinary";
+import imagekit from "@/lib/imagekit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,34 +16,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No image file uploaded" }, { status: 400 });
     }
 
-    // Convert file to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-    // Upload directly to Cloudinary
-    const uploadResult: any = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "jvm_lms/courses",
-          resource_type: "image",
-        },
-        (error: any, result: any) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(buffer);
+    // Upload directly to ImageKit
+    const uploadResult = await imagekit.upload({
+      file: buffer.toString("base64"),
+      fileName: cleanFileName,
+      folder: "/jvm_lms/images",
+      useUniqueFileName: true,
     });
 
     return NextResponse.json({
       success: true,
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
+      url: uploadResult.url,
+      fileId: uploadResult.fileId,
     });
   } catch (error: any) {
-    console.error("Cloudinary upload error:", error);
+    console.error("ImageKit image upload error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to upload image to Cloudinary" },
+      { error: error.message || "Failed to upload image to ImageKit" },
       { status: 500 }
     );
   }

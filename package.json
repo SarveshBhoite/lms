@@ -21,6 +21,7 @@
     "cloudinary": "^2.11.0",
     "clsx": "^2.1.1",
     "html2canvas": "^1.4.1",
+    "imagekit": "^6.0.0",
     "jose": "^6.2.10",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.33.0",

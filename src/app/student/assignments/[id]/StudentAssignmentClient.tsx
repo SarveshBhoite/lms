@@ -710,10 +710,10 @@ export default function StudentAssignmentClient({
 
       {/* ---------------- IN-APP DOCUMENT INSPECTION STUDIO MODAL ---------------- */}
       {previewSubmissionUrl && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-3 sm:p-6 animate-in fade-in">
-          <div className="w-full max-w-5xl h-[90vh] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in">
+          <div className="w-full max-w-5xl h-[88vh] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
             {/* Inspection Modal Header */}
-            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white flex items-center justify-between gap-4 border-b border-white/10">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white flex items-center justify-between gap-4 border-b border-white/10 shrink-0">
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="w-9 h-9 rounded-xl jvm-gradient-bg flex items-center justify-center shrink-0">
                   <FileCheck className="w-4 h-4 text-white" />
@@ -774,14 +774,10 @@ export default function StudentAssignmentClient({
                 }
 
                 if (isPdf) {
-                  const viewerUrl = url.startsWith("http")
-                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-                    : `${url}#toolbar=0&navpanes=0`;
-
                   return (
                     <div className="w-full h-full rounded-2xl bg-white border border-slate-200 overflow-hidden relative shadow-inner">
                       <iframe
-                        src={viewerUrl}
+                        src={`${url}#toolbar=1&navpanes=0`}
                         className="w-full h-full border-0"
                         title={previewSubmissionUrl.title}
                       />
@@ -800,7 +796,7 @@ export default function StudentAssignmentClient({
             </div>
 
             {/* Bottom Inspection Footer */}
-            <div className="p-3.5 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 font-mono">
+            <div className="p-3.5 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 font-mono shrink-0">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 <span>Protected Deliverable Inspection Active &bull; External Downloads Blocked</span>

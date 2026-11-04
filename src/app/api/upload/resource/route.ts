@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import cloudinary from "@/lib/cloudinary";
+import imagekit from "@/lib/imagekit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,44 +16,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No resource file uploaded" }, { status: 400 });
     }
 
-    // Convert file to Buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-    // Determine resource type for Cloudinary
-    let resourceType: "image" | "video" | "raw" | "auto" = "auto";
-    if (file.type.startsWith("image/")) resourceType = "image";
-    else if (file.type.startsWith("video/")) resourceType = "video";
-    else resourceType = "raw";
-
-    // Upload directly to Cloudinary
-    const uploadResult: any = await new Promise((resolve, reject) => {
-      const uploadStream = cloudinary.uploader.upload_stream(
-        {
-          folder: "jvm_lms/resources",
-          resource_type: resourceType,
-          public_id: file.name.replace(/\.[^/.]+$/, "").replace(/[^a-zA-Z0-9_-]/g, "_") + "_" + Date.now(),
-        },
-        (error: any, result: any) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      uploadStream.end(buffer);
+    // Upload directly to ImageKit
+    const uploadResult = await imagekit.upload({
+      file: buffer.toString("base64"),
+      fileName: cleanFileName,
+      folder: "/jvm_lms/resources",
+      useUniqueFileName: true,
     });
 
     return NextResponse.json({
       success: true,
-      url: uploadResult.secure_url,
-      publicId: uploadResult.public_id,
+      url: uploadResult.url,
+      fileId: uploadResult.fileId,
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type || "application/octet-stream",
     });
   } catch (error: any) {
-    console.error("Cloudinary resource upload error:", error);
+    console.error("ImageKit resource upload error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to upload file resource to Cloudinary" },
+      { error: error.message || "Failed to upload file resource to ImageKit" },
       { status: 500 }
     );
   }

@@ -6,10 +6,10 @@ export async function POST(req: NextRequest) {
   try {
     await AuthService.logout();
 
-    // Check if the request expects JSON (e.g. from fetch call)
+    // If request has header x-requested-with: XMLHttpRequest or explicitly asks for json via header
     const acceptHeader = req.headers.get("accept") || "";
     const isFetchRequest =
-      acceptHeader.includes("application/json") ||
+      acceptHeader === "application/json" ||
       req.headers.get("content-type")?.includes("application/json");
 
     if (isFetchRequest) {

@@ -24,6 +24,11 @@ import {
   FileText,
   AlertCircle,
   Download,
+  Eye,
+  Paperclip,
+  Image as ImageIcon,
+  Link as LinkIcon,
+  ShieldCheck,
 } from "lucide-react";
 
 interface SubmissionItem {
@@ -86,6 +91,23 @@ interface AssignmentData {
   submissions: SubmissionItem[];
 }
 
+function formatDateSafe(dateStr?: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  return `${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+function formatTimeSafe(dateStr?: string | null) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "";
+  const hours = d.getHours().toString().padStart(2, "0");
+  const minutes = d.getMinutes().toString().padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
 export default function TrainerAssignmentEvaluateClient({
   initialAssignment,
 }: {
@@ -122,6 +144,24 @@ export default function TrainerAssignmentEvaluateClient({
   const [submittingEval, setSubmittingEval] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // In-app studio viewer state
+  const [previewSubmissionUrl, setPreviewSubmissionUrl] = useState<{ url: string; title: string } | null>(null);
+
+  const getAssetLabel = (url: string, index: number) => {
+    const isImage = url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i);
+    const isPdf = url.toLowerCase().includes(".pdf");
+    const isDoc = url.match(/\.(doc|docx|ppt|pptx|zip|rar)$/i);
+    const isDrive = url.includes("drive.google.com");
+    const isGithub = url.includes("github.com");
+
+    if (isImage) return { label: `Photo #${index + 1}`, type: "IMAGE" };
+    if (isPdf) return { label: `PDF Document #${index + 1}`, type: "PDF" };
+    if (isDoc) return { label: `Document #${index + 1}`, type: "DOC" };
+    if (isDrive) return { label: `Google Drive Folder`, type: "LINK" };
+    if (isGithub) return { label: `GitHub Repo`, type: "LINK" };
+    return { label: `Asset #${index + 1}`, type: "LINK" };
+  };
 
   const showToast = (type: "success" | "error", text: string) => {
     setToastMessage({ type, text });
@@ -337,7 +377,7 @@ export default function TrainerAssignmentEvaluateClient({
                   {assignment.deadline
                     ? isOverdue
                       ? "Deadline Passed"
-                      : `Due: ${new Date(assignment.deadline).toLocaleDateString()}`
+                      : `Due: ${formatDateSafe(assignment.deadline)}`
                     : "No Deadline"}
                 </span>
               )}
@@ -521,45 +561,66 @@ export default function TrainerAssignmentEvaluateClient({
                         </td>
 
                         <td className="p-4 font-mono">
-                          <a
-                            href={sub.fileUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[#E01E6A] hover:text-[#c4155a] font-bold flex items-center gap-1.5 transition"
-                            title="Open / Download Deliverable"
-                          >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span className="truncate max-w-[200px]">{sub.fileName}</span>
-                            <Download className="w-3 h-3 text-slate-400" />
-                          </a>
+                          {/* Primary Deliverable Button - Opens in Studio viewer */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setPreviewSubmissionUrl({ url: sub.fileUrl, title: `${sub.user.name} - ${sub.fileName || "Deliverable"}` })}
+                              className="text-[#E01E6A] hover:text-[#c4155a] font-bold flex items-center gap-1.5 transition text-left cursor-pointer group"
+                              title="Inspect Deliverable in Studio"
+                            >
+                              <FileText className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate max-w-[180px] underline decoration-pink-300 group-hover:decoration-[#E01E6A]">{sub.fileName || "Primary Deliverable"}</span>
+                              <Eye className="w-3 h-3 text-purple-600 shrink-0" />
+                            </button>
+                            <a
+                              href={sub.fileUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1 rounded-md hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+                              title="Open original in new tab"
+                            >
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          </div>
 
+                          {/* Multi-Attachment Pills with Smart Clear Labels */}
                           {sub.attachmentUrls && sub.attachmentUrls.length > 1 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {sub.attachmentUrls.map((attUrl, idx) => (
-                                <a
-                                  key={idx}
-                                  href={attUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold"
-                                >
-                                  Item #{idx + 1}
-                                </a>
-                              ))}
+                            <div className="flex flex-wrap gap-1.5 mt-1.5">
+                              {sub.attachmentUrls.map((attUrl, idx) => {
+                                const info = getAssetLabel(attUrl, idx);
+                                return (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => setPreviewSubmissionUrl({ url: attUrl, title: `${sub.user.name} - ${info.label}` })}
+                                    className="text-[10px] px-2 py-0.5 rounded-lg bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-800 font-bold flex items-center gap-1 transition cursor-pointer"
+                                  >
+                                    {info.type === "IMAGE" ? (
+                                      <ImageIcon className="w-3 h-3 text-[#E01E6A]" />
+                                    ) : info.type === "LINK" ? (
+                                      <LinkIcon className="w-3 h-3 text-indigo-600" />
+                                    ) : (
+                                      <Paperclip className="w-3 h-3 text-purple-600" />
+                                    )}
+                                    <span>{info.label}</span>
+                                  </button>
+                                );
+                              })}
                             </div>
                           )}
 
                           {sub.notes && (
-                            <p className="text-[10px] text-slate-400 font-sans mt-0.5 line-clamp-1 italic">
+                            <p className="text-[10px] text-slate-400 font-sans mt-1 line-clamp-1 italic">
                               "{sub.notes}"
                             </p>
                           )}
                         </td>
 
                         <td className="p-4 font-mono text-slate-500">
-                          {new Date(sub.submittedAt).toLocaleDateString()}{" "}
+                          {formatDateSafe(sub.submittedAt)}{" "}
                           <span className="text-[10px] text-slate-400">
-                            {new Date(sub.submittedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            {formatTimeSafe(sub.submittedAt)}
                           </span>
                         </td>
 
@@ -910,6 +971,120 @@ export default function TrainerAssignmentEvaluateClient({
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* ---------------- IN-APP DOCUMENT & IMAGE VIEWER STUDIO MODAL FOR FACULTY ---------------- */}
+      {previewSubmissionUrl && (
+        <div className="fixed inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 animate-in fade-in">
+          <div className="w-full max-w-5xl h-[88vh] bg-white rounded-3xl border border-slate-200 shadow-2xl flex flex-col overflow-hidden">
+            {/* Inspection Modal Header */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-purple-950 to-slate-900 text-white flex items-center justify-between gap-4 border-b border-white/10 shrink-0">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="w-9 h-9 rounded-xl jvm-gradient-bg flex items-center justify-center shrink-0">
+                  <FileCheck className="w-4 h-4 text-white" />
+                </div>
+                <div className="overflow-hidden">
+                  <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-white/20 text-pink-200">
+                    Faculty Assessment Studio
+                  </span>
+                  <h3 className="font-extrabold text-white text-sm sm:text-base truncate mt-0.5">
+                    {previewSubmissionUrl.title}
+                  </h3>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewSubmissionUrl.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs flex items-center gap-1.5 transition"
+                  title="Open original link in new tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Open External</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewSubmissionUrl(null)}
+                  className="w-9 h-9 rounded-xl bg-white/15 hover:bg-rose-600 hover:text-white flex items-center justify-center text-slate-200 transition cursor-pointer"
+                  title="Close Studio Viewer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* In-App Viewer Content Container */}
+            <div className="flex-1 bg-slate-100 p-2 sm:p-4 overflow-hidden relative flex flex-col">
+              {(() => {
+                const url = previewSubmissionUrl.url || "";
+                const isPdf = url.toLowerCase().includes(".pdf");
+                const isDrive = url.includes("drive.google.com");
+                const isImage = url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i);
+
+                if (isDrive) {
+                  const previewUrl = url.replace(/\/view.*$/, "/preview").replace(/\/edit.*$/, "/preview");
+                  return (
+                    <iframe
+                      src={previewUrl}
+                      className="w-full h-full rounded-2xl bg-white border border-slate-200 shadow-inner"
+                      title={previewSubmissionUrl.title}
+                      allow="autoplay"
+                    />
+                  );
+                }
+
+                if (isImage) {
+                  return (
+                    <div className="w-full h-full flex items-center justify-center p-4 bg-slate-900 rounded-2xl">
+                      <img
+                        src={url}
+                        alt={previewSubmissionUrl.title}
+                        className="max-h-full max-w-full object-contain rounded-xl shadow-lg"
+                      />
+                    </div>
+                  );
+                }
+
+                if (isPdf) {
+                  return (
+                    <div className="w-full h-full rounded-2xl bg-white border border-slate-200 overflow-hidden relative shadow-inner">
+                      <iframe
+                        src={`${url}#toolbar=1&navpanes=0`}
+                        className="w-full h-full border-0"
+                        title={previewSubmissionUrl.title}
+                      />
+                    </div>
+                  );
+                }
+
+                return (
+                  <iframe
+                    src={url}
+                    className="w-full h-full rounded-2xl bg-white border border-slate-200 shadow-inner"
+                    title={previewSubmissionUrl.title}
+                  />
+                );
+              })()}
+            </div>
+
+            {/* Bottom Inspection Footer */}
+            <div className="p-3.5 bg-white border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500 font-mono shrink-0">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <span>Rendered securely inside faculty evaluation workspace</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewSubmissionUrl(null)}
+                className="px-4 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold transition cursor-pointer"
+              >
+                Close Studio Viewer
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
