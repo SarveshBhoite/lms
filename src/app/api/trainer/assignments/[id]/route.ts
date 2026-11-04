@@ -1,4 +1,4 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { AssignmentService } from "@/services/assignment.service";
 import { AssignmentUpdateSchema } from "@/validations/assignment.schema";
 import { requireTrainerOrAdmin, handleApiError } from "@/lib/rbac";
@@ -52,6 +52,13 @@ export async function PATCH(
   } catch (error) {
     return handleApiError(error);
   }
+}
+
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  return PATCH(req, context);
 }
 
 export async function DELETE(

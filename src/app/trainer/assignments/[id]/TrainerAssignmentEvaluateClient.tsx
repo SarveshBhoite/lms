@@ -33,6 +33,8 @@ interface SubmissionItem {
   fileName: string;
   fileSize: number;
   notes?: string | null;
+  submissionType?: string;
+  attachmentUrls?: string[];
   status: string;
   submittedAt: string;
   user: {
@@ -69,6 +71,7 @@ interface AssignmentData {
   totalMarks: number;
   allowedFileTypes: string[];
   maxFileSizeMb: number;
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   createdAt: string;
   course: {
     id: string;
@@ -102,6 +105,7 @@ export default function TrainerAssignmentEvaluateClient({
     allowedFileTypes: initialAssignment.allowedFileTypes.join(", "),
     maxFileSizeMb: initialAssignment.maxFileSizeMb,
     batchIds: initialAssignment.batchIds || [],
+    status: initialAssignment.status || "ACTIVE",
   });
 
   // Evaluation modal state
@@ -528,6 +532,23 @@ export default function TrainerAssignmentEvaluateClient({
                             <span className="truncate max-w-[200px]">{sub.fileName}</span>
                             <Download className="w-3 h-3 text-slate-400" />
                           </a>
+
+                          {sub.attachmentUrls && sub.attachmentUrls.length > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {sub.attachmentUrls.map((attUrl, idx) => (
+                                <a
+                                  key={idx}
+                                  href={attUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[9px] px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-bold"
+                                >
+                                  Item #{idx + 1}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+
                           {sub.notes && (
                             <p className="text-[10px] text-slate-400 font-sans mt-0.5 line-clamp-1 italic">
                               "{sub.notes}"
@@ -613,11 +634,39 @@ export default function TrainerAssignmentEvaluateClient({
       {activeTab === "settings" && (
         <form onSubmit={handleSaveSettings} className="space-y-6">
           <div className="p-6 sm:p-8 rounded-3xl bg-white border border-slate-200/80 shadow-xs space-y-6">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Layers className="w-4 h-4 text-[#7C248C]" />
-              <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 font-mono">
-                Assignment Configuration & Batch Scoping
-              </h2>
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#7C248C]" />
+                <h2 className="text-sm font-black uppercase tracking-wider text-slate-900 font-mono">
+                  Assignment Configuration & Batch Scoping
+                </h2>
+              </div>
+
+              {/* Status Switcher */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setSettingsForm({ ...settingsForm, status: "ACTIVE" })}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                    settingsForm.status === "ACTIVE"
+                      ? "bg-emerald-600 text-white shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Active (Visible to Students)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsForm({ ...settingsForm, status: "DRAFT" })}
+                  className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                    settingsForm.status === "DRAFT"
+                      ? "bg-amber-600 text-white shadow-2xs"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Draft (Hidden from Students)
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

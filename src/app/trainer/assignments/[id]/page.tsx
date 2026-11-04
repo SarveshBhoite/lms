@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { verifyTrainerCourseAccess } from "@/lib/rbac";
@@ -84,6 +84,7 @@ export default async function TrainerAssignmentDetailPage({
     totalMarks: assignment.totalMarks,
     allowedFileTypes: assignment.allowedFileTypes,
     maxFileSizeMb: assignment.maxFileSizeMb,
+    status: assignment.status,
     createdAt: assignment.createdAt.toISOString(),
     course: assignment.course,
     lesson: assignment.lesson,
@@ -94,6 +95,8 @@ export default async function TrainerAssignmentDetailPage({
       fileName: sub.fileName,
       fileSize: sub.fileSize,
       notes: sub.notes || null,
+      submissionType: sub.submissionType || "FILE",
+      attachmentUrls: sub.attachmentUrls || [],
       status: sub.status,
       submittedAt: sub.submittedAt.toISOString(),
       user: {

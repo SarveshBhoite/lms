@@ -26,7 +26,7 @@ export default async function StudentAssignmentDetailPage({ params }: { params: 
     },
   });
 
-  if (!assignment) {
+  if (!assignment || (assignment.status !== "ACTIVE" && session.role !== "ADMIN")) {
     notFound();
   }
 
@@ -42,6 +42,8 @@ export default async function StudentAssignmentDetailPage({ params }: { params: 
       fileUrl: sub.fileUrl,
       fileName: sub.fileName,
       fileSize: sub.fileSize,
+      submissionType: sub.submissionType || "FILE",
+      attachmentUrls: sub.attachmentUrls || [],
       status: sub.status,
       submittedAt: sub.submittedAt.toISOString(),
       notes: sub.notes || null,

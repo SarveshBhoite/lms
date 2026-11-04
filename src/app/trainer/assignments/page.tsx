@@ -112,6 +112,7 @@ export default async function TrainerAssignmentsPage() {
       totalMarks: asgn.totalMarks,
       allowedFileTypes: asgn.allowedFileTypes,
       maxFileSizeMb: asgn.maxFileSizeMb,
+      status: asgn.status,
       submissionsCount: asgn.submissions.length,
       evaluatedCount,
       pendingCount,

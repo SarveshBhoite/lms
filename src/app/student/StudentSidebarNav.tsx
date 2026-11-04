@@ -34,6 +34,7 @@ export default function StudentSidebarNav({
   quizzesCount = 0,
   assignmentsCount = 0,
 }: StudentNavProps) {
+  const pathname = usePathname();
   const [hasVisitedRecordings, setHasVisitedRecordings] = useState(false);
 
   useEffect(() => {

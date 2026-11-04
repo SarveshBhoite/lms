@@ -132,6 +132,7 @@ export class AssignmentService {
           totalMarks: data.totalMarks,
           allowedFileTypes: data.allowedFileTypes,
           maxFileSizeMb: data.maxFileSizeMb,
+          status: data.status || "ACTIVE",
         },
       });
 
@@ -179,6 +180,7 @@ export class AssignmentService {
           allowedFileTypes: data.allowedFileTypes,
           maxFileSizeMb: data.maxFileSizeMb,
           batchIds: data.batchIds,
+          status: data.status,
         },
       });
 

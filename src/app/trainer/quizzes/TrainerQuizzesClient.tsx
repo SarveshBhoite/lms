@@ -78,6 +78,31 @@ export default function TrainerQuizzesClient({
     return matchesSearch && matchesCourse && matchesStatus;
   }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleStatus = async (quizId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+    setTogglingId(quizId);
+    try {
+      const res = await fetch(`/api/trainer/quizzes/${quizId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update quiz visibility");
+      }
+      setQuizzes((prev) =>
+        prev.map((q) => (q.id === quizId ? { ...q, status: nextStatus } : q))
+      );
+    } catch (err: any) {
+      alert(err.message || "Failed to update quiz visibility");
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
   const handleDelete = async (quizId: string, title: string) => {
     if (!confirm(`Are you sure you want to permanently delete the quiz "${title}" and all its recorded attempts?`)) {
       return;
@@ -252,15 +277,19 @@ export default function TrainerQuizzesClient({
                 <div className="space-y-3.5">
                   {/* Top Badges */}
                   <div className="flex items-center justify-between">
-                    <span
-                      className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full border ${
+                    <button
+                      type="button"
+                      onClick={() => handleToggleStatus(qz.id, qz.status)}
+                      disabled={togglingId === qz.id}
+                      title={qz.status === "PUBLISHED" ? "Click to set Draft (Hidden from students)" : "Click to Publish (Visible to students)"}
+                      className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full border transition cursor-pointer ${
                         qz.status === "PUBLISHED"
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-amber-50 text-amber-700 border-amber-200"
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                          : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
                       }`}
                     >
-                      {qz.status}
-                    </span>
+                      {qz.status === "PUBLISHED" ? "● Active (Published)" : "○ Draft (Hidden)"}
+                    </button>
 
                     <span className="text-xs text-slate-500 font-mono font-bold flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-slate-400" /> {qz.timeLimitMinutes} mins

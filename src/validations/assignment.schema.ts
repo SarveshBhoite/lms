@@ -8,8 +8,9 @@ export const AssignmentCreateSchema = z.object({
   instructions: z.string().optional().nullable(),
   deadline: z.string().or(z.date()).optional().nullable(),
   totalMarks: z.number().int().min(1).default(100),
-  allowedFileTypes: z.array(z.string()).default(["pdf", "zip", "docx", "pptx"]),
+  allowedFileTypes: z.array(z.string()).default(["pdf", "zip", "docx", "pptx", "png", "jpg", "jpeg"]),
   maxFileSizeMb: z.number().int().min(1).max(100).default(25),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).default("ACTIVE"),
 });
 
 export const AssignmentUpdateSchema = z.object({
@@ -21,6 +22,7 @@ export const AssignmentUpdateSchema = z.object({
   allowedFileTypes: z.array(z.string()).optional(),
   maxFileSizeMb: z.number().int().min(1).max(100).optional(),
   batchIds: z.array(z.string()).optional(),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
 });
 
 export const AssignmentEvaluationSchema = z.object({

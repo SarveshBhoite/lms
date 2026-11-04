@@ -51,6 +51,7 @@ export default function TrainerCreateAssignmentPage() {
     deadline: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     totalMarks: 100,
     maxFileSizeMb: 25,
+    status: "ACTIVE" as "DRAFT" | "ACTIVE",
   });
 
   const showToast = (type: "success" | "error", text: string) => {
@@ -421,13 +422,41 @@ export default function TrainerCreateAssignmentPage() {
         </div>
 
         {/* Submit Actions Bar */}
-        <div className="flex items-center justify-between p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
-          <Link
-            href="/trainer/assignments"
-            className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition"
-          >
-            Cancel
-          </Link>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-3xl bg-white border border-slate-200/80 shadow-xs">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <Link
+              href="/trainer/assignments"
+              className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition text-center"
+            >
+              Cancel
+            </Link>
+
+            {/* Initial Visibility Selector */}
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, status: "ACTIVE" })}
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                  form.status === "ACTIVE"
+                    ? "bg-emerald-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Publish as Active
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, status: "DRAFT" })}
+                className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer ${
+                  form.status === "DRAFT"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Save as Draft (Hidden)
+              </button>
+            </div>
+          </div>
 
           <button
             type="submit"

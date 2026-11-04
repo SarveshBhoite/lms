@@ -62,6 +62,12 @@ enum QuizStatus {
   ARCHIVED
 }
 
+enum AssignmentStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 enum SubmissionStatus {
   SUBMITTED
   EVALUATED
@@ -439,8 +445,9 @@ model Assignment {
   instructions     String?
   deadline         DateTime?
   totalMarks       Int                    @default(100)
-  allowedFileTypes String[]               @default(["pdf", "zip", "docx", "pptx"])
+  allowedFileTypes String[]               @default(["pdf", "zip", "docx", "pptx", "png", "jpg", "jpeg"])
   maxFileSizeMb    Int                    @default(25)
+  status           AssignmentStatus       @default(ACTIVE)
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 
@@ -451,6 +458,7 @@ model Assignment {
   @@index([courseId])
   @@index([lessonId])
   @@index([deadline])
+  @@index([status])
 }
 
 model AssignmentSubmission {
@@ -461,6 +469,8 @@ model AssignmentSubmission {
   fileName       String
   fileSize       Int
   notes          String?
+  submissionType String               @default("FILE") // FILE, IMAGE, LINK
+  attachmentUrls String[]             @default([])
   status         SubmissionStatus     @default(SUBMITTED)
   submittedAt    DateTime             @default(now())
   updatedAt      DateTime             @updatedAt

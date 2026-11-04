@@ -85,7 +85,7 @@ export async function GET(req: NextRequest) {
         select: { id: true, title: true, courseId: true },
       }),
       prisma.assignment.findMany({
-        where: { courseId: { in: enrolledCourseIds } },
+        where: { courseId: { in: enrolledCourseIds }, status: "ACTIVE" },
         select: { id: true, title: true, deadline: true, courseId: true },
       }),
     ]);

@@ -1,11 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { AuthService } from "@/services/auth.service";
 import { handleApiError } from "@/lib/rbac";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   try {
     await AuthService.logout();
-    return NextResponse.json({ success: true, message: "Logged out successfully" });
+
+    // Check if the request expects JSON (e.g. from fetch call)
+    const acceptHeader = req.headers.get("accept") || "";
+    const isFetchRequest =
+      acceptHeader.includes("application/json") ||
+      req.headers.get("content-type")?.includes("application/json");
+
+    if (isFetchRequest) {
+      return NextResponse.json({ success: true, message: "Logged out successfully" });
+    }
+
+    // Standard HTML form submission redirects directly to login
+    const loginUrl = new URL("/login", req.url);
+    return NextResponse.redirect(loginUrl, 303);
+  } catch (error) {
+    return handleApiError(error);
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    await AuthService.logout();
+    const loginUrl = new URL("/login", req.url);
+    return NextResponse.redirect(loginUrl, 303);
   } catch (error) {
     return handleApiError(error);
   }

@@ -33,6 +33,7 @@ export default async function StudentAssignmentsPage() {
 
   const assignments = await prisma.assignment.findMany({
     where: {
+      status: "ACTIVE",
       courseId: { in: enrolledCourseIds },
       lessonId: null, // ONLY standalone assignments
       OR: [

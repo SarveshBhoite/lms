@@ -14,11 +14,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const studentId = session.userId;
     const body = await req.json();
 
-    const { fileUrl, fileName = "assignment_submission.pdf", fileSize = 1024 * 500, notes } = body;
+    const {
+      fileUrl,
+      fileName = "assignment_submission.pdf",
+      fileSize = 1024 * 500,
+      notes,
+      submissionType = "FILE",
+      attachmentUrls = [],
+    } = body;
 
-    if (!fileUrl) {
-      throw new Error("File URL, project repository, or document link is required for submission");
+    if (!fileUrl && (!attachmentUrls || attachmentUrls.length === 0)) {
+      throw new Error("File, image, document, or project repository link is required for submission");
     }
+
+    const effectiveFileUrl = fileUrl || attachmentUrls[0];
 
     const assignment = await prisma.assignment.findUnique({
       where: { id: assignmentId },
@@ -58,10 +67,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       submission = await prisma.assignmentSubmission.update({
         where: { id: existingSubmission.id },
         data: {
-          fileUrl,
+          fileUrl: effectiveFileUrl,
           fileName,
           fileSize: Number(fileSize),
           notes: notes || existingSubmission.notes,
+          submissionType: submissionType || existingSubmission.submissionType || "FILE",
+          attachmentUrls: Array.isArray(attachmentUrls) && attachmentUrls.length > 0 ? attachmentUrls : [effectiveFileUrl],
           status: "SUBMITTED",
           submittedAt: new Date(),
         },
@@ -71,10 +82,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         data: {
           assignmentId,
           userId: studentId,
-          fileUrl,
+          fileUrl: effectiveFileUrl,
           fileName,
           fileSize: Number(fileSize),
           notes,
+          submissionType: submissionType || "FILE",
+          attachmentUrls: Array.isArray(attachmentUrls) && attachmentUrls.length > 0 ? attachmentUrls : [effectiveFileUrl],
           status: "SUBMITTED",
           submittedAt: new Date(),
         },

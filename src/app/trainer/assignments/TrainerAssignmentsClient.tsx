@@ -18,6 +18,10 @@ import {
   Calendar,
   AlertCircle,
   FileText,
+  Eye,
+  EyeOff,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 
 export interface SerializedAssignmentItem {
@@ -36,6 +40,7 @@ export interface SerializedAssignmentItem {
   totalMarks: number;
   allowedFileTypes: string[];
   maxFileSizeMb: number;
+  status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   submissionsCount: number;
   evaluatedCount: number;
   pendingCount: number;
@@ -107,6 +112,31 @@ export default function TrainerAssignmentsClient({
 
     return matchesSearch && matchesCourse && matchesType && matchesStatus;
   }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleStatus = async (assignmentId: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "ACTIVE" ? "DRAFT" : "ACTIVE";
+    setTogglingId(assignmentId);
+    try {
+      const res = await fetch(`/api/trainer/assignments/${assignmentId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update assignment visibility");
+      }
+      setAssignments((prev) =>
+        prev.map((a) => (a.id === assignmentId ? { ...a, status: nextStatus } : a))
+      );
+    } catch (err: any) {
+      alert(err.message || "Failed to update assignment visibility");
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   const handleDelete = async (assignmentId: string, title: string) => {
     if (
@@ -320,6 +350,28 @@ export default function TrainerAssignmentsClient({
                     )}
 
                     <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(asgn.id, asgn.status)}
+                        disabled={togglingId === asgn.id}
+                        title={asgn.status === "ACTIVE" ? "Click to set Draft (Hidden from students)" : "Click to make Active (Visible to students)"}
+                        className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full border flex items-center gap-1 transition cursor-pointer ${
+                          asgn.status === "ACTIVE"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                            : "bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100"
+                        }`}
+                      >
+                        {asgn.status === "ACTIVE" ? (
+                          <>
+                            <Eye className="w-3 h-3 text-emerald-600" /> Active
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="w-3 h-3 text-amber-600" /> Draft (Hidden)
+                          </>
+                        )}
+                      </button>
+
                       {asgn.lessonTitle ? (
                         <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-100/70 text-blue-800">
                           Lesson Task
