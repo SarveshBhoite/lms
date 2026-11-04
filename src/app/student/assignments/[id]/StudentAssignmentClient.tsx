@@ -88,7 +88,7 @@ export default function StudentAssignmentClient({
           id: `initial-${idx}`,
           url,
           name: idx === 0 && latestSubmission.fileName ? latestSubmission.fileName : `Asset ${idx + 1}`,
-          type: url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? "IMAGE" : url.startsWith("http") && !url.includes("cloudinary") ? "LINK" : "FILE",
+          type: url.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? "IMAGE" : url.startsWith("http") && !url.includes("imagekit") && !url.includes("cloudinary") ? "LINK" : "FILE",
         }));
       }
       if (latestSubmission.fileUrl) {
@@ -96,7 +96,7 @@ export default function StudentAssignmentClient({
           id: "initial-0",
           url: latestSubmission.fileUrl,
           name: latestSubmission.fileName || "Primary Deliverable",
-          type: latestSubmission.fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? "IMAGE" : latestSubmission.fileUrl.startsWith("http") && !latestSubmission.fileUrl.includes("cloudinary") ? "LINK" : "FILE",
+          type: latestSubmission.fileUrl.match(/\.(jpeg|jpg|gif|png|webp|svg)$/i) ? "IMAGE" : latestSubmission.fileUrl.startsWith("http") && !latestSubmission.fileUrl.includes("imagekit") && !latestSubmission.fileUrl.includes("cloudinary") ? "LINK" : "FILE",
         }];
       }
     }
@@ -135,7 +135,7 @@ export default function StudentAssignmentClient({
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Cloudinary file upload failed");
+        throw new Error(data.error || "File upload failed");
       }
 
       const newAsset: AttachedAsset = {
@@ -146,9 +146,9 @@ export default function StudentAssignmentClient({
       };
 
       setAttachedAssets((prev) => [...prev, newAsset]);
-      showToast("success", `File "${file.name}" uploaded to Cloudinary!`);
+      showToast("success", `File "${file.name}" uploaded successfully!`);
     } catch (err: any) {
-      showToast("error", err.message || "Failed to upload file to Cloudinary");
+      showToast("error", err.message || "Failed to upload file");
     } finally {
       setUploadingFile(false);
       e.target.value = "";
@@ -570,7 +570,7 @@ export default function StudentAssignmentClient({
           {submissionTab === "FILE" && (
             <div className="space-y-3 pt-2">
               <label className="font-bold text-slate-700 block">
-                Attach Document (PDF, Word, PPT, ZIP) to Cloudinary
+                Attach Document (PDF, Word, PPT, ZIP)
               </label>
 
               <div className="p-5 border-2 border-dashed border-purple-200 hover:border-purple-400 rounded-2xl bg-purple-50/30 text-center transition">
@@ -594,10 +594,10 @@ export default function StudentAssignmentClient({
                     )}
                   </div>
                   <div className="font-bold text-slate-800 text-xs">
-                    {uploadingFile ? "Uploading to Cloudinary cloud storage..." : "Click to select and attach document"}
+                    {uploadingFile ? "Uploading document to cloud storage..." : "Click to select and attach document"}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    PDF, DOCX, PPTX, ZIP files are stored on Cloudinary
+                    PDF, DOCX, PPTX, ZIP files are stored securely in cloud
                   </div>
                 </label>
               </div>
@@ -608,7 +608,7 @@ export default function StudentAssignmentClient({
           {submissionTab === "IMAGE" && (
             <div className="space-y-3 pt-2">
               <label className="font-bold text-slate-700 block">
-                Attach Image / Handwritten Notes (PNG, JPG, WebP) to Cloudinary
+                Attach Image / Handwritten Notes (PNG, JPG, WebP)
               </label>
 
               <div className="p-5 border-2 border-dashed border-pink-200 hover:border-pink-400 rounded-2xl bg-pink-50/30 text-center transition">
@@ -632,10 +632,10 @@ export default function StudentAssignmentClient({
                     )}
                   </div>
                   <div className="font-bold text-slate-800 text-xs">
-                    {uploadingFile ? "Uploading image to Cloudinary..." : "Click to select and attach photo / diagram"}
+                    {uploadingFile ? "Uploading image to cloud storage..." : "Click to select and attach photo / diagram"}
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    High resolution images uploaded to Cloudinary
+                    High resolution images uploaded securely to cloud
                   </div>
                 </label>
               </div>
